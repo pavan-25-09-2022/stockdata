@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 public class MarketDataService {
 
     private static final int MINS = 3;
+    private static final LocalTime START_TIME = LocalTime.of(9, 16, 0); // Configurable start time
+
     @Autowired
     private IOPulseService ioPulseService;
     @Autowired
@@ -40,6 +42,9 @@ public class MarketDataService {
 
     @Value("${endTime}")
     private String endTime;
+
+    @Value("${eodValue}")
+    private int eodValue;
 
     private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
 
@@ -79,10 +84,12 @@ public class MarketDataService {
                     return null;
                 }
 
-
                 StockResponse res = processApiResponse(apiResponse, stock);
                 if (res != null) {
                     processEodResponse(res);
+                }
+                if (res != null && res.getPriority() == 0) {
+                    return null;
                 }
                 return res;
             } catch (Exception e) {
@@ -91,127 +98,91 @@ public class MarketDataService {
             }
         }).filter(Objects::nonNull).collect(Collectors.toList());
 
-//        testingResultsService.testingResults(emailList, selectedDate);
+        testingResultsService.testingResults(emailList, selectedDate);
 
         return emailList;
     }
 
     private void processEodResponse(StockResponse res) {
-        StockEODResponse eod = ioPulseService.getMonthlyData(res.getStock());
-
-        if (eod == null || eod.getData().isEmpty()) {
-            log.info("EOD data is empty for stock: " + res.getStock());
+        if (res == null) {
+            log.warn("StockResponse is null, skipping EOD processing.");
             return;
         }
-        int i = 1;
-        StockEODDataResponse dayM1 = eod.getData().get(i);
-        StockEODDataResponse dayM2 = eod.getData().get(i + 1);
-        StockEODDataResponse dayM3 = eod.getData().get(i + 2);
 
-        double ltpChange1 = dayM1.getInClose() - dayM2.getInClose();
-        ltpChange1 = Double.parseDouble(String.format("%.2f", ltpChange1));
-        long oiChange1 = Long.parseLong(dayM1.getInOi()) - Long.parseLong(dayM2.getInOi());
-        String oi1 = (oiChange1 > 0)
-                ? (ltpChange1 > 0 ? "LBU" : "SBU")
-                : (ltpChange1 > 0 ? "SC" : "LU");
+        StockEODResponse eod = ioPulseService.getMonthlyData(res.getStock());
+        if (eod == null || eod.getData().size() < 3) {
+            log.info("EOD data is insufficient for stock: {}", res.getStock());
+            return;
+        }
 
-        double ltpChange2 = dayM2.getInClose() - dayM3.getInClose();
-        ltpChange2 = Double.parseDouble(String.format("%.2f", ltpChange2));
-        long oiChange2 = Long.parseLong(dayM2.getInOi()) - Long.parseLong(dayM3.getInOi());
-        String oi2 = (oiChange2 > 0)
-                ? (ltpChange2 > 0 ? "LBU" : "SBU")
-                : (ltpChange2 > 0 ? "SC" : "LU");
-        String eodIo = oi1 + ", " + oi2;
-        res.setEodData(eodIo);
-        if (res.getStockType().equals("N")) {
-            if (res.getOiInterpretation().equals("SBU")) {
-                if (oi1.equals("SBU")) {
-                    res.setPriority(1);
-                } else if (oi1.equals("LU")) {
-                    res.setPriority(2);
-                } else {
-                    res = null;
-                }
-            }
-        } else {
-            if (res.getOiInterpretation().equals("LBU")) {
-                if (oi1.equals("LBU")) {
-                    res.setPriority(1);
-                } else if (oi1.equals("SC")) {
-                    res.setPriority(2);
-                } else {
-                    res = null;
-                }
-            }
+        // Extract data for the last three days
+        StockEODDataResponse dayM1 = eod.getData().get(eodValue);
+        StockEODDataResponse dayM2 = eod.getData().get(eodValue + 1);
+        StockEODDataResponse dayM3 = eod.getData().get(eodValue + 2);
+
+        // Calculate changes and interpretations
+        String oi1 = calculateOiInterpretation(dayM1, dayM2);
+        String oi2 = calculateOiInterpretation(dayM2, dayM3);
+        res.setEodData(oi1 + ", " + oi2);
+
+        // Determine priority based on stock type and interpretations
+        if ("N".equals(res.getStockType()) && "SBU".equals(res.getOiInterpretation())) {
+            res.setPriority(determinePriority(oi1, "SBU", "LU"));
+        } else if ("P".equals(res.getStockType()) && "LBU".equals(res.getOiInterpretation())) {
+            res.setPriority(determinePriority(oi1, "LBU", "SC"));
         }
     }
 
+    private String calculateOiInterpretation(StockEODDataResponse current, StockEODDataResponse previous) {
+        double ltpChange = Double.parseDouble(String.format("%.2f", current.getInClose() - previous.getInClose()));
+        long oiChange = Long.parseLong(current.getInOi()) - Long.parseLong(previous.getInOi());
+        return (oiChange > 0)
+                ? (ltpChange > 0 ? "LBU" : "SBU")
+                : (ltpChange > 0 ? "SC" : "LU");
+    }
+
+    private int determinePriority(String oi, String primary, String secondary) {
+        if (primary.equals(oi)) {
+            return 1;
+        } else if (secondary.equals(oi)) {
+            return 2;
+        }
+        return 0; // Default priority if no match
+    }
+
+
     public List<List<ApiResponse.Data>> chunkByMinutes(List<ApiResponse.Data> dataList) {
+        if (dataList == null || dataList.isEmpty()) {
+            log.warn("Data list is null or empty, returning an empty list.");
+            return Collections.emptyList();
+        }
+
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-        // Group data by 5-minute intervals
-//        Map<LocalTime, List<ApiResponse.Data>> groupedData = dataList.stream()
-//                .collect(Collectors.groupingBy(
-//                        data -> {
-//                            LocalTime time = LocalTime.parse(data.getTime(), timeFormatter);
-//                            int minuteBucket = (time.getMinute() / MINS) * MINS;
-//                            return time.withMinute(minuteBucket).withSecond(0);
-//                        },
-//                        LinkedHashMap::new, // Use LinkedHashMap to maintain order
-//                        Collectors.toList()
-//                ));
-
+        // Group data by intervals
         Map<LocalTime, List<ApiResponse.Data>> groupedData = dataList.stream()
                 .collect(Collectors.groupingBy(
                         data -> {
-                            LocalTime startTime = LocalTime.of(9, 16, 0); // Starting time
                             LocalTime time = LocalTime.parse(data.getTime(), timeFormatter);
-                            int minutesSinceStart = (int) java.time.Duration.between(startTime, time).toMinutes();
-                            int minuteBucket = (minutesSinceStart / 3) * 3;
-                            return startTime.plusMinutes(minuteBucket).withSecond(0);
+                            int minutesSinceStart = (int) java.time.Duration.between(START_TIME, time).toMinutes();
+                            int minuteBucket = (minutesSinceStart / MINS) * MINS;
+                            return START_TIME.plusMinutes(minuteBucket).withSecond(0);
                         },
-                        LinkedHashMap::new, // Use LinkedHashMap to maintain order
+                        LinkedHashMap::new, // Maintain order
                         Collectors.toList()
                 ));
-
-
-//        List<List<ApiResponse.Data>> chunks = new ArrayList<>();
-//        List<ApiResponse.Data> currentChunk = new ArrayList<>();
-//        String currentOi = null;
-//
-//        for (ApiResponse.Data data : dataList) {
-//            if (!data.getOpenInterest().equals(currentOi)) {
-//                // If openInterest changes, start a new chunk
-//                if (!currentChunk.isEmpty()) {
-//                    chunks.add(new ArrayList<>(currentChunk));
-//                }
-//                currentChunk.clear();
-//                currentOi = data.getOpenInterest();
-//            }
-//            currentChunk.add(data);
-//        }
-//
-//        // Add the last chunk if not empty
-//        if (!currentChunk.isEmpty()) {
-//            chunks.add(currentChunk);
-//        }
-//
-//        return chunks;
-
-        // Convert the grouped data into a list of chunks
         return new ArrayList<>(groupedData.values());
     }
 
     private StockResponse processApiResponse(ApiResponse apiResponse, String stock) {
         List<ApiResponse.Data> list = apiResponse.getData();
-        ApiResponse.Data previousData = list.get(0);
+        ApiResponse.Data previousData;
         List<Long> volumes = new ArrayList<>();
         long previousVolume = 0;
         ApiResponse.Data firstCandle = list.get(0);
-        volumes.add(firstCandle.getTradedVolume());
+//        volumes.add(firstCandle.getTradedVolume());
         double firstCandleHigh = 0.0;
         double firstCandleLow = 0.0;
-        volumes.add(previousVolume);
         List<List<ApiResponse.Data>> chunks = chunkByMinutes(list);
         if (chunks.size() < 3) {
             log.info("Data size is less than 3 for stock: " + stock);
@@ -219,7 +190,6 @@ public class MarketDataService {
         }
 
         List<ApiResponse.Data> newList = chunks.get(1);
-//        newList.add(chunks.get(2).get(0));
         for (ApiResponse.Data data : newList) {
             previousVolume += data.getTradedVolume();
             if (firstCandleHigh == 0.0) {
@@ -231,11 +201,11 @@ public class MarketDataService {
             firstCandleHigh = Math.max(data.getHigh(), firstCandleHigh);
             firstCandleLow = Math.min(data.getLow(), firstCandleLow);
         }
+        volumes.add(previousVolume);
         previousData = newList.get(newList.size() - 1);
         log.info("first candle high " + firstCandleHigh + " first candle low " + firstCandleLow);
         for (int i = 2; i < chunks.size() - 1; i++) {
             List<ApiResponse.Data> chunk = chunks.get(i);
-//            chunk.add(chunks.get(i+1).get(0));
             long totalVolume = 0;
             ApiResponse.Data recentData = null;
             double curOpen = 0.0;
@@ -276,31 +246,14 @@ public class MarketDataService {
             if (totalVolume < 10000) {
                 return null;
             }
-            log.info("NS-S " + stock + " oiChange " + oiChange + " high " + recentData.getHigh() + " low " + recentData.getLow() + " current " + curClose + "  " + oiInterpretation + (isHigher ? " volume high" : "") + " @ " + recentData.getTime());
-            log.info("recent close " + recentData.getClose() + " previous close " + previousData.getClose() + " oiChange " + oiChange + " ltpChange " + ltpChange);
-            log.info("curr candle high " + curOpen + " curr candle high  " + curClose);
-//            boolean value = (oiInterpretation.contains("Long") && isHigher) || (oiInterpretation.contains("Short"));
             if (!oiInterpretation.contains("BU")) {
                 return null;
             }
-            if (firstCandleLow > recentData.getClose() && recentData.getClose() < recentData.getOpen() && oiInterpretation.equals("SBU")) {
-                double stopLoss = firstCandleHigh;
-//                String previousDate = LocalDate.parse(firstCandle.getDate()).minusDays(1).toString();
-//                ResponseEntity<ApiResponse> response = sendRequest(stock, previousDate);
-//                ApiResponse yesResponse = response.getBody();
-//                assert yesResponse != null;
-//                ApiResponse.Data lastRecord = yesResponse.getData().get(yesResponse.getData().size() - 1);
-                return new StockResponse(stock, "N", recentData.getTime(), oiInterpretation, stopLoss, curClose, isHigher);
+            if (firstCandleLow > recentData.getClose() && oiInterpretation.equals("SBU") && isHigher) {
+                return new StockResponse(stock, "N", recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, isHigher);
             }
-            if (firstCandleHigh < recentData.getOpen() && recentData.getOpen() < recentData.getClose() && oiInterpretation.equals("LBU")) {
-                double stopLoss = firstCandleLow;
-
-//                String previousDate = LocalDate.parse(firstCandle.getDate()).minusDays(1).toString();
-//                ResponseEntity<ApiResponse> response = sendRequest(stock, previousDate);
-//                ApiResponse yesResponse = response.getBody();
-//                assert yesResponse != null;
-//                ApiResponse.Data lastRecord = yesResponse.getData().get(yesResponse.getData().size() - 1);
-                return new StockResponse(stock, "P", recentData.getTime(), oiInterpretation, stopLoss, curClose, isHigher);
+            if (firstCandleHigh < recentData.getOpen() && oiInterpretation.equals("LBU") && isHigher) {
+                return new StockResponse(stock, "P", recentData.getTime(), oiInterpretation, firstCandleLow, curClose, isHigher);
             }
             previousData = chunk.get(chunk.size() - 1);
         }

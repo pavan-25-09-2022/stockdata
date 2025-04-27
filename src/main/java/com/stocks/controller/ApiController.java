@@ -29,6 +29,7 @@ public class ApiController {
         }
         String data = beautifyResults(list);
 //        mailService.sendMail(data);
+        System.gc();
         return data;
     }
 
