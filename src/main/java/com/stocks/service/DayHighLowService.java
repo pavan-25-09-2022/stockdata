@@ -1,6 +1,9 @@
 package com.stocks.service;
 
-import com.stocks.dto.*;
+import com.stocks.dto.ApiResponse;
+import com.stocks.dto.StockEODDataResponse;
+import com.stocks.dto.StockEODResponse;
+import com.stocks.dto.StockResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +21,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class MarketDataService {
+public class DayHighLowService {
 
     private static final int MINS = 3;
     private static final LocalTime START_TIME = LocalTime.of(9, 16, 0); // Configurable start time
@@ -46,10 +49,10 @@ public class MarketDataService {
     @Value("${eodValue}")
     private int eodValue;
 
-    private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
+    private static final Logger log = LoggerFactory.getLogger(DayHighLowService.class);
 
 
-    public List<StockResponse> callApi() {
+    public List<StockResponse> DayHighLow() {
 
         String selectedDate = (date != null && !date.isEmpty()) ? date : LocalDate.now().toString();
 
@@ -84,14 +87,7 @@ public class MarketDataService {
                     return null;
                 }
 
-                StockResponse res = processApiResponse(apiResponse, stock);
-                if (res != null) {
-                    processEodResponse(res);
-                }
-                if (res != null && res.getPriority() == 0) {
-                    return null;
-                }
-                return res;
+                return processApiResponse(apiResponse, stock);
             } catch (Exception e) {
                 log.error("Error processing stock: " + stock + ", " + e.getMessage());
                 return null;
@@ -102,54 +98,6 @@ public class MarketDataService {
 
         return emailList;
     }
-
-    private void processEodResponse(StockResponse res) {
-        if (res == null) {
-            log.warn("StockResponse is null, skipping EOD processing.");
-            return;
-        }
-
-        StockEODResponse eod = ioPulseService.getMonthlyData(res.getStock());
-        if (eod == null || eod.getData().size() < 3) {
-            log.info("EOD data is insufficient for stock: {}", res.getStock());
-            return;
-        }
-
-        // Extract data for the last three days
-        StockEODDataResponse dayM1 = eod.getData().get(eodValue);
-        StockEODDataResponse dayM2 = eod.getData().get(eodValue + 1);
-        StockEODDataResponse dayM3 = eod.getData().get(eodValue + 2);
-
-        // Calculate changes and interpretations
-        String oi1 = calculateOiInterpretation(dayM1, dayM2);
-        String oi2 = calculateOiInterpretation(dayM2, dayM3);
-        res.setEodData(oi1 + ", " + oi2);
-
-        // Determine priority based on stock type and interpretations
-        if ("N".equals(res.getStockType()) && "SBU".equals(res.getOiInterpretation())) {
-            res.setPriority(determinePriority(oi1, "SBU", "LU"));
-        } else if ("P".equals(res.getStockType()) && "LBU".equals(res.getOiInterpretation())) {
-            res.setPriority(determinePriority(oi1, "LBU", "SC"));
-        }
-    }
-
-    private String calculateOiInterpretation(StockEODDataResponse current, StockEODDataResponse previous) {
-        double ltpChange = Double.parseDouble(String.format("%.2f", current.getInClose() - previous.getInClose()));
-        long oiChange = Long.parseLong(current.getInOi()) - Long.parseLong(previous.getInOi());
-        return (oiChange > 0)
-                ? (ltpChange > 0 ? "LBU" : "SBU")
-                : (ltpChange > 0 ? "SC" : "LU");
-    }
-
-    private int determinePriority(String oi, String primary, String secondary) {
-        if (primary.equals(oi)) {
-            return 1;
-        } else if (secondary.equals(oi)) {
-            return 2;
-        }
-        return 0; // Default priority if no match
-    }
-
 
     public List<List<ApiResponse.Data>> chunkByMinutes(List<ApiResponse.Data> dataList) {
         if (dataList == null || dataList.isEmpty()) {
@@ -219,8 +167,7 @@ public class MarketDataService {
                 curOpen = Math.min(data.getOpen(), curOpen);
                 curClose = Math.min(data.getClose(), curClose);
             }
-//            double curOpen = chunk.get(0).getOpen();
-//            double curClose = chunk.get(chunk.size() - 1).getClose();
+
             if (recentData == null) {
                 continue;
             }
@@ -245,6 +192,7 @@ public class MarketDataService {
             if (!oiInterpretation.contains("BU")) {
                 return null;
             }
+
             if (firstCandleLow > recentData.getClose() && oiInterpretation.equals("SBU") && isHigher) {
                 return new StockResponse(stock, "N", recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, isHigher);
             }

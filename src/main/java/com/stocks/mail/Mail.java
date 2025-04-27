@@ -1,6 +1,7 @@
 package com.stocks.mail;
 
 import com.stocks.dto.ApiResponse;
+import com.stocks.dto.StockResponse;
 import com.stocks.service.MailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,4 +28,8 @@ public class Mail {
         mailService.sendMail("Stock Report " + formattedDate, data);
 
     }
+    public String beautifyResults(List<StockResponse> list) {
+        return mailService.beautifyResults(list);
+    }
+
 }
