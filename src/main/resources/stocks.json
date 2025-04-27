@@ -1,0 +1,2016 @@
+[
+  {
+    "text": "BANKNIFTY",
+    "type": "FUTIDX",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NIFTY",
+    "type": "FUTIDX",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "FINNIFTY",
+    "type": "FUTIDX",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MIDCPNIFTY",
+    "type": "FUTIDX",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NIFTYNXT50",
+    "type": "FUTIDX",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "AARTIIND",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ABB",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ABCAPITAL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ABFRL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ACC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ADANIENSOL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ADANIENT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ADANIGREEN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ADANIPORTS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ALKEM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "AMBUJACEM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ANGELONE",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "APLAPOLLO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "APOLLOHOSP",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "APOLLOTYRE",
+    "type": "FUTSTK",
+    "value": [
+      "I"
+    ]
+  },
+  {
+    "text": "ASHOKLEY",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ASIANPAINT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ASTRAL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ATGL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "AUBANK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "AUROPHARMA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "AXISBANK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BAJAJ-AUTO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BAJAJFINSV",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BAJFINANCE",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BALKRISIND",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BANDHANBNK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BANKBARODA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BANKEX",
+    "type": "FUTIDX",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BANKINDIA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BEL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BHARATFORG",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BHARTIARTL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BHEL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BIOCON",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BOSCHLTD",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BPCL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BRITANNIA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BSE",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "BSOFT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CAMS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CANBK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CDSL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CESC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CGPOWER",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CHAMBLFERT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CHOLAFIN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CIPLA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "COALINDIA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "COFORGE",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "COLPAL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CONCOR",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CROMPTON",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CUMMINSIND",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "CYIENT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "DABUR",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "DALBHARAT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "DEEPAKNTR",
+    "type": "FUTSTK",
+    "value": [
+      "I"
+    ]
+  },
+  {
+    "text": "DELHIVERY",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "DIVISLAB",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "DIXON",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "DLF",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "DMART",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "DRREDDY",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "EICHERMOT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ESCORTS",
+    "type": "FUTSTK",
+    "value": [
+      "I"
+    ]
+  },
+  {
+    "text": "ETERNAL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "EXIDEIND",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "FEDERALBNK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "GAIL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "GLENMARK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "GMRAIRPORT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "GODREJCP",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "GODREJPROP",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "GRANULES",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "GRASIM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HAL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HAVELLS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HCLTECH",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HDFCAMC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HDFCBANK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HDFCLIFE",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HEROMOTOCO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HFCL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HINDALCO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HINDCOPPER",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HINDPETRO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HINDUNILVR",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HINDZINC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "HUDCO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ICICIBANK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ICICIGI",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ICICIPRULI",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "IDEA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "IDFCFIRSTB",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "IEX",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "IGL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "IIFL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "INDHOTEL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "INDIANB",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "INDIGO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "INDUSINDBK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "INDUSTOWER",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "INFY",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "INOXWIND",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "IOC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "IRB",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "IRCTC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "IREDA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "IRFC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ITC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "JINDALSTEL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "JIOFIN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "JSL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "JSWENERGY",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "JSWSTEEL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "JUBLFOOD",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "KALYANKJIL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "KEI",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "KOTAKBANK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "KPITTECH",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "LAURUSLABS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "LICHSGFIN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "LICI",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "LODHA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "LT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "LTF",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "LTIM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "LUPIN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MANAPPURAM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MARICO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MARUTI",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MAXHEALTH",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MCX",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MFSL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MGL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "M&M",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "M&MFIN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MOTHERSON",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MPHASIS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "MRF",
+    "type": "FUTSTK",
+    "value": [
+      "I"
+    ]
+  },
+  {
+    "text": "MUTHOOTFIN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NATIONALUM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NAUKRI",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NBCC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NCC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NESTLEIND",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NHPC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NMDC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NTPC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "NYKAA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "OBEROIRLTY",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "OFSS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "OIL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ONGC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PAGEIND",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PATANJALI",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PAYTM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PEL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PERSISTENT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PETRONET",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PFC",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PHOENIXLTD",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PIDILITIND",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PIIND",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PNB",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PNBHOUSING",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "POLICYBZR",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "POLYCAB",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "POONAWALLA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "POWERGRID",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "PRESTIGE",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "RAMCOCEM",
+    "type": "FUTSTK",
+    "value": [
+      "I"
+    ]
+  },
+  {
+    "text": "RBLBANK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "RECLTD",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "RELIANCE",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SAIL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SBICARD",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SBILIFE",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SBIN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SENSEX",
+    "type": "FUTIDX",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SENSEX50",
+    "type": "FUTIDX",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SHREECEM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SHRIRAMFIN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SIEMENS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SJVN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SOLARINDS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SONACOMS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SRF",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SUNPHARMA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SUPREMEIND",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "SYNGENE",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TATACHEM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TATACOMM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TATACONSUM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TATAELXSI",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TATAMOTORS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TATAPOWER",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TATASTEEL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TATATECH",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TCS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TECHM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TIINDIA",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TITAGARH",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TITAN",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TORNTPHARM",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TORNTPOWER",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TRENT",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "TVSMOTOR",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ULTRACEMCO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "UNIONBANK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "UNITDSPR",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "UPL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "VBL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "VEDL",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "VOLTAS",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "WIPRO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "YESBANK",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  },
+  {
+    "text": "ZOMATO",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II"
+    ]
+  },
+  {
+    "text": "ZYDUSLIFE",
+    "type": "FUTSTK",
+    "value": [
+      "I",
+      "II",
+      "III"
+    ]
+  }
+]
