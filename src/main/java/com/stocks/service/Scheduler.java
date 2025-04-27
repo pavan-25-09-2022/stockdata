@@ -12,11 +12,20 @@ public class Scheduler {
     private static final Logger log = LoggerFactory.getLogger(Scheduler.class);
     @Autowired
     private MarketDataService apiService;
+    @Autowired
+    private DayHighLowService dayHighLowService;
 
-    @Scheduled(cron = "2 18/3 9-14 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
+    @Scheduled(cron = "2 18/3 9-10 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
     public void callApi() {
         log.info("Scheduler started");
         apiService.callApi();
+        log.info("Scheduler finished");
+    }
+
+    @Scheduled(cron = "2 18/3 9-10 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
+    public void dayHighLow() {
+        log.info("Scheduler started");
+        dayHighLowService.dayHighLow();
         log.info("Scheduler finished");
     }
 }

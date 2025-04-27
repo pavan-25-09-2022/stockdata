@@ -160,9 +160,9 @@ public class MailService {
         for (Map.Entry<String, List<StockResponse>> entry : psStocks.entrySet()) {
             List<StockResponse> stocks = entry.getValue();
             for (StockResponse stock : stocks) {
-                if (stock.getPriority() == 0) {
-                    continue;
-                }
+//                if (stock.getPriority() == 0) {
+//                    continue;
+//                }
                 htmlContent.append("<tr style='background-color: #ccffcc;'>")
                         .append("<td>").append(stock.getPriority()).append("</td>")
                         .append("<td>").append(stock.getStock()).append("</td>")

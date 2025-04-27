@@ -14,11 +14,13 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class DayHighLowService {
@@ -52,7 +54,7 @@ public class DayHighLowService {
     private static final Logger log = LoggerFactory.getLogger(DayHighLowService.class);
 
 
-    public List<StockResponse> DayHighLow() {
+    public List<StockResponse> dayHighLow() {
 
         String selectedDate = (date != null && !date.isEmpty()) ? date : LocalDate.now().toString();
 
@@ -61,7 +63,7 @@ public class DayHighLowService {
 
         // Read all lines from the file into a List
         List<String> stockList;
-        try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
+        try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
             stockList = lines.collect(Collectors.toList());
         } catch (IOException e) {
             log.error("Error reading file: " + e.getMessage());
@@ -112,7 +114,7 @@ public class DayHighLowService {
                 .collect(Collectors.groupingBy(
                         data -> {
                             LocalTime time = LocalTime.parse(data.getTime(), timeFormatter);
-                            int minutesSinceStart = (int) java.time.Duration.between(START_TIME, time).toMinutes();
+                            int minutesSinceStart = (int) Duration.between(START_TIME, time).toMinutes();
                             int minuteBucket = (minutesSinceStart / MINS) * MINS;
                             return START_TIME.plusMinutes(minuteBucket).withSecond(0);
                         },
@@ -125,7 +127,8 @@ public class DayHighLowService {
     private StockResponse processApiResponse(ApiResponse apiResponse, String stock) {
         List<ApiResponse.Data> list = apiResponse.getData();
         ApiResponse.Data previousData;
-        List<Long> volumes = new ArrayList<>();
+//        List<Long> volumes = new ArrayList<>();
+        long highVolume;
         long previousVolume = 0;
         double firstCandleHigh = 0.0;
         double firstCandleLow = 0.0;
@@ -134,20 +137,25 @@ public class DayHighLowService {
             log.info("Data size is less than 3 for stock: " + stock);
             return null;
         }
-
+        double dayHigh = 0.0;
+        double dayLow = 0.0;
         List<ApiResponse.Data> newList = chunks.get(1);
         for (ApiResponse.Data data : newList) {
             previousVolume += data.getTradedVolume();
             if (firstCandleHigh == 0.0) {
                 firstCandleHigh = data.getHigh();
+                dayHigh = data.getHigh();
             }
             if (firstCandleLow == 0.0) {
                 firstCandleLow = data.getLow();
+                dayLow = data.getLow();
             }
             firstCandleHigh = Math.max(data.getHigh(), firstCandleHigh);
             firstCandleLow = Math.min(data.getLow(), firstCandleLow);
+            dayHigh = Math.max(data.getHigh(), dayHigh);
+            dayLow = Math.min(data.getLow(), dayLow);
         }
-        volumes.add(previousVolume);
+        highVolume = previousVolume;
         previousData = newList.get(newList.size() - 1);
         for (int i = 2; i < chunks.size() - 1; i++) {
             List<ApiResponse.Data> chunk = chunks.get(i);
@@ -155,6 +163,8 @@ public class DayHighLowService {
             ApiResponse.Data recentData = null;
             double curOpen = 0.0;
             double curClose = 0.0;
+            double curHigh = 0.0;
+            double curLow = 0.0;
             for (ApiResponse.Data data : chunk) {
                 totalVolume += data.getTradedVolume();
                 recentData = data;
@@ -164,8 +174,16 @@ public class DayHighLowService {
                 if (curClose == 0.0) {
                     curClose = data.getClose();
                 }
+                if (curHigh == 0.0) {
+                    curHigh = data.getHigh();
+                }
+                if (curLow == 0.0) {
+                    curLow = data.getLow();
+                }
                 curOpen = Math.min(data.getOpen(), curOpen);
                 curClose = Math.min(data.getClose(), curClose);
+                curHigh = Math.max(data.getHigh(), curHigh);
+                curLow = Math.min(data.getLow(), curLow);
             }
 
             if (recentData == null) {
@@ -183,21 +201,28 @@ public class DayHighLowService {
                     ? (ltpChange > 0 ? "LBU" : "SBU")
                     : (ltpChange > 0 ? "SC" : "LU");
 
-            long finalTotalVolume = totalVolume;
-            boolean isHigher = volumes.stream().anyMatch(volume -> finalTotalVolume > volume);
-
-            if (totalVolume < 10000) {
-                return null;
+            boolean isHigher = false;
+            if (highVolume < totalVolume) {
+                isHigher = true;
+                highVolume = totalVolume;
             }
-            if (!oiInterpretation.contains("BU")) {
-                return null;
+            boolean isDayHigh = false;
+            boolean isDayLow = false;
+            if (dayHigh < curHigh) {
+                isDayHigh = true;
+                dayHigh = curHigh;
             }
-
-            if (firstCandleLow > recentData.getClose() && oiInterpretation.equals("SBU") && isHigher) {
-                return new StockResponse(stock, "N", recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, isHigher);
+            if (curLow < dayLow) {
+                isDayLow = true;
+                dayLow = curLow;
             }
-            if (firstCandleHigh < recentData.getOpen() && oiInterpretation.equals("LBU") && isHigher) {
-                return new StockResponse(stock, "P", recentData.getTime(), oiInterpretation, firstCandleLow, curClose, isHigher);
+            if (isHigher) {
+                if (isDayHigh && ("SBU".equals(oiInterpretation) || "LU".equals(oiInterpretation))) {
+                    return new StockResponse(stock, "N", recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, isHigher);
+                }
+                if (isDayLow && ("LBU".equals(oiInterpretation) || "SC".equals(oiInterpretation))) {
+                    return new StockResponse(stock, "P", recentData.getTime(), oiInterpretation, firstCandleLow, curClose, isHigher);
+                }
             }
             previousData = chunk.get(chunk.size() - 1);
         }

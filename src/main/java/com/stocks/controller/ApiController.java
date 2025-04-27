@@ -2,21 +2,22 @@ package com.stocks.controller;
 
 import com.stocks.dto.StockResponse;
 import com.stocks.mail.Mail;
+import com.stocks.service.DayHighLowService;
 import com.stocks.service.MarketDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 public class ApiController {
 
     @Autowired
     private MarketDataService apiService;
+
+    @Autowired
+    private DayHighLowService dayHighLowService;
 
     @Autowired
     private Mail mailService;
@@ -33,15 +34,15 @@ public class ApiController {
         return data;
     }
 
-//    @GetMapping("/apiDayHighLow")
-//    public String apiDayHighLow() {
-//        List<StockResponse> list = apiService.apiDayHighLow();
-//        if (list == null || list.isEmpty()) {
-//            return "No data found";
-//        }
-//        String data = mailService.beautifyResults(list);
-//        mailService.sendMail(data);
-//        System.gc();
-//        return data;
-//    }
+    @GetMapping("/apiDayHighLow")
+    public String apiDayHighLow() {
+        List<StockResponse> list = dayHighLowService.dayHighLow();
+        if (list == null || list.isEmpty()) {
+            return "No data found";
+        }
+        String data = mailService.beautifyResults(list);
+        mailService.sendMail(data);
+        System.gc();
+        return data;
+    }
 }

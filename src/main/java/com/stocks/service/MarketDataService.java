@@ -177,7 +177,7 @@ public class MarketDataService {
     private StockResponse processApiResponse(ApiResponse apiResponse, String stock) {
         List<ApiResponse.Data> list = apiResponse.getData();
         ApiResponse.Data previousData;
-        List<Long> volumes = new ArrayList<>();
+//        List<Long> volumes = new ArrayList<>();
         long previousVolume = 0;
         double firstCandleHigh = 0.0;
         double firstCandleLow = 0.0;
@@ -199,7 +199,7 @@ public class MarketDataService {
             firstCandleHigh = Math.max(data.getHigh(), firstCandleHigh);
             firstCandleLow = Math.min(data.getLow(), firstCandleLow);
         }
-        volumes.add(previousVolume);
+        long highVolume = previousVolume;
         previousData = newList.get(newList.size() - 1);
         for (int i = 2; i < chunks.size() - 1; i++) {
             List<ApiResponse.Data> chunk = chunks.get(i);
@@ -236,11 +236,10 @@ public class MarketDataService {
                     ? (ltpChange > 0 ? "LBU" : "SBU")
                     : (ltpChange > 0 ? "SC" : "LU");
 
-            long finalTotalVolume = totalVolume;
-            boolean isHigher = volumes.stream().anyMatch(volume -> finalTotalVolume > volume);
-
-            if (totalVolume < 10000) {
-                return null;
+            boolean isHigher = false;
+            if (highVolume < totalVolume) {
+                isHigher = true;
+                highVolume = totalVolume;
             }
             if (!oiInterpretation.contains("BU")) {
                 return null;
