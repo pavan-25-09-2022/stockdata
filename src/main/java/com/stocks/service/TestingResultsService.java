@@ -52,7 +52,7 @@ public class TestingResultsService {
                 if (data.getTime().equals(exitTime)) {
                     double buy = data.getClose() * 10;
                     stockProfit = sell - buy;
-                    StockProfitResult result = new StockProfitResult(stockProfit, sell, buy, exitTime, stock.getTime());
+                    StockProfitResult result = new StockProfitResult(stockProfit, sell, buy, exitTime, stock.getEndTime());
                     stock.setStockProfitResult(result);
                     break;
                 }
@@ -74,7 +74,7 @@ public class TestingResultsService {
                 if (data.getTime().equals(exitTime)) {
                     double sell = data.getClose() * 10;
                     stockProfit = sell - buy;
-                    StockProfitResult result = new StockProfitResult(stockProfit, sell, buy, stock.getTime(), exitTime);
+                    StockProfitResult result = new StockProfitResult(stockProfit, sell, buy, stock.getEndTime(), exitTime);
                     stock.setStockProfitResult(result);
                     break;
                 }

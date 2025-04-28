@@ -161,6 +161,7 @@ public class DayHighLowService {
             List<ApiResponse.Data> chunk = chunks.get(i);
             long totalVolume = 0;
             ApiResponse.Data recentData = null;
+            ApiResponse.Data firstCandle = null;
             double curOpen = 0.0;
             double curClose = 0.0;
             double curHigh = 0.0;
@@ -168,6 +169,9 @@ public class DayHighLowService {
             for (ApiResponse.Data data : chunk) {
                 totalVolume += data.getTradedVolume();
                 recentData = data;
+                if (firstCandle == null){
+                    firstCandle = data;
+                }
                 if (curOpen == 0.0) {
                     curOpen = data.getOpen();
                 }
@@ -218,10 +222,10 @@ public class DayHighLowService {
             }
             if (isHigher) {
                 if (isDayHigh && ("SBU".equals(oiInterpretation) || "LU".equals(oiInterpretation))) {
-                    return new StockResponse(stock, "N", recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, isHigher);
+                    return new StockResponse(stock, "N", firstCandle.getTime(),recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, totalVolume);
                 }
                 if (isDayLow && ("LBU".equals(oiInterpretation) || "SC".equals(oiInterpretation))) {
-                    return new StockResponse(stock, "P", recentData.getTime(), oiInterpretation, firstCandleLow, curClose, isHigher);
+                    return new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleLow, curClose, totalVolume);
                 }
             }
             previousData = chunk.get(chunk.size() - 1);

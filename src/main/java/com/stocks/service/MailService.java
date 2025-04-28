@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -88,15 +87,16 @@ public class MailService {
         StringBuilder htmlContent = new StringBuilder();
         htmlContent.append("<html><body>");
         htmlContent.append("<h2>Stock Report</h2>");
-        htmlContent.append("<table border='1' style='border-collapse: collapse; width: 100%;'>");
+        htmlContent.append("<table border='1' style='border-collapse: collapse; width: 100%; table-layout: auto;'>");
         htmlContent.append("<tr>")
                 .append("<th>P</th>")
                 .append("<th>Stock</th>")
-                .append("<th>Cur Price</th>")
+                .append("<th>Price</th>")
                 .append("<th>Time</th>")
-                .append("<th>OI Interpretation</th>")
-                .append("<th>Stop Loss</th>")
-                .append("<th>EOD OI</th>");
+                .append("<th>OI</th>")
+                .append("<th>SL</th>")
+                .append("<th>EOD OI</th>")
+                .append("<th>Vol</th>");
         if (list.get(0).getStockProfitResult() != null) {
             htmlContent.append("<th> profit</th>")
                     .append("<th> sellPrice</th>")
@@ -131,10 +131,11 @@ public class MailService {
                         .append("<td>").append(stock.getPriority()).append("</td>")
                         .append("<td>").append(stock.getStock()).append("</td>")
                         .append("<td>").append(stock.getCurrentPrice()).append("</td>")
-                        .append("<td>").append(stock.getTime()).append("</td>")
+                        .append("<td>").append(stock.getStartTime()).append("-").append(stock.getEndTime()).append("</td>")
                         .append("<td>").append(stock.getOiInterpretation()).append("</td>")
                         .append("<td>").append(stock.getStopLoss()).append("</td>")
-                        .append("<td>").append(stock.getEodData()).append("</td>");
+                        .append("<td>").append(stock.getEodData()).append("</td>")
+                        .append("<td>").append(stock.getVolume()).append("</td>");
                 if (stock.getStockProfitResult() != null) {
                     htmlContent.append("<td style='background-color: ")
                             .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
@@ -148,10 +149,12 @@ public class MailService {
                 }
                 htmlContent.append("</tr>");
             }
+            htmlContent.append("<tr style='height: 20px;'></tr>");
+
             // Add one empty row after each group
-            htmlContent.append("<tr><td colspan='10'>&nbsp;</td></tr>");
         }
 
+        htmlContent.append("<tr style='height: 20px;'></tr>");
 
 // Append rows for P stocks
         Map<String, List<StockResponse>> psStocks = pStocks.stream()
@@ -167,10 +170,11 @@ public class MailService {
                         .append("<td>").append(stock.getPriority()).append("</td>")
                         .append("<td>").append(stock.getStock()).append("</td>")
                         .append("<td>").append(stock.getCurrentPrice()).append("</td>")
-                        .append("<td>").append(stock.getTime()).append("</td>")
+                        .append("<td>").append(stock.getStartTime()).append("-").append(stock.getEndTime()).append("</td>")
                         .append("<td>").append(stock.getOiInterpretation()).append("</td>")
                         .append("<td>").append(stock.getStopLoss()).append("</td>")
-                        .append("<td>").append(stock.getEodData()).append("</td>");
+                        .append("<td>").append(stock.getEodData()).append("</td>")
+                        .append("<td>").append(stock.getVolume()).append("</td>");
                 if (stock.getStockProfitResult() != null) {
                     htmlContent.append("<td style='background-color: ")
                             .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
@@ -184,8 +188,9 @@ public class MailService {
                 }
                 htmlContent.append("</tr>");
             }
+            htmlContent.append("<tr style='height: 20px;'></tr>");
+
             // Add one empty row after each group
-            htmlContent.append("<tr><td colspan='10'>&nbsp;</td></tr>");
         }
         htmlContent.append("</table>");
         htmlContent.append("</body></html>");

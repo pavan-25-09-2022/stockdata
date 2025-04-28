@@ -120,11 +120,11 @@ public class ApiTestingService {
         if (!oiInterpretation.contains("BU")) return null;
 
         if (isShortSetup(firstCandleLow, recentData, oiInterpretation)) {
-            return new StockResponse(stock, "N", recentData.getTime(), oiInterpretation, firstCandleHigh, recentData.getClose(), true);
+//            return new StockResponse(stock, "N", recentData.getTime(), oiInterpretation, firstCandleHigh, recentData.getClose(), true);
         }
 
         if (isLongSetup(firstCandleHigh, recentData, oiInterpretation)) {
-            return new StockResponse(stock, "P", recentData.getTime(), oiInterpretation, firstCandleLow, recentData.getClose(), true);
+//            return new StockResponse(stock, "P", recentData.getTime(), oiInterpretation, firstCandleLow, recentData.getClose(), true);
         }
 
         return null;

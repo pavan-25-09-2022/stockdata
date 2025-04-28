@@ -1,6 +1,7 @@
 package com.stocks.service;
 
 import com.stocks.dto.*;
+import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,8 @@ public class MarketDataService {
     private IOPulseService ioPulseService;
     @Autowired
     private TestingResultsService testingResultsService;
+    @Autowired
+    private StockDataManager stockDataManager;
 
     @Value("${api.url}")
     private String apiUrl;
@@ -98,7 +101,7 @@ public class MarketDataService {
             }
         }).filter(Objects::nonNull).collect(Collectors.toList());
 
-        testingResultsService.testingResults(emailList, selectedDate);
+//        testingResultsService.testingResults(emailList, selectedDate);
 
         return emailList;
     }
@@ -199,17 +202,28 @@ public class MarketDataService {
             firstCandleHigh = Math.max(data.getHigh(), firstCandleHigh);
             firstCandleLow = Math.min(data.getLow(), firstCandleLow);
         }
+        String recentTime = stockDataManager.getRecentTime(stock, FormatUtil.getCurDate());
+        LocalTime recentTimeStamp = null;
+        if (recentTime != null) {
+            recentTimeStamp = LocalTime.parse(recentTime);
+        }
+
         long highVolume = previousVolume;
         previousData = newList.get(newList.size() - 1);
         for (int i = 2; i < chunks.size() - 1; i++) {
             List<ApiResponse.Data> chunk = chunks.get(i);
             long totalVolume = 0;
             ApiResponse.Data recentData = null;
+            ApiResponse.Data firstCandle = null;
+
             double curOpen = 0.0;
             double curClose = 0.0;
             for (ApiResponse.Data data : chunk) {
                 totalVolume += data.getTradedVolume();
                 recentData = data;
+                if (firstCandle == null) {
+                    firstCandle = data;
+                }
                 if (curOpen == 0.0) {
                     curOpen = data.getOpen();
                 }
@@ -219,6 +233,7 @@ public class MarketDataService {
                 curOpen = Math.min(data.getOpen(), curOpen);
                 curClose = Math.min(data.getClose(), curClose);
             }
+
 //            double curOpen = chunk.get(0).getOpen();
 //            double curClose = chunk.get(chunk.size() - 1).getClose();
             if (recentData == null) {
@@ -241,16 +256,25 @@ public class MarketDataService {
                 isHigher = true;
                 highVolume = totalVolume;
             }
-            if (!oiInterpretation.contains("BU")) {
-                return null;
-            }
-            if (firstCandleLow > recentData.getClose() && oiInterpretation.equals("SBU") && isHigher) {
-                return new StockResponse(stock, "N", recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, isHigher);
-            }
-            if (firstCandleHigh < recentData.getOpen() && oiInterpretation.equals("LBU") && isHigher) {
-                return new StockResponse(stock, "P", recentData.getTime(), oiInterpretation, firstCandleLow, curClose, isHigher);
-            }
+//            if (!oiInterpretation.contains("BU")) {
+//                return null;
+//            }
             previousData = chunk.get(chunk.size() - 1);
+            if (recentTimeStamp != null) {
+                if (localTime.isBefore(recentTimeStamp)) {
+                    continue;
+                }
+            }
+            if (recentTimeStamp == null || localTime.isAfter(recentTimeStamp)) {
+                if (firstCandleLow > recentData.getClose() && (oiInterpretation.equals("LU") || oiInterpretation.equals("SBU")) && isHigher) {
+                    stockDataManager.saveStockData(stock, FormatUtil.getCurDate(), recentData.getTime(), recentData.getOpenInterest());
+                    return new StockResponse(stock, "N", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, totalVolume);
+                }
+                if (firstCandleHigh < recentData.getOpen() && (oiInterpretation.equals("LBU") || oiInterpretation.equals("SC")) && isHigher) {
+                    stockDataManager.saveStockData(stock, FormatUtil.getCurDate(), recentData.getTime(), recentData.getOpenInterest());
+                    return new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleLow, curClose, totalVolume);
+                }
+            }
         }
         return null;
     }

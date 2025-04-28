@@ -43,7 +43,7 @@ public class IOPulseService {
         payload.put("stSelectedFutures", stock);
         payload.put("stSelectedExpiry", "I");
         payload.put("stSelectedAvailableDate", selectedDate);
-        payload.put("stSelectedModeOfData", "historical");
+        payload.put("stSelectedModeOfData", "live");
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", authToken);

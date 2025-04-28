@@ -1,26 +1,31 @@
 package com.stocks.dto;
 
+import com.stocks.utils.FormatUtil;
+
 public class StockResponse {
 
     private String stock;
-    private String time;
+    private String startTime;
+    private String endTime;
     private String oiInterpretation;
     private double stopLoss;
     private double currentPrice;
-    boolean isHighVolume;
+    private String volume;
     String stockType;
     String eodData;
     StockProfitResult stockProfitResult;
     int priority;
 
-    public StockResponse(String stock, String stockType, String time, String oiInterpretation, double stopLoss, double currentPrice, boolean isHighVolume) {
+
+    public StockResponse(String stock, String stockType, String startTime, String time, String oiInterpretation, double stopLoss, double currentPrice, long volume) {
         this.stock = stock;
-        this.time = time;
+        this.startTime = FormatUtil.formatTime(startTime);
+        this.endTime = FormatUtil.formatTime(time);
         this.oiInterpretation = oiInterpretation;
         this.stopLoss = stopLoss;
         this.currentPrice = currentPrice;
-        this.isHighVolume = isHighVolume;
         this.stockType = stockType;
+        this.volume = FormatUtil.formatVolume(volume);
     }
 
     public String getStock() {
@@ -31,12 +36,12 @@ public class StockResponse {
         this.stock = stock;
     }
 
-    public String getTime() {
-        return time;
+    public String getEndTime() {
+        return endTime;
     }
 
-    public void setTime(String time) {
-        this.time = time;
+    public void setEndTime(String endTime) {
+        this.endTime = endTime;
     }
 
     public String getOiInterpretation() {
@@ -61,14 +66,6 @@ public class StockResponse {
 
     public void setCurrentPrice(double currentPrice) {
         this.currentPrice = currentPrice;
-    }
-
-    public boolean isHighVolume() {
-        return isHighVolume;
-    }
-
-    public void setHighVolume(boolean highVolume) {
-        isHighVolume = highVolume;
     }
 
     public String getStockType() {
@@ -101,5 +98,22 @@ public class StockResponse {
 
     public void setPriority(int priority) {
         this.priority = priority;
+    }
+
+    public String getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(String startTime) {
+        this.startTime = startTime;
+    }
+
+    public String getVolume() {
+        return volume;
+    }
+
+    public String setVolume(String volume) {
+        this.volume = volume;
+        return volume;
     }
 }
