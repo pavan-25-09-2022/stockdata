@@ -27,7 +27,7 @@ public class Scheduler {
     public void callApi() {
         log.info("Scheduler started");
         logTime();
-        List<StockResponse> list = apiService.callApi();
+        List<StockResponse> list = apiService.callApi(3, false);
         if (list == null || list.isEmpty()) {
            log.info("No records found");
             return;

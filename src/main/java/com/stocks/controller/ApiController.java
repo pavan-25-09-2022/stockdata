@@ -6,6 +6,7 @@ import com.stocks.service.DayHighLowService;
 import com.stocks.service.MarketDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -23,8 +24,9 @@ public class ApiController {
     private Mail mailService;
 
     @GetMapping("/call-api")
-    public String callApi() {
-        List<StockResponse> list = apiService.callApi();
+    public String callApi(@RequestParam (name = "minutes", required = false, defaultValue = "0") Integer minutes,
+                          @RequestParam (name = "fetchAll", required = false) boolean fetchAll) {
+        List<StockResponse> list = apiService.callApi(minutes, fetchAll);
         if (list == null || list.isEmpty()) {
             return "No data found";
         }
