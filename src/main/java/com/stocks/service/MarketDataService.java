@@ -91,9 +91,6 @@ public class MarketDataService {
                 if (res != null) {
                     processEodResponse(res);
                 }
-                if (res != null && res.getPriority() == 0) {
-                    return null;
-                }
                 return res;
             } catch (Exception e) {
                 log.error("Error processing stock: " + stock + ", " + e.getMessage());
@@ -154,13 +151,11 @@ public class MarketDataService {
     }
 
 
-    public List<List<ApiResponse.Data>> chunkByMinutes(List<ApiResponse.Data> dataList, int minutes ) {
+    public List<List<ApiResponse.Data>> chunkByMinutes(List<ApiResponse.Data> dataList) {
         if (dataList == null || dataList.isEmpty()) {
             log.warn("Data list is null or empty, returning an empty list.");
             return Collections.emptyList();
         }
-
-        int finalMinutes = minutes == 0 ? MINS : minutes;
 
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
@@ -170,7 +165,7 @@ public class MarketDataService {
                         data -> {
                             LocalTime time = LocalTime.parse(data.getTime(), timeFormatter);
                             int minutesSinceStart = (int) java.time.Duration.between(START_TIME, time).toMinutes();
-                            int minuteBucket = (minutesSinceStart / finalMinutes) * finalMinutes;
+                            int minuteBucket = (minutesSinceStart / MINS) * MINS;
                             return START_TIME.plusMinutes(minuteBucket).withSecond(0);
                         },
                         LinkedHashMap::new, // Maintain order
@@ -179,14 +174,14 @@ public class MarketDataService {
         return new ArrayList<>(groupedData.values());
     }
 
-    private StockResponse processApiResponse(ApiResponse apiResponse, String stock, int minutes, boolean fetchAll) {
+    private StockResponse processApiResponse(ApiResponse apiResponse, String stock) {
         List<ApiResponse.Data> list = apiResponse.getData();
         ApiResponse.Data previousData;
 //        List<Long> volumes = new ArrayList<>();
         long previousVolume = 0;
         double firstCandleHigh = 0.0;
         double firstCandleLow = 0.0;
-        List<List<ApiResponse.Data>> chunks = chunkByMinutes(list, minutes);
+        List<List<ApiResponse.Data>> chunks = chunkByMinutes(list);
         if (chunks.size() < 3) {
             log.info("Data size is less than 3 for stock: " + stock);
             return null;
