@@ -80,12 +80,6 @@ public class MarketDataService {
                     log.info("Data size is less than or equal to 6 for stock: " + stock);
                     return null;
                 }
-//                if (apiResponse.getData().get(0).getHigh() < 150 || apiResponse.getData().get(0).getHigh() > 30000) {
-//                    return null;
-//                }
-                if (apiResponse.getData().get(0).getTradedVolume() < 10000) {
-                    return null;
-                }
 
                 StockResponse res = processApiResponse(apiResponse, stock, minutes, fetchAll);
                 if (res != null) {
@@ -98,7 +92,7 @@ public class MarketDataService {
             }
         }).filter(Objects::nonNull).collect(Collectors.toList());
 
-//        testingResultsService.testingResults(emailList, selectedDate);
+        //testingResultsService.testingResults(emailList, selectedDate);
 
         return emailList;
     }
@@ -151,11 +145,14 @@ public class MarketDataService {
     }
 
 
-    public List<List<ApiResponse.Data>> chunkByMinutes(List<ApiResponse.Data> dataList) {
+    public List<List<ApiResponse.Data>> chunkByMinutes(List<ApiResponse.Data> dataList, int minutes) {
+
         if (dataList == null || dataList.isEmpty()) {
             log.warn("Data list is null or empty, returning an empty list.");
             return Collections.emptyList();
         }
+
+        int finalMinutes = minutes != 0 ? minutes : MINS;
 
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
@@ -165,7 +162,7 @@ public class MarketDataService {
                         data -> {
                             LocalTime time = LocalTime.parse(data.getTime(), timeFormatter);
                             int minutesSinceStart = (int) java.time.Duration.between(START_TIME, time).toMinutes();
-                            int minuteBucket = (minutesSinceStart / MINS) * MINS;
+                            int minuteBucket = (minutesSinceStart / finalMinutes) * finalMinutes;
                             return START_TIME.plusMinutes(minuteBucket).withSecond(0);
                         },
                         LinkedHashMap::new, // Maintain order
@@ -174,21 +171,21 @@ public class MarketDataService {
         return new ArrayList<>(groupedData.values());
     }
 
-    private StockResponse processApiResponse(ApiResponse apiResponse, String stock) {
+    private StockResponse processApiResponse(ApiResponse apiResponse, String stock, int minutes, boolean fetchAll) {
         List<ApiResponse.Data> list = apiResponse.getData();
         ApiResponse.Data previousData;
 //        List<Long> volumes = new ArrayList<>();
         long previousVolume = 0;
         double firstCandleHigh = 0.0;
         double firstCandleLow = 0.0;
-        List<List<ApiResponse.Data>> chunks = chunkByMinutes(list);
+        List<List<ApiResponse.Data>> chunks = chunkByMinutes(list, minutes);
         if (chunks.size() < 3) {
             log.info("Data size is less than 3 for stock: " + stock);
             return null;
         }
 
-        List<ApiResponse.Data> newList = chunks.get(1);
-        for (ApiResponse.Data data : newList) {
+        List<ApiResponse.Data> firstCandleChunk = chunks.get(1);
+        for (ApiResponse.Data data : firstCandleChunk) {
             previousVolume += data.getTradedVolume();
             if (firstCandleHigh == 0.0) {
                 firstCandleHigh = data.getHigh();
@@ -206,7 +203,7 @@ public class MarketDataService {
         }
 
         long highVolume = previousVolume;
-        previousData = newList.get(newList.size() - 1);
+        previousData = firstCandleChunk.get(firstCandleChunk.size() - 1);
         for (int i = 2; i < chunks.size() - 1; i++) {
             List<ApiResponse.Data> chunk = chunks.get(i);
             long totalVolume = 0;
@@ -215,9 +212,21 @@ public class MarketDataService {
 
             double curOpen = 0.0;
             double curClose = 0.0;
+            double curHigh = 0.0;
+            double curLow = 0.0;
+            long specificHighVolume = 0;
+            String highVolumeCandle = null;
             for (ApiResponse.Data data : chunk) {
                 totalVolume += data.getTradedVolume();
                 recentData = data;
+                if(specificHighVolume == 0.0) {
+                    specificHighVolume = data.getTradedVolume();
+                    highVolumeCandle = data.getTime();
+                }
+                if(data.getTradedVolume() > specificHighVolume){
+                    specificHighVolume = data.getTradedVolume();
+                    highVolumeCandle = data.getTime();
+                }
                 if (firstCandle == null) {
                     firstCandle = data;
                 }
@@ -227,6 +236,14 @@ public class MarketDataService {
                 if (curClose == 0.0) {
                     curClose = data.getClose();
                 }
+                if (curHigh == 0.0) {
+                    curHigh = data.getHigh();
+                }
+                if (curLow == 0.0) {
+                    curLow = data.getLow();
+                }
+                curHigh = Math.max(data.getHigh(), curHigh);
+                curLow = Math.min(data.getLow(), curLow);
                 curOpen = Math.min(data.getOpen(), curOpen);
                 curClose = Math.min(data.getClose(), curClose);
             }
@@ -262,12 +279,15 @@ public class MarketDataService {
                     continue;
                 }
             }
+            if (chunk.size() < 3) {
+                continue;
+            }
             if (fetchAll || recentTimeStamp == null || localTime.isAfter(recentTimeStamp)) {
-                if (firstCandleLow > recentData.getClose() && (oiInterpretation.equals("SBU")) && isHigher) {
+                if (recentData.getClose() < firstCandleLow  && curHigh > firstCandleLow && (oiInterpretation.equals("SBU")) && isHigher) {
                     stockDataManager.saveStockData(stock, FormatUtil.getCurDate(), recentData.getTime(), recentData.getOpenInterest());
                     return new StockResponse(stock, "N", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, totalVolume);
                 }
-                if (firstCandleHigh < recentData.getOpen() && (oiInterpretation.equals("LBU")) && isHigher) {
+                if (recentData.getClose() > firstCandleHigh && curLow < firstCandleHigh && (oiInterpretation.equals("LBU")) && isHigher) {
                     stockDataManager.saveStockData(stock, FormatUtil.getCurDate(), recentData.getTime(), recentData.getOpenInterest());
                     return new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleLow, curClose, totalVolume);
                 }
