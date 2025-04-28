@@ -18,3 +18,5 @@ bazel-tms
 maven_install.json
 .vscode/settings.json
 **/__pycache__/**
+# Ignore application2.properties
+/src/main/resources/application2.properties
