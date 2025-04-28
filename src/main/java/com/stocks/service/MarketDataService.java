@@ -91,9 +91,6 @@ public class MarketDataService {
                 if (res != null) {
                     processEodResponse(res);
                 }
-                if (res != null && res.getPriority() == 0) {
-                    return null;
-                }
                 return res;
             } catch (Exception e) {
                 log.error("Error processing stock: " + stock + ", " + e.getMessage());
@@ -266,11 +263,11 @@ public class MarketDataService {
                 }
             }
             if (recentTimeStamp == null || localTime.isAfter(recentTimeStamp)) {
-                if (firstCandleLow > recentData.getClose() && (oiInterpretation.equals("LU") || oiInterpretation.equals("SBU")) && isHigher) {
+                if (firstCandleLow > recentData.getClose() && (oiInterpretation.equals("SBU")) && isHigher) {
                     stockDataManager.saveStockData(stock, FormatUtil.getCurDate(), recentData.getTime(), recentData.getOpenInterest());
                     return new StockResponse(stock, "N", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, totalVolume);
                 }
-                if (firstCandleHigh < recentData.getOpen() && (oiInterpretation.equals("LBU") || oiInterpretation.equals("SC")) && isHigher) {
+                if (firstCandleHigh < recentData.getOpen() && (oiInterpretation.equals("LBU")) && isHigher) {
                     stockDataManager.saveStockData(stock, FormatUtil.getCurDate(), recentData.getTime(), recentData.getOpenInterest());
                     return new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleLow, curClose, totalVolume);
                 }
