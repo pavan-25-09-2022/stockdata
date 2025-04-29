@@ -26,6 +26,11 @@ public class FormatUtil {
         }
     }
 
+    public static LocalTime addMinutes(int mins){
+        LocalTime currentTime = LocalTime.now();
+        return currentTime.plusMinutes(mins);
+    }
+
     public static String getCurDate(){
         LocalDate currentDate = LocalDate.now();
 
@@ -35,5 +40,10 @@ public class FormatUtil {
         // Format the current date
         return currentDate.format(formatter);
 
+    }
+
+    public static LocalTime addMinsToTime(String endTime, int exitMins) {
+        LocalTime current = LocalTime.parse(endTime);
+        return current.plusMinutes(exitMins);
     }
 }

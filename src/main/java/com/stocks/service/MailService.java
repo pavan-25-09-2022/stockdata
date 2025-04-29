@@ -96,7 +96,8 @@ public class MailService {
                 .append("<th>OI</th>")
                 .append("<th>SL</th>")
                 .append("<th>EOD OI</th>")
-                .append("<th>Vol</th>");
+                .append("<th>Vol</th>")
+                .append("<th>YDB</th>");
         if (list.get(0).getStockProfitResult() != null) {
             htmlContent.append("<th> profit</th>")
                     .append("<th> sellPrice</th>")
@@ -135,7 +136,8 @@ public class MailService {
                         .append("<td>").append(stock.getOiInterpretation()).append("</td>")
                         .append("<td>").append(stock.getStopLoss()).append("</td>")
                         .append("<td>").append(stock.getEodData()).append("</td>")
-                        .append("<td>").append(stock.getVolume()).append("</td>");
+                        .append("<td>").append(stock.getVolume()).append("</td>")
+                        .append("<td>").append(stock.getYestDayBreak()).append("</td>");
                 if (stock.getStockProfitResult() != null) {
                     htmlContent.append("<td style='background-color: ")
                             .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
@@ -174,7 +176,8 @@ public class MailService {
                         .append("<td>").append(stock.getOiInterpretation()).append("</td>")
                         .append("<td>").append(stock.getStopLoss()).append("</td>")
                         .append("<td>").append(stock.getEodData()).append("</td>")
-                        .append("<td>").append(stock.getVolume()).append("</td>");
+                        .append("<td>").append(stock.getVolume()).append("</td>").
+                        append("<td>").append(stock.getYestDayBreak()).append("</td>");
                 if (stock.getStockProfitResult() != null) {
                     htmlContent.append("<td style='background-color: ")
                             .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")

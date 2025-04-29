@@ -15,6 +15,9 @@ public class StockResponse {
     String eodData;
     StockProfitResult stockProfitResult;
     int priority;
+    private double curHigh;
+    private double curLow;
+    private String yestDayBreak = "N";
 
 
     public StockResponse(String stock, String stockType, String startTime, String time, String oiInterpretation, double stopLoss, double currentPrice, long volume) {
@@ -115,5 +118,29 @@ public class StockResponse {
     public String setVolume(String volume) {
         this.volume = volume;
         return volume;
+    }
+
+    public double getCurHigh() {
+        return curHigh;
+    }
+
+    public void setCurHigh(double curHigh) {
+        this.curHigh = curHigh;
+    }
+
+    public double getCurLow() {
+        return curLow;
+    }
+
+    public void setCurLow(double curLow) {
+        this.curLow = curLow;
+    }
+
+    public String getYestDayBreak() {
+        return yestDayBreak;
+    }
+
+    public void setYestDayBreak(String yestDayBreak) {
+        this.yestDayBreak = yestDayBreak;
     }
 }

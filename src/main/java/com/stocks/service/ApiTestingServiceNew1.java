@@ -54,7 +54,8 @@ public class ApiTestingServiceNew1 {
         try {
             String selectedDate = (date != null && !date.isEmpty()) ? date : LocalDate.now().toString();
 
-            ResponseEntity<ApiResponse> response = ioPulseService.sendRequest(stock, selectedDate);
+            ResponseEntity<ApiResponse> response = null;
+//                    ioPulseService.sendRequest(stock, selectedDate);
             ApiResponse apiResponse = response.getBody();
 
             if (apiResponse == null || apiResponse.getData().size() <= CHUNK_SIZE) {

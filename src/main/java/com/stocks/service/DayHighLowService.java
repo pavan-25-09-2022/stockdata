@@ -1,8 +1,7 @@
 package com.stocks.service;
 
 import com.stocks.dto.ApiResponse;
-import com.stocks.dto.StockEODDataResponse;
-import com.stocks.dto.StockEODResponse;
+import com.stocks.dto.Properties;
 import com.stocks.dto.StockResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,9 +53,7 @@ public class DayHighLowService {
     private static final Logger log = LoggerFactory.getLogger(DayHighLowService.class);
 
 
-    public List<StockResponse> dayHighLow() {
-
-        String selectedDate = (date != null && !date.isEmpty()) ? date : LocalDate.now().toString();
+    public List<StockResponse> dayHighLow(Properties properties) {
 
         // Path to the file containing the stock list
         String filePath = "src/main/resources/stocksList.txt";
@@ -74,7 +71,7 @@ public class DayHighLowService {
         List<StockResponse> emailList = stockList.parallelStream().map(stock -> {
             try {
                 // Make POST request
-                ResponseEntity<ApiResponse> response = ioPulseService.sendRequest(stock, selectedDate);
+                ResponseEntity<ApiResponse> response = ioPulseService.sendRequest(properties,stock);
 
                 // Process response
                 ApiResponse apiResponse = response.getBody();
@@ -96,7 +93,7 @@ public class DayHighLowService {
             }
         }).filter(Objects::nonNull).collect(Collectors.toList());
 
-        testingResultsService.testingResults(emailList, selectedDate);
+        testingResultsService.testingResults(emailList, properties);
 
         return emailList;
     }

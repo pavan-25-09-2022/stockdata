@@ -1,7 +1,9 @@
 package com.stocks.service;
 
 import com.stocks.dto.ApiResponse;
+import com.stocks.dto.Properties;
 import com.stocks.dto.StockEODResponse;
+import com.stocks.utils.MarketHolidayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -11,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,13 +41,23 @@ public class IOPulseService {
     @Value("${endTime}")
     private String endTime;
 
-    ResponseEntity<ApiResponse> sendRequest(String stock, String selectedDate) {
+    ResponseEntity<ApiResponse> sendRequest(Properties properties, String stock) {
         // Create payload
+
+        String selectedDate = (!properties.getStockDate().isEmpty()) ? properties.getStockDate() : LocalDate.now().toString();
+        String workingDay = MarketHolidayUtils.getWorkingDay(selectedDate);
         Map<String, String> payload = new HashMap<>();
         payload.put("stSelectedFutures", stock);
         payload.put("stSelectedExpiry", "I");
         payload.put("stSelectedAvailableDate", selectedDate);
-        payload.put("stSelectedModeOfData", "live");
+        // Determine if the selected date is in the past
+        LocalDate selected = LocalDate.parse(selectedDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        LocalDate today = LocalDate.now();
+        if (selected.isBefore(today)) {
+            payload.put("stSelectedModeOfData", "historical");
+        } else {
+            payload.put("stSelectedModeOfData", "live");
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", authToken);

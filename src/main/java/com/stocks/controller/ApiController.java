@@ -1,5 +1,6 @@
 package com.stocks.controller;
 
+import com.stocks.dto.Properties;
 import com.stocks.dto.StockResponse;
 import com.stocks.mail.Mail;
 import com.stocks.service.DayHighLowService;
@@ -24,9 +25,18 @@ public class ApiController {
     private Mail mailService;
 
     @GetMapping("/call-api")
-    public String callApi(@RequestParam (name = "minutes", required = false, defaultValue = "0") Integer minutes,
-                          @RequestParam (name = "fetchAll", required = false) boolean fetchAll) {
-        List<StockResponse> list = apiService.callApi(minutes, fetchAll);
+    public String callApi( @RequestParam (name = "stockDate", required = false, defaultValue = "") String stockDate,
+                           @RequestParam (name = "interval", required = false, defaultValue = "0") Integer interval,
+                          @RequestParam (name = "fetchAll", required = false) boolean fetchAll,
+                          @RequestParam (name = "exitMins", required = false, defaultValue = "0") int exitMins,
+                           @RequestParam (name = "amtInvested", required = false, defaultValue = "0") int amtInvested) {
+        Properties properties = new Properties();
+        properties.setStockDate(stockDate);
+        properties.setExitMins(exitMins);
+        properties.setFetchAll(fetchAll);
+        properties.setInterval(interval);
+        properties.setAmtInvested(amtInvested);
+        List<StockResponse> list = apiService.callApi(properties);
         if (list == null || list.isEmpty()) {
             return "No data found";
         }
@@ -37,8 +47,14 @@ public class ApiController {
     }
 
     @GetMapping("/apiDayHighLow")
-    public String apiDayHighLow() {
-        List<StockResponse> list = dayHighLowService.dayHighLow();
+    public String apiDayHighLow( @RequestParam (name = "stockDate", required = false, defaultValue = "") String stockDate,
+                                 @RequestParam (name = "fetchAll", required = false) boolean fetchAll,
+                                 @RequestParam (name = "exitMins", required = false, defaultValue = "0") int exitMins) {
+        Properties properties = new Properties();
+        properties.setStockDate(stockDate);
+        properties.setExitMins(exitMins);
+        properties.setFetchAll(fetchAll);
+        List<StockResponse> list = dayHighLowService.dayHighLow(properties);
         if (list == null || list.isEmpty()) {
             return "No data found";
         }

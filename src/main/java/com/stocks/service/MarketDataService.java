@@ -1,6 +1,7 @@
 package com.stocks.service;
 
 import com.stocks.dto.*;
+import com.stocks.dto.Properties;
 import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,9 +41,6 @@ public class MarketDataService {
     @Value("${api.auth.token}")
     private String authToken;
 
-    @Value("${date}")
-    private String date;
-
     @Value("${endTime}")
     private String endTime;
 
@@ -52,9 +50,7 @@ public class MarketDataService {
     private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
 
 
-    public List<StockResponse> callApi(int minutes, boolean fetchAll) {
-
-        String selectedDate = (date != null && !date.isEmpty()) ? date : LocalDate.now().toString();
+    public List<StockResponse> callApi(Properties properties) {
 
         // Path to the file containing the stock list
         String filePath = "src/main/resources/stocksList.txt";
@@ -72,7 +68,7 @@ public class MarketDataService {
         List<StockResponse> emailList = stockList.parallelStream().map(stock -> {
             try {
                 // Make POST request
-                ResponseEntity<ApiResponse> response = ioPulseService.sendRequest(stock, selectedDate);
+                ResponseEntity<ApiResponse> response = ioPulseService.sendRequest(properties, stock);
 
                 // Process response
                 ApiResponse apiResponse = response.getBody();
@@ -81,7 +77,7 @@ public class MarketDataService {
                     return null;
                 }
 
-                StockResponse res = processApiResponse(apiResponse, stock, minutes, fetchAll);
+                StockResponse res = processApiResponse(apiResponse, properties, stock);
                 if (res != null) {
                     processEodResponse(res);
                 }
@@ -92,7 +88,7 @@ public class MarketDataService {
             }
         }).filter(Objects::nonNull).collect(Collectors.toList());
 
-        //testingResultsService.testingResults(emailList, selectedDate);
+        testingResultsService.testingResults(emailList, properties);
 
         return emailList;
     }
@@ -121,8 +117,14 @@ public class MarketDataService {
 
         // Determine priority based on stock type and interpretations
         if ("N".equals(res.getStockType()) && "SBU".equals(res.getOiInterpretation())) {
+            if (res.getCurLow() < dayM1.getInDayLow()) {
+                res.setYestDayBreak("Y");
+            }
             res.setPriority(determinePriority(oi1, "SBU", "LU"));
         } else if ("P".equals(res.getStockType()) && "LBU".equals(res.getOiInterpretation())) {
+            if (res.getCurHigh() > dayM1.getInDayHigh()) {
+                res.setYestDayBreak("Y");
+            }
             res.setPriority(determinePriority(oi1, "LBU", "SC"));
         }
     }
@@ -171,14 +173,14 @@ public class MarketDataService {
         return new ArrayList<>(groupedData.values());
     }
 
-    private StockResponse processApiResponse(ApiResponse apiResponse, String stock, int minutes, boolean fetchAll) {
+    private StockResponse processApiResponse(ApiResponse apiResponse, Properties properties, String stock) {
         List<ApiResponse.Data> list = apiResponse.getData();
         ApiResponse.Data previousData;
 //        List<Long> volumes = new ArrayList<>();
         long previousVolume = 0;
         double firstCandleHigh = 0.0;
         double firstCandleLow = 0.0;
-        List<List<ApiResponse.Data>> chunks = chunkByMinutes(list, minutes);
+        List<List<ApiResponse.Data>> chunks = chunkByMinutes(list, properties.getInterval());
         if (chunks.size() < 3) {
             log.info("Data size is less than 3 for stock: " + stock);
             return null;
@@ -219,11 +221,11 @@ public class MarketDataService {
             for (ApiResponse.Data data : chunk) {
                 totalVolume += data.getTradedVolume();
                 recentData = data;
-                if(specificHighVolume == 0.0) {
+                if (specificHighVolume == 0.0) {
                     specificHighVolume = data.getTradedVolume();
                     highVolumeCandle = data.getTime();
                 }
-                if(data.getTradedVolume() > specificHighVolume){
+                if (data.getTradedVolume() > specificHighVolume) {
                     specificHighVolume = data.getTradedVolume();
                     highVolumeCandle = data.getTime();
                 }
@@ -282,14 +284,23 @@ public class MarketDataService {
             if (chunk.size() < 3) {
                 continue;
             }
-            if (fetchAll || recentTimeStamp == null || localTime.isAfter(recentTimeStamp)) {
-                if (recentData.getClose() < firstCandleLow  && curHigh > firstCandleLow && (oiInterpretation.equals("SBU")) && isHigher) {
+//            if (curClose < 2000) {
+//                return null;
+//            }
+            if (properties.isFetchAll() || recentTimeStamp == null || localTime.isAfter(recentTimeStamp)) {
+                if (recentData.getClose() < firstCandleLow && curHigh > firstCandleLow && (oiInterpretation.equals("SBU")) && isHigher) {
                     stockDataManager.saveStockData(stock, FormatUtil.getCurDate(), recentData.getTime(), recentData.getOpenInterest());
-                    return new StockResponse(stock, "N", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, totalVolume);
+                    StockResponse res = new StockResponse(stock, "N", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, totalVolume);
+                    res.setCurLow(curLow);
+                    res.setCurHigh(curHigh);
+                    return res;
                 }
                 if (recentData.getClose() > firstCandleHigh && curLow < firstCandleHigh && (oiInterpretation.equals("LBU")) && isHigher) {
                     stockDataManager.saveStockData(stock, FormatUtil.getCurDate(), recentData.getTime(), recentData.getOpenInterest());
-                    return new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleLow, curClose, totalVolume);
+                    StockResponse res = new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleLow, curClose, totalVolume);
+                    res.setCurLow(curLow);
+                    res.setCurHigh(curHigh);
+                    return res;
                 }
             }
         }

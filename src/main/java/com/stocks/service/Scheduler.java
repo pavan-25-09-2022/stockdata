@@ -1,5 +1,6 @@
 package com.stocks.service;
 
+import com.stocks.dto.Properties;
 import com.stocks.dto.StockResponse;
 import com.stocks.mail.Mail;
 import org.slf4j.Logger;
@@ -27,7 +28,8 @@ public class Scheduler {
     public void callApi() {
         log.info("Scheduler started");
         logTime();
-        List<StockResponse> list = apiService.callApi(3, false);
+        Properties properties = new Properties();
+        List<StockResponse> list = apiService.callApi(properties);
         if (list == null || list.isEmpty()) {
            log.info("No records found");
             return;
