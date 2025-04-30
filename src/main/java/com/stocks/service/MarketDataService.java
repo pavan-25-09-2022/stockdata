@@ -83,7 +83,7 @@ public class MarketDataService {
                 }
                 return res;
             } catch (Exception e) {
-                log.error("Error processing stock: " + stock + ", " + e.getMessage());
+                log.error("Error processing stock: " + stock + ", " + e.getMessage(), e);
                 return null;
             }
         }).filter(Objects::nonNull).collect(Collectors.toList());

@@ -44,7 +44,7 @@ public class IOPulseService {
     ResponseEntity<ApiResponse> sendRequest(Properties properties, String stock) {
         // Create payload
 
-        String selectedDate = (!properties.getStockDate().isEmpty()) ? properties.getStockDate() : LocalDate.now().toString();
+        String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : LocalDate.now().toString();
         String workingDay = MarketHolidayUtils.getWorkingDay(selectedDate);
         Map<String, String> payload = new HashMap<>();
         payload.put("stSelectedFutures", stock);
