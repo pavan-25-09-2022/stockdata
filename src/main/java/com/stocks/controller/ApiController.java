@@ -29,13 +29,15 @@ public class ApiController {
                            @RequestParam (name = "interval", required = false, defaultValue = "0") Integer interval,
                           @RequestParam (name = "fetchAll", required = false) boolean fetchAll,
                           @RequestParam (name = "exitMins", required = false, defaultValue = "0") int exitMins,
-                           @RequestParam (name = "amtInvested", required = false, defaultValue = "0") int amtInvested) {
+                           @RequestParam (name = "amtInvested", required = false, defaultValue = "0") int amtInvested,
+                           @RequestParam (name = "stockName", required = false, defaultValue = "") String stockName ) {
         Properties properties = new Properties();
         properties.setStockDate(stockDate);
         properties.setExitMins(exitMins);
         properties.setFetchAll(fetchAll);
         properties.setInterval(interval);
         properties.setAmtInvested(amtInvested);
+        properties.setStockName(stockName);
         List<StockResponse> list = apiService.callApi(properties);
         if (list == null || list.isEmpty()) {
             return "No data found";

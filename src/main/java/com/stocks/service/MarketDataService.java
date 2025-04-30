@@ -57,11 +57,15 @@ public class MarketDataService {
 
         // Read all lines from the file into a List
         List<String> stockList;
-        try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
-            stockList = lines.collect(Collectors.toList());
-        } catch (IOException e) {
-            log.error("Error reading file: " + e.getMessage());
-            return null;
+        if(!properties.getStockName().isEmpty()){
+            stockList = Arrays.asList(properties.getStockName().split(","));
+        } else {
+            try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
+                stockList = lines.collect(Collectors.toList());
+            } catch (IOException e) {
+                log.error("Error reading file: " + e.getMessage());
+                return null;
+            }
         }
 
         // Process stocks in parallel

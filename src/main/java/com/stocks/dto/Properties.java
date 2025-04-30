@@ -6,6 +6,7 @@ public class Properties {
     private int interval;
     private boolean fetchAll;
     private int amtInvested;
+    private String stockName;
 
     public String getStockDate() {
         return stockDate;
@@ -45,5 +46,13 @@ public class Properties {
 
     public void setAmtInvested(int amtInvested) {
         this.amtInvested = amtInvested;
+    }
+
+    public String getStockName() {
+        return stockName;
+    }
+
+    public void setStockName(String stockName) {
+        this.stockName = stockName;
     }
 }
