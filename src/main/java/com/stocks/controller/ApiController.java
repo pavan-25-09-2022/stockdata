@@ -4,8 +4,9 @@ import com.stocks.dto.Properties;
 import com.stocks.dto.StockResponse;
 import com.stocks.mail.Mail;
 import com.stocks.service.DayHighLowService;
+import com.stocks.service.FutureAnalysisService;
+import com.stocks.service.FutureEodAnalyzerService;
 import com.stocks.service.MarketDataService;
-import com.stocks.service.OptionTendingOiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,7 +24,10 @@ public class ApiController {
     private DayHighLowService dayHighLowService;
 
     @Autowired
-    private OptionTendingOiService optionTendingOiService;
+    private FutureAnalysisService futureAnalysisService;
+
+    @Autowired
+    private FutureEodAnalyzerService futureEodAnalyzerService;
 
     @Autowired
     private Mail mailService;
@@ -80,13 +84,14 @@ public class ApiController {
         properties.setExitMins(exitMins);
         properties.setFetchAll(fetchAll);
         properties.setInterval(interval);
-        List<StockResponse> list = optionTendingOiService.callApi(properties);
-        if (list == null || list.isEmpty()) {
-            return "No data found";
-        }
-        String data = mailService.beautifyResults(list);
-        mailService.sendMail(data);
-        System.gc();
-        return data;
+
+        return "Success";
+    }
+
+    @GetMapping("/eodAnalyzer")
+    public String eodAnalyzer(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate) {
+        Properties properties = new Properties();
+        properties.setStockDate(stockDate);
+        return futureEodAnalyzerService.processEodResponse(properties);
     }
 }

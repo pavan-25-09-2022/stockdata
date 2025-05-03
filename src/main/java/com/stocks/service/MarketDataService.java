@@ -1,6 +1,7 @@
 package com.stocks.service;
 
 import com.stocks.dto.*;
+import com.stocks.dto.FutureEodAnalyzer;
 import com.stocks.dto.Properties;
 import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
@@ -13,7 +14,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -57,7 +57,7 @@ public class MarketDataService {
 
         // Read all lines from the file into a List
         List<String> stockList;
-        if(!properties.getStockName().isEmpty()){
+        if (properties.getStockName() != null) {
             stockList = Arrays.asList(properties.getStockName().split(","));
         } else {
             try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
@@ -110,9 +110,9 @@ public class MarketDataService {
         }
 
         // Extract data for the last three days
-        StockEODDataResponse dayM1 = eod.getData().get(eodValue);
-        StockEODDataResponse dayM2 = eod.getData().get(eodValue + 1);
-        StockEODDataResponse dayM3 = eod.getData().get(eodValue + 2);
+        FutureEodAnalyzer dayM1 = eod.getData().get(eodValue);
+        FutureEodAnalyzer dayM2 = eod.getData().get(eodValue + 1);
+        FutureEodAnalyzer dayM3 = eod.getData().get(eodValue + 2);
 
         // Calculate changes and interpretations
         String oi1 = calculateOiInterpretation(dayM1, dayM2);
@@ -133,7 +133,7 @@ public class MarketDataService {
         }
     }
 
-    private String calculateOiInterpretation(StockEODDataResponse current, StockEODDataResponse previous) {
+    private String calculateOiInterpretation(FutureEodAnalyzer current, FutureEodAnalyzer previous) {
         double ltpChange = Double.parseDouble(String.format("%.2f", current.getInClose() - previous.getInClose()));
         long oiChange = Long.parseLong(current.getInOi()) - Long.parseLong(previous.getInOi());
         return (oiChange > 0)

@@ -1,9 +1,9 @@
 package com.stocks.service;
 
 
+import com.stocks.dto.ApiResponse;
+import com.stocks.dto.FutureAnalysis;
 import com.stocks.dto.Properties;
-import com.stocks.dto.*;
-import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class OptionTendingOiService {
+public class FutureAnalysisService {
 
     private static final int MINS = 3;
     private static final LocalTime START_TIME = LocalTime.of(9, 16, 0); // Configurable start time
@@ -50,7 +50,7 @@ public class OptionTendingOiService {
     private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
 
 
-    public List<StockResponse> callApi(Properties properties) {
+    public Map<String, Map<String, FutureAnalysis>> futureAnalysis(Properties properties) {
 
         // Path to the file containing the stock list
         String filePath = "src/main/resources/stocksList.txt";
@@ -68,10 +68,10 @@ public class OptionTendingOiService {
             }
         }
 
-        processEodResponse(stockList);
+        Map<String, Map<String, FutureAnalysis>> futureAnalysisStocks = new HashMap<>();
 
         // Process stocks in parallel
-        List<StockResponse> emailList = stockList.parallelStream().map(stock -> {
+        long count = stockList.parallelStream().map(stock -> {
             try {
                 // Make POST request
                 ResponseEntity<ApiResponse> response = ioPulseService.sendRequest(properties, stock);
@@ -83,77 +83,19 @@ public class OptionTendingOiService {
                     return null;
                 }
 
-                StockResponse res = processApiResponse(apiResponse, properties, stock);
-                if (res != null) {
-                    //processEodResponse(res);
+                Map<String, FutureAnalysis> futureAnalysisMap = processFutureAnalysisResponse(apiResponse, properties, stock);
+                if (futureAnalysisMap != null) {
+                    futureAnalysisStocks.put(stock, futureAnalysisMap);
                 }
-                return res;
+                return futureAnalysisMap;
             } catch (Exception e) {
                 log.error("Error processing stock: " + stock + ", " + e.getMessage(), e);
                 return null;
             }
-        }).filter(Objects::nonNull).collect(Collectors.toList());
+        }).filter(Objects::nonNull).count();
 
-        testingResultsService.testingResults(emailList, properties);
-
-        return emailList;
+        return futureAnalysisStocks;
     }
-
-    private void processEodResponse(List<String> stocks) {
-        if (stocks == null || stocks.isEmpty()) {
-            log.warn("StockResponse is null, skipping EOD processing.");
-            return;
-        }
-
-        for(String stock : stocks) {
-            StockEODResponse eod = ioPulseService.getMonthlyData(stock);
-            if (eod == null || eod.getData().size() < 3) {
-                log.info("EOD data is insufficient for stock: {}", stock);
-                return;
-            }
-
-            // Extract data for the last three days
-            StockEODDataResponse dayM1 = eod.getData().get(eodValue);
-            StockEODDataResponse dayM2 = eod.getData().get(eodValue + 1);
-            StockEODDataResponse dayM3 = eod.getData().get(eodValue + 2);
-
-            // Calculate changes and interpretations
-            String oi1 = calculateOiInterpretation(dayM1, dayM2);
-            String oi2 = calculateOiInterpretation(dayM2, dayM3);
-           /* res.setEodData(oi1 + ", " + oi2);
-
-            // Determine priority based on stock type and interpretations
-            if ("N".equals(res.getStockType()) && "SBU".equals(res.getOiInterpretation())) {
-                if (res.getCurLow() < dayM1.getInDayLow()) {
-                    res.setYestDayBreak("Y");
-                }
-                res.setPriority(determinePriority(oi1, "SBU", "LU"));
-            } else if ("P".equals(res.getStockType()) && "LBU".equals(res.getOiInterpretation())) {
-                if (res.getCurHigh() > dayM1.getInDayHigh()) {
-                    res.setYestDayBreak("Y");
-                }
-                res.setPriority(determinePriority(oi1, "LBU", "SC"));
-            }*/
-        }
-    }
-
-    private String calculateOiInterpretation(StockEODDataResponse current, StockEODDataResponse previous) {
-        double ltpChange = Double.parseDouble(String.format("%.2f", current.getInClose() - previous.getInClose()));
-        long oiChange = Long.parseLong(current.getInOi()) - Long.parseLong(previous.getInOi());
-        return (oiChange > 0)
-                ? (ltpChange > 0 ? "LBU" : "SBU")
-                : (ltpChange > 0 ? "SC" : "LU");
-    }
-
-    private int determinePriority(String oi, String primary, String secondary) {
-        if (primary.equals(oi)) {
-            return 1;
-        } else if (secondary.equals(oi)) {
-            return 2;
-        }
-        return 0; // Default priority if no match
-    }
-
 
     public List<List<ApiResponse.Data>> chunkByMinutes(List<ApiResponse.Data> dataList, int minutes) {
 
@@ -181,10 +123,9 @@ public class OptionTendingOiService {
         return new ArrayList<>(groupedData.values());
     }
 
-    private StockResponse processApiResponse(ApiResponse apiResponse, Properties properties, String stock) {
+    private Map<String, FutureAnalysis> processFutureAnalysisResponse(ApiResponse apiResponse, Properties properties, String stock) {
         List<ApiResponse.Data> list = apiResponse.getData();
         ApiResponse.Data previousData;
-//        List<Long> volumes = new ArrayList<>();
         long previousVolume = 0;
         double firstCandleHigh = 0.0;
         double firstCandleLow = 0.0;
@@ -267,7 +208,7 @@ public class OptionTendingOiService {
             double ltpChange = recentData.getClose() - previousData.getClose();
             ltpChange = Double.parseDouble(String.format("%.2f", ltpChange));
             long oiChange = Long.parseLong(recentData.getOpenInterest()) - Long.parseLong(previousData.getOpenInterest());
-            long totalOiChange =  Long.parseLong(previousData.getOpenInterest()) + oiChange;
+            long totalOiChange = Long.parseLong(previousData.getOpenInterest()) + oiChange;
             String oiInterpretation = (oiChange > 0)
                     ? (ltpChange > 0 ? "LBU" : "SBU")
                     : (ltpChange > 0 ? "SC" : "LU");
@@ -281,17 +222,17 @@ public class OptionTendingOiService {
 
             previousData = chunk.get(chunk.size() - 1);
 
-            String duration = startTime +"-"+previousData.getTime();
+            String duration = startTime + "-" + previousData.getTime();
 
-            FutureAnalysis futureAnalysis = new FutureAnalysis(duration, Double.valueOf(totalOiChange), 0.0, previousData.getDayHigh(), previousData.getDayLow(), curClose,curHigh,curLow,curOpen, oiChange, oiInterpretation, "", ltpChange, totalVolume, isHigher);
+            FutureAnalysis futureAnalysis = new FutureAnalysis(duration, Double.valueOf(totalOiChange), 0.0, previousData.getDayHigh(), previousData.getDayLow(), curClose, curHigh, curLow, curOpen, oiChange, oiInterpretation, "", ltpChange, totalVolume, isHigher);
             futureAnalysisMap.put(duration, futureAnalysis);
 
         }
         System.out.println("FutureAnalyis");
-        for(Map.Entry<String, FutureAnalysis> map : futureAnalysisMap.entrySet()){
+        for (Map.Entry<String, FutureAnalysis> map : futureAnalysisMap.entrySet()) {
             System.out.println("Key " + map.getKey() + "  Value " + map.getValue());
         }
-        return null;
+        return futureAnalysisMap;
     }
 
 }

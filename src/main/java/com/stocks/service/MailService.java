@@ -10,6 +10,8 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.util.Comparator;
 import java.util.List;
@@ -22,7 +24,7 @@ public class MailService {
 
     private static final Logger log = LoggerFactory.getLogger(MailService.class);
     @Autowired
-    private JavaMailSender mailSender;
+    private JavaMailSender javaMailSender;
 
     @Value("${spring.mail.host}")
     private String mailHost;
@@ -51,7 +53,7 @@ public class MailService {
 
     public void sendMail(String subject, String content) {
 
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
+        MimeMessage mimeMessage = javaMailSender.createMimeMessage();
 
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost(mailHost);
@@ -81,6 +83,32 @@ public class MailService {
         } catch (Exception ex) {
             log.error("send mail error", ex);
         }
+    }
+
+    public void sendEmailList(List<String> body, String subject)  {
+        try {
+        MimeMessage message = javaMailSender.createMimeMessage();
+        message.setFrom(mailUsername);
+        message.addRecipients(Message.RecipientType.TO, recipients);
+
+        String mailBody = buildBody(body);
+        message.setContent(mailBody, "text/html" );
+        message.setSubject(subject);
+        javaMailSender.send(message);
+        } catch (Exception ex) {
+            log.error("send mail error", ex);
+        }
+    }
+
+    public String buildBody(List<String> list) {
+
+        StringBuilder builder = new StringBuilder();
+        for (String string : list) {
+            builder.append(string);
+            builder.append("<br>");
+        }
+        return builder.toString();
+
     }
 
     public String beautifyResults(List<StockResponse> list) {

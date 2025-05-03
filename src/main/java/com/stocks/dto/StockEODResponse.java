@@ -6,7 +6,7 @@ public class StockEODResponse {
 
     private String status;
     private String msg;
-    private List<StockEODDataResponse> data;
+    private List<FutureEodAnalyzer> data;
 
     public String getStatus() {
         return status;
@@ -24,11 +24,11 @@ public class StockEODResponse {
         this.msg = msg;
     }
 
-    public List<StockEODDataResponse> getData() {
+    public List<FutureEodAnalyzer> getData() {
         return data;
     }
 
-    public void setData(List<StockEODDataResponse> data) {
+    public void setData(List<FutureEodAnalyzer> data) {
         this.data = data;
     }
 }
