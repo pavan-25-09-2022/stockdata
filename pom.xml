@@ -15,7 +15,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <java.version>8</java.version>
+        <java.version>17</java.version>
     </properties>
 
     <dependencies>
@@ -40,6 +40,13 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.yahoofinance-api/YahooFinanceAPI -->
+        <dependency>
+            <groupId>com.yahoofinance-api</groupId>
+            <artifactId>YahooFinanceAPI</artifactId>
+            <version>3.17.0</version>
         </dependency>
     </dependencies>
 

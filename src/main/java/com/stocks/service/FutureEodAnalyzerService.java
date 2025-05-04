@@ -1,8 +1,6 @@
 package com.stocks.service;
 
-import com.stocks.dto.FutureEodAnalyzer;
-import com.stocks.dto.Properties;
-import com.stocks.dto.StockEODResponse;
+import com.stocks.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +14,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +25,12 @@ public class FutureEodAnalyzerService {
 
     @Autowired
     private MailService mailService;
+
+    @Autowired
+    FutureAnalysisService futureAnalysisService;
+
+    @Autowired
+    YahooFinanceService yahooFinanceService;
 
     @Value("${calculateEodValue}")
     private int calculateEodValue;
@@ -70,6 +75,9 @@ public class FutureEodAnalyzerService {
         longUnwindingFollowedByShortBuildUp.add("\n");
         longUnwindingFollowedByShortBuildUp.add("... Long Unwinding followed by short Build Up.....");
 
+        List<String> positiveStocks = new ArrayList<>();
+        List<String> negativeStocks = new ArrayList<>();
+
         boolean isLongunwindingFollowedByShortCovering = false;
         boolean isShortCoveringFollowedByLongBuildUp = false;
         boolean isShortCoveringFollowedByLongUnwinding = false;
@@ -78,7 +86,7 @@ public class FutureEodAnalyzerService {
         for (String stock : stockList) {
 
             StockEODResponse eod = ioPulseService.getMonthlyData(stock);
-            if (eod == null || eod.getData().size() < 3) {
+            if (eod == null || eod.getData() == null || eod.getData().size() < 3) {
                 log.info("EOD data is insufficient for stock: {}", stock);
                 continue;
             }
@@ -110,15 +118,16 @@ public class FutureEodAnalyzerService {
                                 longunwindingFollowedByShortCovering.add("\n");
                                 longunwindingFollowedByShortCovering.add("..... .." + stock + " ......with volume " + (nextDayStockDetails.getInVolume() > stockDetails.getInVolume()));
                                 isLongunwindingFollowedByShortCovering = true;
+
                             } else {
                                 shortCoveringFollowedByLongBuildUp.add("\n");
                                 shortCoveringFollowedByLongBuildUp.add("..... .." + stock + " ......with volume " + (nextDayStockDetails.getInVolume() > stockDetails.getInVolume()));
                                 isShortCoveringFollowedByLongBuildUp = true;
                             }
-
+                            positiveStocks.add(stock);
                         }
                     } else if (("SC".equals(stockDetails.getOiInterpretation()) && "LU".equals(nextDayStockDetails.getOiInterpretation()))
-                            || ("LU".equals(stockDetails.getOiInterpretation()) && "SB".equals(nextDayStockDetails.getOiInterpretation()))) {
+                            || ("LU".equals(stockDetails.getOiInterpretation()) && "SBU".equals(nextDayStockDetails.getOiInterpretation()))) {
 
 
                         boolean negativeLowCondition = (nextDayStockDetails.getInDayLow() < stockDetails.getInDayLow());
@@ -136,15 +145,14 @@ public class FutureEodAnalyzerService {
                                 longUnwindingFollowedByShortBuildUp.add("..... .." + stock + " ......with volume " + (nextDayStockDetails.getInVolume() > stockDetails.getInVolume()));
                                 isLongUnwindingFollowedByShortBuildUp = true;
                             }
+                            negativeStocks.add(stock);
                         }
-
                     }
-
                 }
             }
         }
 
-        if (isLongUnwindingFollowedByShortBuildUp) {
+       /* if (isLongUnwindingFollowedByShortBuildUp) {
             mailService.sendEmailList(longUnwindingFollowedByShortBuildUp, "Negative Stocks with LU followed SBU ");
         }
 
@@ -158,13 +166,29 @@ public class FutureEodAnalyzerService {
 
         if (isShortCoveringFollowedByLongUnwinding) {
             mailService.sendEmailList(shortCoveringFollowedByLongUnwinding, "Negative Stocks with SC followed by LU");
-        }
+        }*/
 
         List<String> stocks = new ArrayList<>();
-        stocks.addAll(shortCoveringFollowedByLongBuildUp);
-        stocks.addAll(longunwindingFollowedByShortCovering);
-        stocks.addAll(longUnwindingFollowedByShortBuildUp);
-        stocks.addAll(shortCoveringFollowedByLongUnwinding);
+        stocks.addAll(positiveStocks);
+        stocks.addAll(negativeStocks);
+
+        properties.setStockName(String.join(",", stocks));
+        Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
+        try {
+            yahooFinanceService.combineFutureAndSpotDetails(properties, stringMapMap);
+            System.out.println("---------------");
+            for(Map.Entry<String, Map<String, FutureAnalysis>> map : stringMapMap.entrySet()){
+
+                String key = map.getKey();
+                Map<String, FutureAnalysis> value = map.getValue();
+                System.out.println("Key "+key);
+                value.forEach((key1, value1) -> System.out.println("Duration "+key1 + " Value "+value1));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
         return stocks.toString();
     }
 

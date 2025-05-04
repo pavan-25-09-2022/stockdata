@@ -33,7 +33,11 @@ public class FutureAnalysis {
 
     boolean highVolume;
 
-    public FutureAnalysis(String duration, Double totalOI, Double totalChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume) {
+    double strength;
+
+    private HistoricalQuote historicalQuote;
+
+    public FutureAnalysis(String duration, Double totalOI, Double totalChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength) {
         this.duration = duration;
         this.totalOI = totalOI;
         this.totalChangeInOI = totalChangeInOI;
@@ -49,6 +53,7 @@ public class FutureAnalysis {
         this.ltpChange = ltpChange;
         this.volume = volume;
         this.highVolume = highVolume;
+        this.strength = strength;
     }
 
     public String getInterpretation() {
@@ -171,8 +176,25 @@ public class FutureAnalysis {
         this.ltpChange = ltpChange;
     }
 
+    public double getStrength() {
+        return strength;
+    }
+
+    public void setStrength(double strength) {
+        this.strength = strength;
+    }
+
+    public HistoricalQuote getHistoricalQuote() {
+        return historicalQuote;
+    }
+
+    public void setHistoricalQuote(HistoricalQuote historicalQuote) {
+        this.historicalQuote = historicalQuote;
+    }
+
     @Override
     public String toString() {
+        String historicalQuote = getHistoricalQuote() != null ? getHistoricalQuote().toString() : "null";
         return "FutureAnalysis{" +
                 "duration='" + duration + '\'' +
                 ", totalOI=" + totalOI +
@@ -189,6 +211,8 @@ public class FutureAnalysis {
                 ", ltpChange=" + ltpChange +
                 ", volume=" + volume +
                 ", highVolume=" + highVolume +
+                ", strength=" + strength +
+                ", HistoricalQuote {" + historicalQuote +
                 '}';
     }
 }

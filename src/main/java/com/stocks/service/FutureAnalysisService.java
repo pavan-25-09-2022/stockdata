@@ -4,6 +4,7 @@ package com.stocks.service;
 import com.stocks.dto.ApiResponse;
 import com.stocks.dto.FutureAnalysis;
 import com.stocks.dto.Properties;
+import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -47,7 +49,7 @@ public class FutureAnalysisService {
     @Value("${eodValue}")
     private int eodValue;
 
-    private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
+    private static final Logger log = LoggerFactory.getLogger(FutureAnalysisService.class);
 
 
     public Map<String, Map<String, FutureAnalysis>> futureAnalysis(Properties properties) {
@@ -222,9 +224,14 @@ public class FutureAnalysisService {
 
             previousData = chunk.get(chunk.size() - 1);
 
-            String duration = startTime + "-" + previousData.getTime();
+            String duration = startTime + "-" + FormatUtil.formatTime(previousData.getTime());
+            double strength = 0.0;
+            if(oiChange != 0) {
+                DecimalFormat df = new DecimalFormat("#.####");
+                strength = Math.abs(Double.parseDouble(df.format(ltpChange / oiChange)));
+            }
 
-            FutureAnalysis futureAnalysis = new FutureAnalysis(duration, Double.valueOf(totalOiChange), 0.0, previousData.getDayHigh(), previousData.getDayLow(), curClose, curHigh, curLow, curOpen, oiChange, oiInterpretation, "", ltpChange, totalVolume, isHigher);
+            FutureAnalysis futureAnalysis = new FutureAnalysis(duration, (double) totalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), curClose, curHigh, curLow, curOpen, oiChange, oiInterpretation, "", ltpChange, totalVolume, isHigher,strength);
             futureAnalysisMap.put(duration, futureAnalysis);
 
         }

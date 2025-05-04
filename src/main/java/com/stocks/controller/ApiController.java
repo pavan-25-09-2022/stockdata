@@ -89,9 +89,15 @@ public class ApiController {
     }
 
     @GetMapping("/eodAnalyzer")
-    public String eodAnalyzer(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate) {
+    public String eodAnalyzer(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+                              @RequestParam (name = "interval", required = false, defaultValue = "0") Integer interval) {
         Properties properties = new Properties();
         properties.setStockDate(stockDate);
+        properties.setInterval(interval);
+        if(interval < 5){
+            properties.setInterval(5);
+        }
+
         return futureEodAnalyzerService.processEodResponse(properties);
     }
 }
