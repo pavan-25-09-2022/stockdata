@@ -54,24 +54,6 @@ public class MailService {
     public void sendMail(String subject, String content) {
 
         MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-
-        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-        mailSender.setHost(mailHost);
-        mailSender.setPort(mailPort);
-        mailSender.setUsername(mailUsername);
-        mailSender.setPassword(mailPassword);
-
-        Properties properties = mailSender.getJavaMailProperties();
-        properties.put("mail.smtp.starttls.enable", Boolean.TRUE);
-        properties.put("mail.transport.protocol", "smtp");
-        properties.put("mail.smtp.auth", Boolean.TRUE);
-        properties.put("mail.smtp.starttls.required", Boolean.TRUE);
-        properties.put("mail.smtp.ssl.enable", Boolean.FALSE);
-        properties.put("mail.test-connection", Boolean.TRUE);
-        properties.put("mail.debug", Boolean.TRUE);
-
-        mailSender.setJavaMailProperties(properties);
-
         try {
             MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
             messageHelper.setFrom(mailUsername);
@@ -79,7 +61,7 @@ public class MailService {
             messageHelper.setTo(sendTo);
             messageHelper.setSubject(subject);
             messageHelper.setText(content, true);
-            mailSender.send(mimeMessage);
+            javaMailSender.send(mimeMessage);
         } catch (Exception ex) {
             log.error("send mail error", ex);
         }

@@ -7,6 +7,7 @@ public class Properties {
     private boolean fetchAll;
     private int amtInvested;
     private String stockName;
+    private String previousStockDate;
 
     public String getStockDate() {
         return stockDate;
@@ -54,5 +55,13 @@ public class Properties {
 
     public void setStockName(String stockName) {
         this.stockName = stockName;
+    }
+
+    public String getPreviousStockDate() {
+        return previousStockDate;
+    }
+
+    public void setPreviousStockDate(String previousStockDate) {
+        this.previousStockDate = previousStockDate;
     }
 }

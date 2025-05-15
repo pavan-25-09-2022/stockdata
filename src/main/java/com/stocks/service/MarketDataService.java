@@ -57,7 +57,7 @@ public class MarketDataService {
 
         // Read all lines from the file into a List
         List<String> stockList;
-        if (properties.getStockName() != null) {
+        if (properties.getStockName() != null && !properties.getStockName().isEmpty()) {
             stockList = Arrays.asList(properties.getStockName().split(","));
         } else {
             try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
@@ -76,7 +76,7 @@ public class MarketDataService {
 
                 // Process response
                 ApiResponse apiResponse = response.getBody();
-                if (apiResponse == null || apiResponse.getData().size() <= 6) {
+                if (apiResponse == null || apiResponse.getData() == null || apiResponse.getData().size() <= 6) {
                     log.info("Data size is less than or equal to 6 for stock: " + stock);
                     return null;
                 }
@@ -216,8 +216,6 @@ public class MarketDataService {
             ApiResponse.Data recentData = null;
             ApiResponse.Data firstCandle = null;
 
-            double curOpen = 0.0;
-            double curClose = 0.0;
             double curHigh = 0.0;
             double curLow = 0.0;
             long specificHighVolume = 0;
@@ -236,12 +234,7 @@ public class MarketDataService {
                 if (firstCandle == null) {
                     firstCandle = data;
                 }
-                if (curOpen == 0.0) {
-                    curOpen = data.getOpen();
-                }
-                if (curClose == 0.0) {
-                    curClose = data.getClose();
-                }
+
                 if (curHigh == 0.0) {
                     curHigh = data.getHigh();
                 }
@@ -250,8 +243,7 @@ public class MarketDataService {
                 }
                 curHigh = Math.max(data.getHigh(), curHigh);
                 curLow = Math.min(data.getLow(), curLow);
-                curOpen = Math.min(data.getOpen(), curOpen);
-                curClose = Math.min(data.getClose(), curClose);
+
             }
 
 //            double curOpen = chunk.get(0).getOpen();
@@ -294,14 +286,14 @@ public class MarketDataService {
             if (properties.isFetchAll() || recentTimeStamp == null || localTime.isAfter(recentTimeStamp)) {
                 if (recentData.getClose() < firstCandleLow && curHigh > firstCandleLow && (oiInterpretation.equals("SBU")) && isHigher) {
                     stockDataManager.saveStockData(stock, FormatUtil.getCurDate(), recentData.getTime(), recentData.getOpenInterest());
-                    StockResponse res = new StockResponse(stock, "N", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, totalVolume);
+                    StockResponse res = new StockResponse(stock, "N", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleHigh, recentData.getClose(), totalVolume);
                     res.setCurLow(curLow);
                     res.setCurHigh(curHigh);
                     return res;
                 }
                 if (recentData.getClose() > firstCandleHigh && curLow < firstCandleHigh && (oiInterpretation.equals("LBU")) && isHigher) {
                     stockDataManager.saveStockData(stock, FormatUtil.getCurDate(), recentData.getTime(), recentData.getOpenInterest());
-                    StockResponse res = new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleLow, curClose, totalVolume);
+                    StockResponse res = new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleLow, recentData.getClose(), totalVolume);
                     res.setCurLow(curLow);
                     res.setCurHigh(curHigh);
                     return res;
@@ -310,4 +302,6 @@ public class MarketDataService {
         }
         return null;
     }
+
+
 }

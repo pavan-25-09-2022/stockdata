@@ -3,10 +3,7 @@ package com.stocks.controller;
 import com.stocks.dto.Properties;
 import com.stocks.dto.StockResponse;
 import com.stocks.mail.Mail;
-import com.stocks.service.DayHighLowService;
-import com.stocks.service.FutureAnalysisService;
-import com.stocks.service.FutureEodAnalyzerService;
-import com.stocks.service.MarketDataService;
+import com.stocks.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,6 +25,9 @@ public class ApiController {
 
     @Autowired
     private FutureEodAnalyzerService futureEodAnalyzerService;
+
+    @Autowired
+    OpenHighLowService openHighLowService;
 
     @Autowired
     private Mail mailService;
@@ -74,18 +74,18 @@ public class ApiController {
         return data;
     }
 
-    @GetMapping("/index")
-    public String index( @RequestParam (name = "stockDate", required = false, defaultValue = "") String stockDate,
+    @GetMapping("/sector")
+    public String sector( @RequestParam (name = "stockDate", required = false, defaultValue = "") String stockDate,
                          @RequestParam (name = "interval", required = false, defaultValue = "0") Integer interval,
                                  @RequestParam (name = "fetchAll", required = false) boolean fetchAll,
-                                 @RequestParam (name = "exitMins", required = false, defaultValue = "0") int exitMins) {
+                                 @RequestParam (name = "exitMins", required = false, defaultValue = "5") int exitMins) {
         Properties properties = new Properties();
         properties.setStockDate(stockDate);
         properties.setExitMins(exitMins);
         properties.setFetchAll(fetchAll);
         properties.setInterval(interval);
-
-        return "Success";
+        futureEodAnalyzerService.getTrendLinesForNiftyAndBankNifty(properties);
+        return  "success";
     }
 
     @GetMapping("/eodAnalyzer")
@@ -97,7 +97,13 @@ public class ApiController {
         if(interval < 5){
             properties.setInterval(5);
         }
-
         return futureEodAnalyzerService.processEodResponse(properties);
     }
+
+    @GetMapping("/notDayHighLow")
+    public List<String> eodAnalyzer(@RequestParam (name = "interval", required = false, defaultValue = "0") Integer interval) {
+        Properties properties = new Properties();
+        return openHighLowService.dayHighLow(properties);
+    }
+
 }

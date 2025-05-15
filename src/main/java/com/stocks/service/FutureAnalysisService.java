@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 public class FutureAnalysisService {
 
     private static final int MINS = 3;
+    private static final LocalTime MARKET_START_TIME = LocalTime.of(9,15,0);
     private static final LocalTime START_TIME = LocalTime.of(9, 16, 0); // Configurable start time
 
     @Autowired
@@ -138,7 +139,7 @@ public class FutureAnalysisService {
             log.info("Data size is less than 3 for stock: " + stock);
             return null;
         }
-
+        ApiResponse.Data previousEodChunk = chunks.get(0).get(0);
         List<ApiResponse.Data> firstCandleChunk = chunks.get(1);
         for (ApiResponse.Data data : firstCandleChunk) {
             previousVolume += data.getTradedVolume();
@@ -150,18 +151,32 @@ public class FutureAnalysisService {
             }
             firstCandleHigh = Math.max(data.getHigh(), firstCandleHigh);
             firstCandleLow = Math.min(data.getLow(), firstCandleLow);
-        }
 
+        }
         long highVolume = previousVolume;
+        ApiResponse.Data firstCandleOfADay = firstCandleChunk.get(0);
         previousData = firstCandleChunk.get(firstCandleChunk.size() - 1);
+        double firstCandleLtpChange = previousData.getClose() - previousEodChunk.getClose();
+        firstCandleLtpChange = Double.parseDouble(String.format("%.2f", firstCandleLtpChange));
+        long firstCandleOiChange = Long.parseLong(previousData.getOpenInterest()) - Long.parseLong(previousEodChunk.getOpenInterest());
+        long firstCandleTotalOiChange = Long.parseLong(previousEodChunk.getOpenInterest()) + firstCandleOiChange;
+        String firstCandleOiInterpretation = (firstCandleOiChange > 0)
+                ? (firstCandleLtpChange > 0 ? "LBU" : "SBU")
+                : (firstCandleLtpChange > 0 ? "SC" : "LU");
+        double firstCandleStrength = 0.0;
+        if(firstCandleOiChange != 0) {
+            DecimalFormat df = new DecimalFormat("#.####");
+            firstCandleStrength = Math.abs(Double.parseDouble(df.format(firstCandleLtpChange / firstCandleOiChange)));
+        }
+        String firstCandleDuration = MARKET_START_TIME+"-"+MARKET_START_TIME.plusMinutes(properties.getInterval());
+        FutureAnalysis firstCandleFutureAnalysis = new FutureAnalysis(firstCandleDuration, (double) firstCandleTotalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), previousData.getClose(), firstCandleHigh, firstCandleLow, firstCandleOfADay.getOpen(), firstCandleOiChange, firstCandleOiInterpretation, "", firstCandleLtpChange, highVolume, false,firstCandleStrength);
+        futureAnalysisMap.put(firstCandleDuration, firstCandleFutureAnalysis);
         for (int i = 2; i < chunks.size() - 1; i++) {
             List<ApiResponse.Data> chunk = chunks.get(i);
             long totalVolume = 0;
             ApiResponse.Data recentData = null;
             ApiResponse.Data firstCandle = null;
 
-            double curOpen = 0.0;
-            double curClose = 0.0;
             double curHigh = 0.0;
             double curLow = 0.0;
             long specificHighVolume = 0;
@@ -172,6 +187,13 @@ public class FutureAnalysisService {
                 recentData = data;
                 if (startTime == null) {
                     LocalTime time = LocalTime.parse(data.getTime(), timeFormatter).minusMinutes(1);
+                    for(int j=1;j < properties.getInterval(); j++) {
+                        int zero = time.getMinute() % properties.getInterval();
+                        if(zero == 0){
+                            break;
+                        }
+                        time = time.minusMinutes(1);
+                    }
                     startTime = time.toString();
                 }
                 if (specificHighVolume == 0.0) {
@@ -185,12 +207,6 @@ public class FutureAnalysisService {
                 if (firstCandle == null) {
                     firstCandle = data;
                 }
-                if (curOpen == 0.0) {
-                    curOpen = data.getOpen();
-                }
-                if (curClose == 0.0) {
-                    curClose = data.getClose();
-                }
                 if (curHigh == 0.0) {
                     curHigh = data.getHigh();
                 }
@@ -199,8 +215,7 @@ public class FutureAnalysisService {
                 }
                 curHigh = Math.max(data.getHigh(), curHigh);
                 curLow = Math.min(data.getLow(), curLow);
-                curOpen = Math.min(data.getOpen(), curOpen);
-                curClose = Math.min(data.getClose(), curClose);
+
             }
 
             if (recentData == null) {
@@ -223,21 +238,28 @@ public class FutureAnalysisService {
 
 
             previousData = chunk.get(chunk.size() - 1);
+            // match the key interval if data is missing
+            LocalTime endTime = LocalTime.parse(previousData.getTime(), timeFormatter);
+            if(endTime.getMinute() % properties.getInterval() !=0){
+                for(int j=1;j < properties.getInterval(); j++) {
+                    int zero = endTime.getMinute() % properties.getInterval();
+                    if(zero == 0){
+                        break;
+                    }
+                    endTime = endTime.plusMinutes(1);
+                }
+            }
 
-            String duration = startTime + "-" + FormatUtil.formatTime(previousData.getTime());
+            String duration = startTime + "-" + endTime.toString();
             double strength = 0.0;
             if(oiChange != 0) {
                 DecimalFormat df = new DecimalFormat("#.####");
                 strength = Math.abs(Double.parseDouble(df.format(ltpChange / oiChange)));
             }
 
-            FutureAnalysis futureAnalysis = new FutureAnalysis(duration, (double) totalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), curClose, curHigh, curLow, curOpen, oiChange, oiInterpretation, "", ltpChange, totalVolume, isHigher,strength);
+            FutureAnalysis futureAnalysis = new FutureAnalysis(duration, (double) totalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), recentData.getClose(), curHigh, curLow, firstCandle.getOpen(), oiChange, oiInterpretation, "", ltpChange, totalVolume, isHigher,strength);
             futureAnalysisMap.put(duration, futureAnalysis);
 
-        }
-        System.out.println("FutureAnalyis");
-        for (Map.Entry<String, FutureAnalysis> map : futureAnalysisMap.entrySet()) {
-            System.out.println("Key " + map.getKey() + "  Value " + map.getValue());
         }
         return futureAnalysisMap;
     }

@@ -30,6 +30,9 @@ public class FutureEodAnalyzerService {
     FutureAnalysisService futureAnalysisService;
 
     @Autowired
+    TrendLineService trendLineService;
+
+    @Autowired
     YahooFinanceService yahooFinanceService;
 
     @Value("${calculateEodValue}")
@@ -95,8 +98,6 @@ public class FutureEodAnalyzerService {
             if (eod.getData().size() > calculateEodValue) {
                 for (int i = 0; i < calculateEodValue; i++) {
                     calculateOiInterpretation(eod.getData().get(i), eod.getData().get(i + 1));
-                    System.out.println("StockDetails" +eod.getData().get(i+1));
-                    System.out.println("Next Day StockDetails"+eod.getData().get(i));
                 }
 
                 for (int i = calculateEodValue-1; i > 0; i--) {
@@ -152,7 +153,7 @@ public class FutureEodAnalyzerService {
             }
         }
 
-       /* if (isLongUnwindingFollowedByShortBuildUp) {
+        if (isLongUnwindingFollowedByShortBuildUp) {
             mailService.sendEmailList(longUnwindingFollowedByShortBuildUp, "Negative Stocks with LU followed SBU ");
         }
 
@@ -166,7 +167,7 @@ public class FutureEodAnalyzerService {
 
         if (isShortCoveringFollowedByLongUnwinding) {
             mailService.sendEmailList(shortCoveringFollowedByLongUnwinding, "Negative Stocks with SC followed by LU");
-        }*/
+        }
 
         List<String> stocks = new ArrayList<>();
         stocks.addAll(positiveStocks);
@@ -184,8 +185,27 @@ public class FutureEodAnalyzerService {
                 System.out.println("Key "+key);
                 value.forEach((key1, value1) -> System.out.println("Duration "+key1 + " Value "+value1));
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+        List<String> emailContent = new ArrayList<>();
+        for(String positive: positiveStocks){
+            Map<String, List<String>> trendLines = trendLineService.findTrendLines(stringMapMap.get(positive), true);
+            trendLines.forEach((key1, value1) -> {
+               emailContent.add("Postive Stock " + positive + " with time Frame" +properties.getInterval() + " for "+ key1 + " Trend Lines "+value1.toString() );
+               emailContent.add("\n");
+            });
+        }
+        for(String negative : negativeStocks) {
+            Map<String, List<String>> trendLines2 = trendLineService.findTrendLines(stringMapMap.get(negative), false);
+            trendLines2.forEach((key1, value1) -> {
+                emailContent.add("Negative Stock " + negative + " with time Frame" +properties.getInterval() +  " for "+ key1 + " Trend Lines "+value1.toString());
+                emailContent.add("\n");
+            });
+        }
+
+        if (!emailContent.isEmpty()) {
+            mailService.sendEmailList(emailContent, "Stocks with trend lines");
         }
 
 
@@ -204,6 +224,63 @@ public class FutureEodAnalyzerService {
         current.setLtpChange(ltpChange);
         current.setOiChange(oiChange);
         current.setOiInterpretation(oiInterpretation);
+
+    }
+
+    public void getTrendLinesForNiftyAndBankNifty(Properties properties){
+
+        // Path to the file containing the stock list
+        String filePath = "src/main/resources/sectorList.txt";
+
+        // Read all lines from the file into a List
+        List<String> stockList;
+        if(properties.getStockName() != null){
+            stockList = Arrays.asList(properties.getStockName().split(","));
+        } else {
+            try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
+                stockList = lines.collect(Collectors.toList());
+                properties.setStockName(String.join(",",stockList));
+            } catch (IOException e) {
+                log.error("Error reading file: " + e.getMessage());
+                return;
+            }
+        }
+
+        Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
+        try {
+            yahooFinanceService.combineFutureAndSpotDetails(properties, stringMapMap);
+            System.out.println("---------------");
+            for(Map.Entry<String, Map<String, FutureAnalysis>> map : stringMapMap.entrySet()){
+
+                String key = map.getKey();
+                Map<String, FutureAnalysis> value = map.getValue();
+                System.out.println("Key "+key);
+                value.forEach((key1, value1) -> System.out.println("Duration "+key1 + " Value "+value1));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        List<String> emailContent = new ArrayList<>();
+        for(Map.Entry<String, Map<String, FutureAnalysis>>  stringMapEntry : stringMapMap.entrySet()){
+            String stock = stringMapEntry.getKey();
+            Map<String, List<String>> trendLines = trendLineService.findTrendLines(stringMapMap.get(stock), true);
+            trendLines.forEach((key1, value1) -> {
+                emailContent.add("Postive  " + stock + " with time Frame" +properties.getInterval() + " for "+ key1 + " Trend Lines "+value1.toString() );
+                emailContent.add("\n");
+            });
+
+            Map<String, List<String>> trendLines2 = trendLineService.findTrendLines(stringMapMap.get(stock), false);
+            trendLines2.forEach((key1, value1) -> {
+                emailContent.add("Negative " + stock + " with time Frame" +properties.getInterval() +  " for "+ key1 + " Trend Lines "+value1.toString());
+                emailContent.add("\n");
+            });
+        }
+
+        if (!emailContent.isEmpty()) {
+            mailService.sendEmailList(emailContent, "Sector with trend lines");
+        }
+
 
     }
 

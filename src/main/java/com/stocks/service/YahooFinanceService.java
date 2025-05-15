@@ -27,8 +27,8 @@ import java.util.stream.Stream;
 public class YahooFinanceService {
 
 
-@Autowired
-MailService mailService;
+    @Autowired
+    MailService mailService;
 
     private static final Logger log = LoggerFactory.getLogger(YahooFinanceService.class);
 
@@ -42,11 +42,11 @@ MailService mailService;
         Calendar to = null;
 
         String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : date != null ? date : LocalDate.now().toString();
-        if(selectedDate != null){
+        if (selectedDate != null) {
             Date dateFromString = DateUtil.getDateFromString(selectedDate);
             from = CalenderUtil.startHoursFromDate(dateFromString);
             to = CalenderUtil.endHoursFromDate(dateFromString);
-        }else{
+        } else {
             from = CalenderUtil.start();
             to = CalenderUtil.end();
         }
@@ -87,7 +87,7 @@ MailService mailService;
             stockDetails.put(stock, historicalQuoteMap);
 
         }
-         return  stockDetails;
+        return stockDetails;
     }
 
     public void combineFutureAndSpotDetails(Properties properties, Map<String, Map<String, FutureAnalysis>> stocksFutureAnalysisMap) throws IOException {
@@ -97,11 +97,11 @@ MailService mailService;
         Calendar to = null;
 
         String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : date != null ? date : LocalDate.now().toString();
-        if(selectedDate != null){
+        if (selectedDate != null) {
             Date dateFromString = DateUtil.getDateFromString(selectedDate);
             from = CalenderUtil.startHoursFromDate(dateFromString);
             to = CalenderUtil.endHoursFromDate(dateFromString);
-        }else{
+        } else {
             from = CalenderUtil.start();
             to = CalenderUtil.end();
         }
@@ -110,7 +110,7 @@ MailService mailService;
         String filePath = "src/main/resources/stocksList.txt";
 
         // Read all lines from the file into a List
-        List<String> stockList ;
+        List<String> stockList;
         if (properties.getStockName() != null) {
             stockList = Arrays.asList(properties.getStockName().split(","));
         } else {
@@ -129,16 +129,23 @@ MailService mailService;
                 continue;
             }
             String stockName = stock + ".NS";
-            QueryInterval queryInterval = properties.getInterval() == 0 ? QueryInterval.FIFTEEN_MINS : QueryInterval.FIVE_MINS;
+
+            if ("BANKNIFTY".equals(stock)) {
+                stockName = "^NSEBANK";
+            }
+            if ("NIFTY".equals(stock)) {
+                stockName = "^NSEI";
+            }
+            QueryInterval queryInterval = QueryInterval.getInstance(properties.getInterval() + "m");
             HistQuotesQuery2V8RequestImpl impl1 = new HistQuotesQuery2V8RequestImpl(stockName, from, to, queryInterval);
 
             List<HistoricalQuote> completeResult = impl1.getCompleteResult();
 
             for (HistoricalQuote quote : completeResult) {
                 String duration = LocalTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()) +
-                        "-" + LocalTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()).plusMinutes(5);
+                        "-" + LocalTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()).plusMinutes(properties.getInterval());
                 FutureAnalysis futureAnalysis = futureAnalysisMap.get(duration);
-                if(futureAnalysis != null){
+                if (futureAnalysis != null) {
                     futureAnalysis.setHistoricalQuote(quote);
                 }
             }

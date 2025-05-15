@@ -24,12 +24,12 @@ public class Scheduler {
     @Autowired
     private Mail mailService;
 
-    @Scheduled(cron = "15 18/3 9-14 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
+    @Scheduled(cron = "15 20/5 9-12 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
     public void callApi() {
         log.info("Scheduler started");
         logTime();
         Properties properties = new Properties();
-        properties.setInterval(3);
+        properties.setInterval(5);
         List<StockResponse> list = apiService.callApi(properties);
         if (list == null || list.isEmpty()) {
            log.info("No records found");
@@ -41,7 +41,7 @@ public class Scheduler {
         log.info("Scheduler finished " + list.size());
     }
 
-    @Scheduled(cron = "15 18/3 9-14 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
+   // @Scheduled(cron = "15 18/3 9-14 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
     public void dayHighLow() {
 //        log.info("Scheduler started");
 //        dayHighLowService.dayHighLow();

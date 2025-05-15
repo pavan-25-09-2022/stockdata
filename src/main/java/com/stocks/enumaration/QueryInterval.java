@@ -17,4 +17,13 @@ public enum QueryInterval {
     public String getTag() {
         return this.tag;
     }
+
+    public static QueryInterval getInstance(String tag){
+        for(QueryInterval queryInterval : values()){
+            if(queryInterval.getTag().equals(tag)){
+                return  queryInterval;
+            }
+        }
+        return QueryInterval.FIVE_MINS;
+    }
 }
