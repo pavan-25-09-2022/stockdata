@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -41,7 +41,7 @@ public class YahooFinanceService {
         Calendar from = null;
         Calendar to = null;
 
-        String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : date != null ? date : LocalDate.now().toString();
+        String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : date != null ? date : LocalDateTime.now().toString();
         if (selectedDate != null) {
             Date dateFromString = DateUtil.getDateFromString(selectedDate);
             from = CalenderUtil.startHoursFromDate(dateFromString);
@@ -52,7 +52,7 @@ public class YahooFinanceService {
         }
 
         // Path to the file containing the stock list
-        String filePath = "src/main/resources/stocksList.txt";
+        String filePath = "src/main/resources/stocksEodList.txt";
 
         // Read all lines from the file into a List
         List<String> stockList;
@@ -80,8 +80,8 @@ public class YahooFinanceService {
             Map<String, HistoricalQuote> historicalQuoteMap = new LinkedHashMap<>();
             for (HistoricalQuote quote : completeResult) {
 
-                String duration = LocalTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()) +
-                        "-" + LocalTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()).plusMinutes(5);
+                String duration = LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()).toLocalTime() +
+                        "-" + LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()).toLocalTime().plusMinutes(5);
                 historicalQuoteMap.put(duration, quote);
             }
             stockDetails.put(stock, historicalQuoteMap);
@@ -96,7 +96,7 @@ public class YahooFinanceService {
         Calendar from = null;
         Calendar to = null;
 
-        String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : date != null ? date : LocalDate.now().toString();
+        String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : date != null ? date : LocalDateTime.now().toString();
         if (selectedDate != null) {
             Date dateFromString = DateUtil.getDateFromString(selectedDate);
             from = CalenderUtil.startHoursFromDate(dateFromString);
@@ -107,11 +107,11 @@ public class YahooFinanceService {
         }
 
         // Path to the file containing the stock list
-        String filePath = "src/main/resources/stocksList.txt";
+        String filePath = "src/main/resources/stocksEodList.txt";
 
         // Read all lines from the file into a List
         List<String> stockList;
-        if (properties.getStockName() != null) {
+        if (properties.getStockName() != null && !properties.getStockName().isEmpty()) {
             stockList = Arrays.asList(properties.getStockName().split(","));
         } else {
             try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
@@ -142,8 +142,8 @@ public class YahooFinanceService {
             List<HistoricalQuote> completeResult = impl1.getCompleteResult();
 
             for (HistoricalQuote quote : completeResult) {
-                String duration = LocalTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()) +
-                        "-" + LocalTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()).plusMinutes(properties.getInterval());
+                String duration = LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()) +
+                        "-" + LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()).plusMinutes(properties.getInterval());
                 FutureAnalysis futureAnalysis = futureAnalysisMap.get(duration);
                 if (futureAnalysis != null) {
                     futureAnalysis.setHistoricalQuote(quote);

@@ -56,11 +56,11 @@ public class FutureAnalysisService {
     public Map<String, Map<String, FutureAnalysis>> futureAnalysis(Properties properties) {
 
         // Path to the file containing the stock list
-        String filePath = "src/main/resources/stocksList.txt";
+        String filePath = "src/main/resources/stocksEodList.txt";
 
         // Read all lines from the file into a List
         List<String> stockList;
-        if (properties.getStockName() != null) {
+        if (properties.getStockName() != null && !properties.getStockName().isEmpty()) {
             stockList = Arrays.asList(properties.getStockName().split(","));
         } else {
             try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
@@ -77,11 +77,11 @@ public class FutureAnalysisService {
         long count = stockList.parallelStream().map(stock -> {
             try {
                 // Make POST request
-                ResponseEntity<ApiResponse> response = ioPulseService.sendRequest(properties, stock);
+                ApiResponse apiResponse= ioPulseService.sendRequest(properties, stock);
 
                 // Process response
-                ApiResponse apiResponse = response.getBody();
-                if (apiResponse == null || apiResponse.getData().size() <= 6) {
+//                ApiResponse apiResponse = response.getBody();
+                if (apiResponse == null ||apiResponse.getData()==null || apiResponse.getData().size() <= 6) {
                     log.info("Data size is less than or equal to 6 for stock: " + stock);
                     return null;
                 }

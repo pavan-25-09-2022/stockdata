@@ -1,13 +1,23 @@
 package com.stocks.dto;
 
+import lombok.Data;
+
+@Data
 public class Properties {
     private String stockDate;
     private int exitMins;
     private int interval;
     private boolean fetchAll;
     private int amtInvested;
-    private String stockName;
+    private String stockName = "";
+    private String startTime;
+    private String endTime;
+    private String expiryDate;
+    private String type;
+    private String env;
     private String previousStockDate;
+    private boolean fromScheduler;
+    private Integer noOfCandles;
 
     public String getStockDate() {
         return stockDate;
@@ -63,5 +73,42 @@ public class Properties {
 
     public void setPreviousStockDate(String previousStockDate) {
         this.previousStockDate = previousStockDate;
+    }
+
+    public String getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(String startTime) {
+        this.startTime = startTime;
+    }
+
+    public String getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(String expiryDate) {
+        this.expiryDate = expiryDate;
+    }
+
+    public String getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(String endTime) {
+        this.endTime = endTime;
+    }
+    public String getType() {
+        return type;
+    }
+    public void setType(String type) {
+        this.type = type;}
+
+    public String getEnv() {
+        return env;
+    }
+
+    public void setEnv(String env) {
+        this.env = env;
     }
 }

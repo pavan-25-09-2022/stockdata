@@ -1,5 +1,8 @@
 package com.stocks.utils;
 
+import com.stocks.dto.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -9,9 +12,27 @@ import java.time.format.DateTimeFormatter;
 @Component
 public class FormatUtil {
 
-    public static String formatTime(String input) {
-        return LocalTime.parse(input, DateTimeFormatter.ofPattern("HH:mm:ss"))
-                .format(DateTimeFormatter.ofPattern("HH:mm"));
+    private static final Logger log = LoggerFactory.getLogger(FormatUtil.class);
+
+    public static LocalTime getTime(String input, int minutes) {
+        return LocalTime.parse(input, DateTimeFormatter.ofPattern("HH:mm:ss")).plusMinutes(minutes);
+    }
+
+    public static LocalTime getTimeHHmm(String input) {
+        try {
+            return LocalTime.parse(input, DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (Exception e) {
+           log.error("Error parsing time: " + input, e);
+            return null;
+        }
+    }
+
+    public static String formatTimeHHmm(LocalTime input) {
+        return input.format(DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
+    public static String formatTimeHHmmss(LocalTime input) {
+        return input.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
     }
 
     public static String formatVolume(long volume) {
@@ -26,12 +47,14 @@ public class FormatUtil {
         }
     }
 
-    public static LocalTime addMinutes(int mins){
-        LocalTime currentTime = LocalTime.now();
-        return currentTime.plusMinutes(mins);
+    public static LocalTime addMinutes(LocalTime time, int mins){
+        return time.plusMinutes(mins);
     }
 
-    public static String getCurDate(){
+    public static String getCurDate(Properties properties) {
+        if(properties.getStockDate() != null && !properties.getStockDate().isEmpty()) {
+            return properties.getStockDate();
+        }
         LocalDate currentDate = LocalDate.now();
 
         // Define the desired format
@@ -42,8 +65,14 @@ public class FormatUtil {
 
     }
 
-    public static LocalTime addMinsToTime(String endTime, int exitMins) {
-        LocalTime current = LocalTime.parse(endTime);
-        return current.plusMinutes(exitMins);
+    public static String getYesterdayDate(String stockDate) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDate date;
+        if (stockDate != null && !stockDate.isEmpty()) {
+            date = LocalDate.parse(stockDate, formatter);
+        } else {
+            date = LocalDate.now();
+        }
+       return date.minusDays(1).format(formatter);
     }
 }

@@ -42,7 +42,7 @@ public class FutureEodAnalyzerService {
 
     public String processEodResponse(Properties properties) {
         // Path to the file containing the stock list
-        String filePath = "src/main/resources/stocksList.txt";
+        String filePath = "src/main/resources/stocksEodList.txt";
 
         // Read all lines from the file into a List
         List<String> stockList;
@@ -230,21 +230,9 @@ public class FutureEodAnalyzerService {
     public void getTrendLinesForNiftyAndBankNifty(Properties properties){
 
         // Path to the file containing the stock list
-        String filePath = "src/main/resources/sectorList.txt";
+        String filePath = "src/main/resources/sectorEodList.txt";
 
         // Read all lines from the file into a List
-        List<String> stockList;
-        if(properties.getStockName() != null){
-            stockList = Arrays.asList(properties.getStockName().split(","));
-        } else {
-            try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
-                stockList = lines.collect(Collectors.toList());
-                properties.setStockName(String.join(",",stockList));
-            } catch (IOException e) {
-                log.error("Error reading file: " + e.getMessage());
-                return;
-            }
-        }
 
         Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
         try {
@@ -278,7 +266,8 @@ public class FutureEodAnalyzerService {
         }
 
         if (!emailContent.isEmpty()) {
-            mailService.sendEmailList(emailContent, "Sector with trend lines");
+            log.info("mail sent");
+            mailService.sendEmailList(emailContent, "Sector with trend lines " + properties.getStockDate());
         }
 
 

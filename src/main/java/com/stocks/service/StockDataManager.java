@@ -16,12 +16,12 @@ public class StockDataManager {
     private EntityManager entityManager;
 
     @Transactional
-    public void saveStockData(String stock, String date, String time, String oiInterpretation) {
-        StockData stockData = new StockData();
-        stockData.setStock(stock);
+    public void saveStockData(String stock, String date, String time, String oiInterpretation, String type, double limit) {
+        StockData stockData = new StockData(stock, type);
         stockData.setDate(date);
         stockData.setTime(time);
         stockData.setOiInterpretation(oiInterpretation);
+        stockData.setTrend(String.format("%.2f", limit));
         entityManager.persist(stockData);
     }
 
@@ -37,13 +37,12 @@ public class StockDataManager {
     }
 
     @Transactional(readOnly = true)
-    public StockData getRecordByDate(String stock, String date) {
-        String hql = "FROM StockData WHERE stock = :stock AND date = :date";
+    public List<StockData> getStocksByDate(String date) {
+        String hql = "FROM StockData WHERE date = :date";
         Session session = entityManager.unwrap(Session.class);
         return session.createQuery(hql, StockData.class)
-                .setParameter("stock", stock)
                 .setParameter("date", date)
-                .uniqueResult();
+                .getResultList();
     }
 
     @Transactional(readOnly = true)

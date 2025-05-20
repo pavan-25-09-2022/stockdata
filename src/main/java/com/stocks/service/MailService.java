@@ -93,22 +93,31 @@ public class MailService {
 
     }
 
-    public String beautifyResults(List<StockResponse> list) {
+    public String beautifyResults(List<StockResponse> list, com.stocks.dto.Properties properties) {
         StringBuilder htmlContent = new StringBuilder();
         htmlContent.append("<html><body>");
         htmlContent.append("<h2>Stock Report</h2>");
+        double totalPositiveProfit = 0;
+        double totalNegativeProfit = 0;
+        int negativeStocks = 0;
+        int positiveStocks = 0;
+
         htmlContent.append("<table border='1' style='border-collapse: collapse; width: 100%; table-layout: auto;'>");
         htmlContent.append("<tr>")
                 .append("<th>P</th>")
                 .append("<th>Stock</th>")
+                .append("<th>RSI</th>")
+                .append("<th>OC</th>")
                 .append("<th>Price</th>")
                 .append("<th>Time</th>")
                 .append("<th>OI</th>")
                 .append("<th>SL</th>")
                 .append("<th>EOD OI</th>")
                 .append("<th>Vol</th>")
-                .append("<th>YDB</th>");
-        if (list.get(0).getStockProfitResult() != null) {
+//                .append("<th>Chge in %</th>")
+//                .append("<th>YDB</th>")
+        ;
+        if ("test".equalsIgnoreCase(properties.getEnv())) {
             htmlContent.append("<th> profit</th>")
                     .append("<th> sellPrice</th>")
                     .append("<th> buyPrice</th>")
@@ -141,14 +150,20 @@ public class MailService {
                 htmlContent.append("<tr style='background-color: #ffcccc;'>")
                         .append("<td>").append(stock.getPriority()).append("</td>")
                         .append("<td>").append(stock.getStock()).append("</td>")
-                        .append("<td>").append(stock.getCurrentPrice()).append("</td>")
-                        .append("<td>").append(stock.getStartTime()).append("-").append(stock.getEndTime()).append("</td>")
+                        .append("<td>").append( stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getOptionChain()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getClose()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getStartTime()).append("-").append(stock.getCurCandle().getEndTime()).append("</td>")
                         .append("<td>").append(stock.getOiInterpretation()).append("</td>")
-                        .append("<td>").append(stock.getStopLoss()).append("</td>")
+                        .append("<td>").append(stock.getFirstCandle().getHigh()).append("</td>")
                         .append("<td>").append(stock.getEodData()).append("</td>")
-                        .append("<td>").append(stock.getVolume()).append("</td>")
-                        .append("<td>").append(stock.getYestDayBreak()).append("</td>");
+                        .append("<td>").append(stock.getCurCandle().getVolume()).append("</td>")
+//                        .append("<td>").append(stock.getCay()).append("</td>")
+//                        .append("<td>").append(stock.getYestDayBreak()).append("</td>")
+                ;
                 if (stock.getStockProfitResult() != null) {
+                    negativeStocks = negativeStocks + 1;
+                    totalNegativeProfit = totalNegativeProfit + stock.getStockProfitResult().getProfit();
                     htmlContent.append("<td style='background-color: ")
                             .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
                             .append(";'>")
@@ -181,13 +196,368 @@ public class MailService {
                 htmlContent.append("<tr style='background-color: #ccffcc;'>")
                         .append("<td>").append(stock.getPriority()).append("</td>")
                         .append("<td>").append(stock.getStock()).append("</td>")
+                        .append("<td>").append( stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getOptionChain()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getClose()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getStartTime()).append("-").append(stock.getCurCandle().getEndTime()).append("</td>")
+                        .append("<td>").append(stock.getOiInterpretation()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getLow()).append("</td>")
+                        .append("<td>").append(stock.getEodData()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getVolume()).append("</td>")
+//                        .append("<td>").append(stock.getCay()).append("</td>")
+//                        .append("<td>").append(stock.getYestDayBreak()).append("</td>")
+                ;
+                if (stock.getStockProfitResult() != null) {
+                    positiveStocks = positiveStocks + 1;
+                    totalPositiveProfit = totalPositiveProfit + stock.getStockProfitResult().getProfit();
+                    htmlContent.append("<td style='background-color: ")
+                            .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
+                            .append(";'>")
+                            .append(String.format("%.2f", stock.getStockProfitResult().getProfit()))
+                            .append("</td>")
+                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getSellPrice())).append("</td>")
+                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getBuyPrice())).append("</td>")
+                            .append("<td>").append(stock.getStockProfitResult().getBuyTime()).append("</td>")
+                            .append("<td>").append(stock.getStockProfitResult().getSellTime()).append("</td>");
+                }
+                log.info(stock.getStock());
+                htmlContent.append("</tr>");
+            }
+            htmlContent.append("<tr style='height: 20px;'></tr>");
+
+            // Add one empty row after each group
+        }
+        htmlContent.append("</table>");
+        htmlContent.append("</body></html>");
+        if("test".equalsIgnoreCase(properties.getEnv())) {
+            htmlContent.append("<br>");
+            htmlContent.append("<br>");
+            htmlContent.append(negativeStocks)
+                    .append(" negative stocks with profit: ").append(String.format("%.2f", totalNegativeProfit));
+            htmlContent.append("<br>");
+            htmlContent.append(positiveStocks)
+                    .append(" positive stocks with profit: ").append(String.format("%.2f", totalPositiveProfit));
+        }
+        return htmlContent.toString();
+    }
+
+    public String beautifyOptChnResults(List<StockResponse> list) {
+
+        StringBuilder htmlContent = new StringBuilder();
+        htmlContent.append("<html><body>");
+        htmlContent.append("<h2>Stock Report</h2>");
+        htmlContent.append("<table border='1' style='border-collapse: collapse; width: 100%; table-layout: auto;'>");
+        htmlContent.append("<tr>")
+                .append("<th>Stock</th>")
+                .append("<th>RSI</th>")
+                .append("<th>OC</th>")
+                .append("<th>Price</th>")
+                .append("<th>Cur St</th>")
+                .append("<th>put St</th>")
+                .append("<th>cal St</th>")
+                .append("<th>Time</th>")
+                .append("<th>OI</th>")
+                .append("<th>SL</th>")
+                .append("<th>Vol</th>")
+                .append("<th>Chge in %</th>")
+                .append("<th>YDB</th>");
+        if (list.get(0).getStockProfitResult() != null) {
+            htmlContent.append("<th> profit</th>")
+                    .append("<th> sellPrice</th>")
+                    .append("<th> buyPrice</th>")
+                    .append("<th> buyTime</th>")
+                    .append("<th> sellTime</th>");
+        }
+        htmlContent.append("</tr>");
+
+        // Group rows by stock type
+        List<StockResponse> nStocks = list.stream()
+                .filter(stock -> "N".equals(stock.getStockType()))
+                .sorted(Comparator.comparingInt(StockResponse::getPriority).reversed()) // Order by priority descending
+                .collect(Collectors.toList());
+
+        List<StockResponse> pStocks = list.stream()
+                .filter(stock -> "P".equals(stock.getStockType()))
+                .sorted(Comparator.comparingInt(StockResponse::getPriority).reversed()) // Order by priority descending
+                .collect(Collectors.toList());
+
+// Append rows for N stocks
+        Map<String, List<StockResponse>> nsStocks = nStocks.stream()
+                .collect(Collectors.groupingBy(StockResponse::getOiInterpretation));
+
+        for (Map.Entry<String, List<StockResponse>> entry : nsStocks.entrySet()) {
+            List<StockResponse> stocks = entry.getValue();
+            for (StockResponse stock : stocks) {
+//                if (stock.getPriority() == 0) {
+//                    continue;
+//                }
+                htmlContent.append("<tr style='background-color: #ffcccc;'>")
+                        .append("<td>").append(stock.getStock()).append("</td>")
+                        .append("<td>").append( stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getOptionChain()).append("</td>")
                         .append("<td>").append(stock.getCurrentPrice()).append("</td>")
+                        .append("<td>").append(stock.getCurSt()).append("</td>")
+                        .append("<td>").append(stock.getPutSt()).append("</td>")
+                        .append("<td>").append(stock.getCallSt()).append("</td>")
                         .append("<td>").append(stock.getStartTime()).append("-").append(stock.getEndTime()).append("</td>")
                         .append("<td>").append(stock.getOiInterpretation()).append("</td>")
                         .append("<td>").append(stock.getStopLoss()).append("</td>")
-                        .append("<td>").append(stock.getEodData()).append("</td>")
-                        .append("<td>").append(stock.getVolume()).append("</td>").
-                        append("<td>").append(stock.getYestDayBreak()).append("</td>");
+                        .append("<td>").append(stock.getVolume()).append("</td>")
+                        .append("<td>").append(stock.getCay()).append("</td>")
+                        .append("<td>").append(stock.getYestDayBreak()).append("</td>");
+                if (stock.getStockProfitResult() != null) {
+                    htmlContent.append("<td style='background-color: ")
+                            .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
+                            .append(";'>")
+                            .append(String.format("%.2f", stock.getStockProfitResult().getProfit()))
+                            .append("</td>")
+                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getSellPrice())).append("</td>")
+                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getBuyPrice())).append("</td>")
+                            .append("<td>").append(stock.getStockProfitResult().getBuyTime()).append("</td>")
+                            .append("<td>").append(stock.getStockProfitResult().getSellTime()).append("</td>");
+                }
+                htmlContent.append("</tr>");
+            }
+            htmlContent.append("<tr style='height: 20px;'></tr>");
+
+            // Add one empty row after each group
+        }
+
+        htmlContent.append("<tr style='height: 20px;'></tr>");
+
+// Append rows for P stocks
+        Map<String, List<StockResponse>> psStocks = pStocks.stream()
+                .collect(Collectors.groupingBy(StockResponse::getOiInterpretation));
+
+        for (Map.Entry<String, List<StockResponse>> entry : psStocks.entrySet()) {
+            List<StockResponse> stocks = entry.getValue();
+            for (StockResponse stock : stocks) {
+//                if (stock.getPriority() == 0) {
+//                    continue;
+//                }
+                htmlContent.append("<tr style='background-color: #ccffcc;'>")
+                        .append("<td>").append(stock.getStock()).append("</td>")
+                        .append("<td>").append( stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getOptionChain()).append("</td>")
+                        .append("<td>").append(stock.getCurrentPrice()).append("</td>")
+                        .append("<td>").append(stock.getCurSt()).append("</td>")
+                        .append("<td>").append(stock.getPutSt()).append("</td>")
+                        .append("<td>").append(stock.getCallSt()).append("</td>")
+                        .append("<td>").append(stock.getStartTime()).append("-").append(stock.getEndTime()).append("</td>")
+                        .append("<td>").append(stock.getOiInterpretation()).append("</td>")
+                        .append("<td>").append(stock.getStopLoss()).append("</td>")
+                        .append("<td>").append(stock.getVolume()).append("</td>")
+                        .append("<td>").append(stock.getCay()).append("</td>")
+                        .append("<td>").append(stock.getYestDayBreak()).append("</td>");
+                if (stock.getStockProfitResult() != null) {
+                    htmlContent.append("<td style='background-color: ")
+                            .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
+                            .append(";'>")
+                            .append(String.format("%.2f", stock.getStockProfitResult().getProfit()))
+                            .append("</td>")
+                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getSellPrice())).append("</td>")
+                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getBuyPrice())).append("</td>")
+                            .append("<td>").append(stock.getStockProfitResult().getBuyTime()).append("</td>")
+                            .append("<td>").append(stock.getStockProfitResult().getSellTime()).append("</td>");
+                }
+                htmlContent.append("</tr>");
+            }
+            htmlContent.append("<tr style='height: 20px;'></tr>");
+
+            // Add one empty row after each group
+        }
+        htmlContent.append("</table>");
+        htmlContent.append("</body></html>");
+        return htmlContent.toString();
+//        StringBuilder htmlContent = new StringBuilder();
+//        htmlContent.append("<html><body>");
+//        htmlContent.append("<h2>Option chain stock report</h2>");
+//        htmlContent.append("<table border='1' style='border-collapse: collapse; width: 100%; table-layout: auto;'>");
+//        htmlContent.append("<tr>")
+//                .append("<th>Stock</th>")
+//                .append("<th>RSI</th>")
+//                .append("<th>OI</th>")
+//                .append("<th>Cur St</th>")
+//                .append("<th>put St</th>")
+//                .append("<th>cal St</th>")
+//                .append("<th>Price</th>")
+//                .append("<th>SL</th>")
+//                .append("<th>OC</th>");
+//        htmlContent.append("</tr>");
+//
+//        // Group rows by stock type
+//        List<StockResponse> nStocks = list.stream()
+//                .filter(stock -> "N".equals(stock.getStockType()))
+//                .sorted(Comparator.comparingInt(StockResponse::getPriority).reversed()) // Order by priority descending
+//                .collect(Collectors.toList());
+//
+//        List<StockResponse> pStocks = list.stream()
+//                .filter(stock -> "P".equals(stock.getStockType()))
+//                .sorted(Comparator.comparingInt(StockResponse::getPriority).reversed()) // Order by priority descending
+//                .collect(Collectors.toList());
+//
+//// Append rows for N stocks
+//
+//
+//            for (StockResponse stock : nStocks) {
+////                if (stock.getPriority() == 0) {
+////                    continue;
+////                }
+//                htmlContent.append("<tr style='background-color: #ffcccc;'>")
+//                        .append("<td>").append(stock.getStock()).append("</td>")
+//                        .append("<td>").append( stock.getRsi()).append("</td>")
+//                        .append("<td>").append( stock.getOiInterpretation()).append("</td>")
+//                        .append("<td>").append(stock.getCurSt()).append("</td>")
+//                        .append("<td>").append(stock.getPutSt()).append("</td>")
+//                        .append("<td>").append(stock.getCallSt()).append("</td>")
+//                        .append("<td>").append( stock.getCurrentPrice()).append("</td>")
+//                        .append("<td>").append( stock.getStopLoss()).append("</td>")
+//                        .append("<td>").append(stock.getOptionChain()).append("</td>");
+//                htmlContent.append("</tr>");
+//            }
+//            htmlContent.append("<tr style='height: 20px;'></tr>");
+//            // Add one empty row after each group
+//        htmlContent.append("<tr style='height: 20px;'></tr>");
+//// Append rows for P stocks
+//            for (StockResponse stock : pStocks) {
+////                if (stock.getPriority() == 0) {
+////                    continue;
+////                }
+////                 .append("<th>Stock</th>")
+////                        .append("<th>RSI</th>")
+////                        .append("<th>OI</th>")
+////                        .append("<th>Price</th>")
+////                        .append("<th>SL</th>")
+////                        .append("<th>OC</th>")
+//                htmlContent.append("<tr style='background-color: #ccffcc;'>")
+//                        .append("<td>").append(stock.getStock()).append("</td>")
+//                        .append("<td>").append( stock.getRsi()).append("</td>")
+//                        .append("<td>").append( stock.getOiInterpretation()).append("</td>")
+//                        .append("<td>").append(stock.getCurSt()).append("</td>")
+//                        .append("<td>").append(stock.getPutSt()).append("</td>")
+//                        .append("<td>").append(stock.getCallSt()).append("</td>")
+//                        .append("<td>").append( stock.getCurrentPrice()).append("</td>")
+//                        .append("<td>").append( stock.getStopLoss()).append("</td>")
+//                        .append("<td>").append(stock.getOptionChain()).append("</td>")
+//                       ;
+//                htmlContent.append("</tr>");
+//            }
+//            htmlContent.append("<tr style='height: 20px;'></tr>");
+//
+//            // Add one empty row after each group
+//
+//        htmlContent.append("</table>");
+//        htmlContent.append("</body></html>");
+//        return htmlContent.toString();
+    }
+
+    public String beautifyTrendResults(List<StockResponse> list, com.stocks.dto.Properties properties) {
+        StringBuilder htmlContent = new StringBuilder();
+        htmlContent.append("<html><body>");
+        htmlContent.append("<h2>Stock Trend Report</h2>");
+        htmlContent.append("<table border='1' style='border-collapse: collapse; width: 100%; table-layout: auto;'>");
+        htmlContent.append("<tr>")
+                .append("<th>Stock</th>")
+                .append("<th>RSI</th>")
+                .append("<th>OC</th>")
+                .append("<th>Price</th>")
+                .append("<th>Cur St</th>")
+                .append("<th>put St</th>")
+                .append("<th>cal St</th>")
+                .append("<th>Time</th>")
+                .append("<th>OI</th>")
+                .append("<th>SL</th>")
+                .append("<th>Vol</th>")
+                .append("<th>Chge in %</th>")
+                .append("<th>YDB</th>");
+        if (list.get(0).getStockProfitResult() != null) {
+            htmlContent.append("<th> profit</th>")
+                    .append("<th> sellPrice</th>")
+                    .append("<th> buyPrice</th>")
+                    .append("<th> buyTime</th>")
+                    .append("<th> sellTime</th>");
+        }
+        htmlContent.append("</tr>");
+
+        // Group rows by stock type
+        List<StockResponse> nStocks = list.stream()
+                .filter(stock -> "N".equals(stock.getStockType()))
+                .sorted(Comparator.comparingInt(StockResponse::getPriority).reversed()) // Order by priority descending
+                .collect(Collectors.toList());
+
+        List<StockResponse> pStocks = list.stream()
+                .filter(stock -> "P".equals(stock.getStockType()))
+                .sorted(Comparator.comparingInt(StockResponse::getPriority).reversed()) // Order by priority descending
+                .collect(Collectors.toList());
+
+// Append rows for N stocks
+        Map<String, List<StockResponse>> nsStocks = nStocks.stream()
+                .collect(Collectors.groupingBy(StockResponse::getOiInterpretation));
+
+        for (Map.Entry<String, List<StockResponse>> entry : nsStocks.entrySet()) {
+            List<StockResponse> stocks = entry.getValue();
+            for (StockResponse stock : stocks) {
+//                if (stock.getPriority() == 0) {
+//                    continue;
+//                }
+                htmlContent.append("<tr style='background-color: #ffcccc;'>")
+                        .append("<td>").append(stock.getStock()).append("</td>")
+                        .append("<td>").append( stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getOptionChain()).append("</td>")
+                        .append("<td>").append(stock.getCurrentPrice()).append("</td>")
+                        .append("<td>").append(stock.getCurSt()).append("</td>")
+                        .append("<td>").append(stock.getPutSt()).append("</td>")
+                        .append("<td>").append(stock.getCallSt()).append("</td>")
+                        .append("<td>").append(stock.getStartTime()).append("-").append(stock.getEndTime()).append("</td>")
+                        .append("<td>").append(stock.getOiInterpretation()).append("</td>")
+                        .append("<td>").append(stock.getStopLoss()).append("</td>")
+                        .append("<td>").append(stock.getVolume()).append("</td>")
+                        .append("<td>").append(stock.getCay()).append("</td>")
+                        .append("<td>").append(stock.getYestDayBreak()).append("</td>");
+                if (stock.getStockProfitResult() != null) {
+                    htmlContent.append("<td style='background-color: ")
+                            .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
+                            .append(";'>")
+                            .append(String.format("%.2f", stock.getStockProfitResult().getProfit()))
+                            .append("</td>")
+                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getSellPrice())).append("</td>")
+                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getBuyPrice())).append("</td>")
+                            .append("<td>").append(stock.getStockProfitResult().getBuyTime()).append("</td>")
+                            .append("<td>").append(stock.getStockProfitResult().getSellTime()).append("</td>");
+                }
+                htmlContent.append("</tr>");
+            }
+            htmlContent.append("<tr style='height: 20px;'></tr>");
+
+            // Add one empty row after each group
+        }
+
+        htmlContent.append("<tr style='height: 20px;'></tr>");
+
+// Append rows for P stocks
+        Map<String, List<StockResponse>> psStocks = pStocks.stream()
+                .collect(Collectors.groupingBy(StockResponse::getOiInterpretation));
+
+        for (Map.Entry<String, List<StockResponse>> entry : psStocks.entrySet()) {
+            List<StockResponse> stocks = entry.getValue();
+            for (StockResponse stock : stocks) {
+//                if (stock.getPriority() == 0) {
+//                    continue;
+//                }
+                htmlContent.append("<tr style='background-color: #ccffcc;'>")
+                        .append("<td>").append(stock.getStock()).append("</td>")
+                        .append("<td>").append( stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getOptionChain()).append("</td>")
+                        .append("<td>").append(stock.getCurrentPrice()).append("</td>")
+                        .append("<td>").append(stock.getCurSt()).append("</td>")
+                        .append("<td>").append(stock.getPutSt()).append("</td>")
+                        .append("<td>").append(stock.getCallSt()).append("</td>")
+                        .append("<td>").append(stock.getStartTime()).append("-").append(stock.getEndTime()).append("</td>")
+                        .append("<td>").append(stock.getOiInterpretation()).append("</td>")
+                        .append("<td>").append(stock.getStopLoss()).append("</td>")
+                        .append("<td>").append(stock.getVolume()).append("</td>")
+                        .append("<td>").append(stock.getCay()).append("</td>")
+                        .append("<td>").append(stock.getYestDayBreak()).append("</td>");
                 if (stock.getStockProfitResult() != null) {
                     htmlContent.append("<td style='background-color: ")
                             .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")

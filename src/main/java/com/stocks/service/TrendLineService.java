@@ -33,7 +33,7 @@ public class TrendLineService {
                         FutureAnalysis compareWithFutureAnalysis = stringFutureAnalysisEntry1.getValue();
                         if (compareWithFutureAnalysis.getLow() <= futureAnalysis.getLow() && compareWithFutureAnalysis.getClose() > futureAnalysis.getLow()
                                 && futureAnalysis.getStrength() > compareWithFutureAnalysis.getStrength()) {
-                            futureTrendLines.add(futureAnalysis.getLow() + " at " +futureAnalysis.getDuration() +" rejected at " +compareWithFutureAnalysis.getDuration());
+                            //futureTrendLines.add(futureAnalysis.getLow() + " at " +futureAnalysis.getDuration() +" rejected at " +compareWithFutureAnalysis.getDuration());
                             isTrendLine = true;
                         }
                         if (compareWithFutureAnalysis.getClose() < futureAnalysis.getLow()) {
@@ -104,6 +104,9 @@ public class TrendLineService {
 
                     isTrendLine = false;
 
+                    if(historicalQuote == null){
+                        continue;
+                    }
                     for (int j = i + 1; j < entries.size() - 1; j++) {
                         Map.Entry<String, FutureAnalysis> stringFutureAnalysisEntry2 = entries.get(j);
                         FutureAnalysis compareWithFutureAnalysis = stringFutureAnalysisEntry2.getValue();

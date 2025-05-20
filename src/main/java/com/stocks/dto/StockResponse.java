@@ -1,29 +1,57 @@
 package com.stocks.dto;
 
 import com.stocks.utils.FormatUtil;
+import lombok.Data;
 
+import java.time.LocalTime;
+
+@Data
 public class StockResponse {
 
     private String stock;
-    private String startTime;
-    private String endTime;
+    private LocalTime startTime;
+    private LocalTime endTime;
     private String oiInterpretation;
     private double stopLoss;
+    private double limit;
     private double currentPrice;
     private String volume;
-    String stockType;
+    String stockType = "";
     String eodData;
     StockProfitResult stockProfitResult;
     int priority;
     private double curHigh;
     private double curLow;
     private String yestDayBreak = "N";
+    private String optionChain = "N";
+    private String trend ="";
 
+    private OptionChainData row5put;
+    private OptionChainData row5call;
+
+    private OptionChainData curput;
+    private OptionChainData curcall;
+
+    private OptionChainData row6put;
+    private OptionChainData row6call;
+    private String rsi;
+    private double chgeInPer;
+    private String curSt;
+    private String firstChgeInPer;
+    private String putSt;
+    private String callSt;
+    private String cay;
+    private Candle firstCandle;
+    private Candle curCandle;
+
+    public StockResponse(){
+
+    }
 
     public StockResponse(String stock, String stockType, String startTime, String time, String oiInterpretation, double stopLoss, double currentPrice, long volume) {
         this.stock = stock;
-        this.startTime = FormatUtil.formatTime(startTime);
-        this.endTime = FormatUtil.formatTime(time);
+        this.startTime = FormatUtil.getTime(startTime,-1);
+        this.endTime = FormatUtil.getTime(time,0);
         this.oiInterpretation = oiInterpretation;
         this.stopLoss = stopLoss;
         this.currentPrice = currentPrice;
@@ -39,11 +67,11 @@ public class StockResponse {
         this.stock = stock;
     }
 
-    public String getEndTime() {
+    public LocalTime getEndTime() {
         return endTime;
     }
 
-    public void setEndTime(String endTime) {
+    public void setEndTime(LocalTime endTime) {
         this.endTime = endTime;
     }
 
@@ -103,11 +131,11 @@ public class StockResponse {
         this.priority = priority;
     }
 
-    public String getStartTime() {
+    public LocalTime getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(String startTime) {
+    public void setStartTime(LocalTime startTime) {
         this.startTime = startTime;
     }
 
@@ -142,5 +170,119 @@ public class StockResponse {
 
     public void setYestDayBreak(String yestDayBreak) {
         this.yestDayBreak = yestDayBreak;
+    }
+
+    public OptionChainData getRow5put() {
+        return row5put;
+    }
+
+    public void setRow5put(OptionChainData row5put) {
+        this.row5put = row5put;
+    }
+
+    public OptionChainData getRow5call() {
+        return row5call;
+    }
+
+    public void setRow5call(OptionChainData row5call) {
+        this.row5call = row5call;
+    }
+
+    public OptionChainData getCurput() {
+        return curput;
+    }
+
+    public void setCurput(OptionChainData curput) {
+        this.curput = curput;
+    }
+
+    public OptionChainData getCurcall() {
+        return curcall;
+    }
+
+    public void setCurcall(OptionChainData curcall) {
+        this.curcall = curcall;
+    }
+
+    public OptionChainData getRow6put() {
+        return row6put;
+    }
+
+    public void setRow6put(OptionChainData row6put) {
+        this.row6put = row6put;
+    }
+
+    public OptionChainData getRow6call() {
+        return row6call;
+    }
+
+    public void setRow6call(OptionChainData row6call) {
+        this.row6call = row6call;
+    }
+
+    public String getOptionChain() {
+        return optionChain;
+    }
+
+    public void setOptionChain(String optionChain) {
+        this.optionChain = optionChain;
+    }
+    public String getRsi() {
+        return rsi;
+    }
+    public void setRsi(double rsi) {
+        this.rsi = String.format("%.2f", rsi);
+    }
+    public double getChgeInPer() {
+        return chgeInPer;
+    }
+    public void setChgeInPer(double chgeInPer) {
+        this.chgeInPer = chgeInPer;
+    }
+
+    public String getCurSt() {
+        return curSt;
+    }
+    public void setCurSt(String curSt) {
+        this.curSt = curSt;
+    }
+    public String getPutSt() {
+        return putSt;
+    }
+    public void setPutSt(String putSt) {
+        this.putSt = putSt;
+    }
+    public String getCallSt() {
+        return callSt;
+    }
+    public void setCallSt(String callSt) {
+        this.callSt = callSt;
+    }
+
+    public String getFirstChgeInPer() {
+        return firstChgeInPer;
+    }
+
+    public void setFirstChgeInPer(double firstChgeInPer) {
+        this.firstChgeInPer = String.format("%.2f", firstChgeInPer);
+    }
+
+    public String getCay() {
+        return cay;
+    }
+    public void setCay(String cay) {
+        this.cay = cay;
+    }
+    public double getLimit() {
+        return limit;
+    }
+    public void setLimit(double limit) {
+        this.limit = limit;
+    }
+    public String getTrend() {
+        return trend;
+    }
+    public void setTrend(String trend) {
+        this.trend = trend;
     }
 }

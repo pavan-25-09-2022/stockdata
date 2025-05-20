@@ -71,10 +71,10 @@ public class DayHighLowService {
         List<StockResponse> emailList = stockList.parallelStream().map(stock -> {
             try {
                 // Make POST request
-                ResponseEntity<ApiResponse> response = ioPulseService.sendRequest(properties,stock);
+                ApiResponse apiResponse = ioPulseService.sendRequest(properties,stock);
 
                 // Process response
-                ApiResponse apiResponse = response.getBody();
+//                ApiResponse apiResponse = response.getBody();
                 if (apiResponse == null || apiResponse.getData().size() <= 6) {
                     log.info("Data size is less than or equal to 6 for stock: " + stock);
                     return null;

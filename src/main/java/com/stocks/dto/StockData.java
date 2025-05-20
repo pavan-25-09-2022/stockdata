@@ -15,6 +15,17 @@ public class StockData {
     private String date;
     private String time;
     private String oiInterpretation;
+    private String type;
+    private String trend;
+
+    public StockData(String s, String p) {
+        this.stock = s;
+        this.type = p;
+    }
+
+    public StockData() {
+
+    }
 
     // Getters and Setters
     public Long getId() {
@@ -55,5 +66,19 @@ public class StockData {
 
     public void setOiInterpretation(String oiInterpretation) {
         this.oiInterpretation = oiInterpretation;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+    public String getTrend() {
+        return trend;
+    }
+    public void setTrend(String trend) {
+        this.trend = trend;
     }
 }
