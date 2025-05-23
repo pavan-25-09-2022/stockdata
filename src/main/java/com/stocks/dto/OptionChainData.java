@@ -16,6 +16,7 @@ public class OptionChainData {
     private double inNewDayLow;
     private String stExpiryDate;
 
+
     // Getters and Setters
     public String getStFetchDate() {
         return stFetchDate;
@@ -127,5 +128,9 @@ public class OptionChainData {
 
     public void setStExpiryDate(String stExpiryDate) {
         this.stExpiryDate = stExpiryDate;
+    }
+
+    public int getOIChange(){
+        return  inNewOi-inOldOi;
     }
 }

@@ -135,6 +135,27 @@ public class ApiController {
         return  "success";
     }
 
+    @GetMapping("/oiChange")
+    public List<String> sector( @RequestParam (name = "stockDate", required = false, defaultValue = "") String stockDate,
+                          @RequestParam (name = "interval", required = false, defaultValue = "0") Integer interval){
+        Properties properties = new Properties();
+        properties.setStockDate(stockDate);
+        properties.setInterval(interval);
+        List<String> oiChange = futureEodAnalyzerService.getOIChange(properties);
+        return  oiChange;
+    }
+
+    @GetMapping("/oiChangeForSector")
+    public List<String> oiChangeForSector( @RequestParam (name = "stockDate", required = false, defaultValue = "") String stockDate,
+                                @RequestParam (name = "interval", required = false, defaultValue = "0") Integer interval){
+        Properties properties = new Properties();
+        properties.setStockDate(stockDate);
+        properties.setInterval(interval);
+        List<String> oiChange = futureEodAnalyzerService.getOIChangeForSector(properties);
+        return  oiChange;
+    }
+
+
     @GetMapping("/eodAnalyzer")
     public String eodAnalyzer(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
                               @RequestParam (name = "interval", required = false, defaultValue = "0") Integer interval) {

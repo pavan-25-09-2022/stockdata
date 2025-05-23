@@ -59,7 +59,7 @@ public class TrendLineService {
                             }
                             if (compareWithHistoricalQuote.getLow().compareTo(historicalQuote.getLow()) <= 0
                                     && compareWithHistoricalQuote.getClose().compareTo(historicalQuote.getLow()) > 0) {
-                                spotTrenLines.add(historicalQuote.getLow()+ " at "+futureAnalysis.getDuration() +" rejected at " +compareWithHistoricalQuote.getDate().getTime());
+                                //spotTrenLines.add(historicalQuote.getLow()+ " at "+futureAnalysis.getDuration() +" rejected at " +compareWithHistoricalQuote.getDate().getTime());
                                 isTrendLine = true;
                             }
                             if (compareWithHistoricalQuote.getClose().compareTo(historicalQuote.getLow()) < 0) {
@@ -90,7 +90,7 @@ public class TrendLineService {
                                 && compareWithFutureAnalysis.getClose() < futureAnalysis.getHigh()
                                 && compareWithFutureAnalysis.getStrength() < futureAnalysis.getStrength()) {
                             isTrendLine = true;
-                            futureTrendLines.add(futureAnalysis.getHigh()+ " at "+futureAnalysis.getDuration()+" rejected at " +compareWithFutureAnalysis.getDuration());
+                            //futureTrendLines.add(futureAnalysis.getHigh()+ " at "+futureAnalysis.getDuration()+" rejected at " +compareWithFutureAnalysis.getDuration());
                         }
                         if (compareWithFutureAnalysis.getClose() > futureAnalysis.getHigh()) {
                             isTrendLine = false;
@@ -113,7 +113,7 @@ public class TrendLineService {
                         HistoricalQuote compareWithHistoricalQuote = compareWithFutureAnalysis.getHistoricalQuote();
                         if (compareWithHistoricalQuote.getHigh().compareTo(historicalQuote.getHigh()) > 0 && compareWithHistoricalQuote.getClose().compareTo(historicalQuote.getHigh()) < 0) {
                             isTrendLine = true;
-                            spotTrenLines.add(historicalQuote.getHigh()+ " at "+futureAnalysis.getDuration()+" rejected at " +compareWithHistoricalQuote.getDate().getTime());
+                            //spotTrenLines.add(historicalQuote.getHigh()+ " at "+futureAnalysis.getDuration()+" rejected at " +compareWithHistoricalQuote.getDate().getTime());
                         }
                         if (compareWithHistoricalQuote.getClose().compareTo(historicalQuote.getHigh()) > 0) {
                             isTrendLine = false;

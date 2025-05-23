@@ -1,6 +1,8 @@
 package com.stocks.service;
 
 import com.stocks.dto.*;
+import com.stocks.dto.Properties;
+import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,10 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +34,12 @@ public class FutureEodAnalyzerService {
     @Autowired
     YahooFinanceService yahooFinanceService;
 
+    @Autowired
+    private OptionChainService optionCHainService;
+
+    @Autowired
+    private CalculateOptionChain calculateOptionChain;
+
     @Value("${calculateEodValue}")
     private int calculateEodValue;
 
@@ -42,7 +47,7 @@ public class FutureEodAnalyzerService {
 
     public String processEodResponse(Properties properties) {
         // Path to the file containing the stock list
-        String filePath = "src/main/resources/stocksEodList.txt";
+        String filePath = "src/main/resources/stocksList.txt";
 
         // Read all lines from the file into a List
         List<String> stockList;
@@ -230,21 +235,26 @@ public class FutureEodAnalyzerService {
     public void getTrendLinesForNiftyAndBankNifty(Properties properties){
 
         // Path to the file containing the stock list
-        String filePath = "src/main/resources/sectorEodList.txt";
+        String filePath = "src/main/resources/sectorList.txt";
+
+        // Read all lines from the file into a List
+        List<String> stockList;
+        if(properties.getStockName() != null && !properties.getStockName().isEmpty()){
+            stockList = Arrays.asList(properties.getStockName().split(","));
+        } else {
+            try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
+                stockList = lines.collect(Collectors.toList());
+                properties.setStockName(String.join(",",stockList));
+            } catch (IOException e) {
+                log.error("Error reading file: " + e.getMessage());
+            }
+        }
 
         // Read all lines from the file into a List
 
         Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
         try {
             yahooFinanceService.combineFutureAndSpotDetails(properties, stringMapMap);
-            System.out.println("---------------");
-            for(Map.Entry<String, Map<String, FutureAnalysis>> map : stringMapMap.entrySet()){
-
-                String key = map.getKey();
-                Map<String, FutureAnalysis> value = map.getValue();
-                System.out.println("Key "+key);
-                value.forEach((key1, value1) -> System.out.println("Duration "+key1 + " Value "+value1));
-            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -270,6 +280,172 @@ public class FutureEodAnalyzerService {
             mailService.sendEmailList(emailContent, "Sector with trend lines " + properties.getStockDate());
         }
 
+
+    }
+
+
+    public List<String> getOIChange(Properties properties){
+
+        // Path to the file containing the stock list
+        String filePath = "src/main/resources/stocksList.txt";
+
+        // Read all lines from the file into a List
+        List<String> stockList;
+        if(properties.getStockName() != null){
+            stockList = Arrays.asList(properties.getStockName().split(","));
+        } else {
+            try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
+                stockList = lines.collect(Collectors.toList());
+                properties.setStockName(String.join(",",stockList));
+            } catch (IOException e) {
+                log.error("Error reading file: " + e.getMessage());
+                return Collections.EMPTY_LIST;
+            }
+        }
+
+        Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
+
+
+        List<FutureAnalysis> result = new ArrayList<>();
+
+        for (Map.Entry<String, Map<String, FutureAnalysis>> outerEntry : stringMapMap.entrySet()) {
+            String outerKey = outerEntry.getKey();
+            Map<String, FutureAnalysis> innerMap = outerEntry.getValue();
+
+            if (!innerMap.isEmpty()) {
+                FutureAnalysis firstInnerValue = innerMap.values().iterator().next();
+                result.add(firstInnerValue);
+            }
+        }
+
+        List<FutureAnalysis> collect = result.stream().sorted(Comparator.comparing(FutureAnalysis::getPercentageChange).reversed()).collect(Collectors.toList());
+
+        List<FutureAnalysis> positive = new ArrayList<>();
+        List<FutureAnalysis> negative = new ArrayList<>();
+        for(FutureAnalysis futureAnalysis :collect){
+            if(futureAnalysis.getPercentageChange() > 1 && futureAnalysis.getInterpretation().equals("LBU")){
+                positive.add( futureAnalysis);
+            }
+            if(futureAnalysis.getPercentageChange() > 1 && futureAnalysis.getInterpretation().equals("SBU")){
+                negative.add(futureAnalysis);
+            }
+        }
+
+        System.out.println("Positive" + positive);
+        System.out.println("Negative" + negative);
+
+        List<String> conditionSatisfiedStocks = new ArrayList<>();
+        for (FutureAnalysis futureAnalysis : positive) {
+
+            Properties stockProperty = new Properties();
+            stockProperty.setStockDate(properties.getStockDate());
+            stockProperty.setInterval(properties.getInterval());
+            stockProperty.setStockName(futureAnalysis.getSymbol());
+            stockProperty.setStartTime("09:15:00");
+            stockProperty.setExpiryDate("250529");
+            boolean validStock = calculateOptionChain.isValidStock(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, true);
+            if(validStock){
+                conditionSatisfiedStocks.add("Positive " +futureAnalysis.getSymbol()+ " at " + futureAnalysis.getDuration());
+            }
+
+        }
+
+        for (FutureAnalysis futureAnalysis : negative) {
+
+            Properties stockProperty = new Properties();
+            stockProperty.setStockDate(properties.getStockDate());
+            stockProperty.setInterval(properties.getInterval());
+            stockProperty.setStockName(futureAnalysis.getSymbol());
+            stockProperty.setStartTime("09:15:00");
+            stockProperty.setExpiryDate("250529");
+            boolean validStock = calculateOptionChain.isValidStock(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty,false);
+            if(validStock){
+                conditionSatisfiedStocks.add("Negative " +futureAnalysis.getSymbol()+ " at " + futureAnalysis.getDuration());
+            }
+
+        }
+
+
+        /*List<String> positive = new ArrayList<>();
+        List<String> negative = new ArrayList<>();
+        for(Map.Entry<String, Map<String, FutureAnalysis>>  stringMapEntry : stringMapMap.entrySet()){
+            String stock = stringMapEntry.getKey();
+            Map<String, FutureAnalysis> value = stringMapEntry.getValue();
+            for(Map.Entry<String, FutureAnalysis>  stockData : value.entrySet()){
+
+                FutureAnalysis futureAnalysis = stockData.getValue();
+                if(futureAnalysis.getPercentageChange() > 1 && futureAnalysis.getInterpretation().equals("LBU")){
+                    positive.add(stock + " Positive percentage greater then one at " + futureAnalysis.getDuration());
+                }
+                if(futureAnalysis.getPercentageChange() > 1 && futureAnalysis.getInterpretation().equals("SBU")){
+                    negative.add(stock + "Negative percentage greater then one at " + futureAnalysis.getDuration());
+                }
+            }
+        }
+
+        if (!positive.isEmpty()) {
+            mailService.sendEmailList(positive, "Positive Percentage greater than one");
+        }
+
+        if (!negative.isEmpty()) {
+            mailService.sendEmailList(negative, "Negative Percentage greater than one");
+        }*/
+
+        return conditionSatisfiedStocks;
+
+    }
+
+
+    public List<String> getOIChangeForSector(Properties properties){
+
+        // Path to the file containing the stock list
+        String filePath = "src/main/resources/sectorList.txt";
+
+        // Read all lines from the file into a List
+        List<String> stockList;
+        if(properties.getStockName() != null && !properties.getStockName().isEmpty()){
+            stockList = Arrays.asList(properties.getStockName().split(","));
+        } else {
+            try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
+                stockList = lines.collect(Collectors.toList());
+                properties.setStockName(String.join(",",stockList));
+            } catch (IOException e) {
+                log.error("Error reading file: " + e.getMessage());
+                return Collections.EMPTY_LIST;
+            }
+        }
+
+        Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
+        List<String> conditionSatisfiedStocks = new ArrayList<>();
+        for (Map.Entry<String, Map<String, FutureAnalysis>> stringMapEntry : stringMapMap.entrySet()) {
+            String stock = stringMapEntry.getKey();
+            Map<String, FutureAnalysis> value = stringMapEntry.getValue();
+            for (Map.Entry<String, FutureAnalysis> stockData : value.entrySet()) {
+                FutureAnalysis futureAnalysis = stockData.getValue();
+                Properties stockProperty = new Properties();
+                stockProperty.setStockDate(properties.getStockDate());
+                stockProperty.setInterval(properties.getInterval());
+                stockProperty.setStockName(futureAnalysis.getSymbol());
+                String startTime = futureAnalysis.getDuration().split("-")[0]+":00";
+                stockProperty.setStartTime(startTime);
+                stockProperty.setExpiryDate("250529");
+                //calculateOptionChain.changeInOI(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, true);
+                if (futureAnalysis.getInterpretation().equals("LBU")) {
+                    boolean validStock = calculateOptionChain.changeInOI(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, true);
+                    if (validStock) {
+                        conditionSatisfiedStocks.add("Positive " +futureAnalysis.getSymbol() + " at " + futureAnalysis.getDuration());
+                    }
+                }
+                if(futureAnalysis.getInterpretation().equals("SBU")){
+                    boolean validStock = calculateOptionChain.changeInOI(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, false);
+                    if (validStock) {
+                        conditionSatisfiedStocks.add("Negative "+futureAnalysis.getSymbol() + " at " + futureAnalysis.getDuration());
+                    }
+                }
+            }
+        }
+
+        return conditionSatisfiedStocks;
 
     }
 

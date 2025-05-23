@@ -112,6 +112,8 @@ public class IOPulseService {
     public OptionChainResponse getOptionChain(Properties properties, String stock, LocalTime startTime) {
         // Create payload
         Map<String, String> payload = new HashMap<>();
+
+        String startStringTime = startTime != null ? startTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")) : "09:15:00";
         payload.put("stSelectedOptions", stock);
         String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : LocalDate.now().toString();
 
@@ -125,8 +127,9 @@ public class IOPulseService {
             payload.put("stSelectedModeOfData", "live");
         }
         payload.put("inSelectedavailableTimeRange", "CUSTOM_TIME");
-        payload.put("stStartTime", FormatUtil.formatTimeHHmmss(LocalTime.of(9, 15)));
-        payload.put("stEndTime", FormatUtil.formatTimeHHmmss(FormatUtil.addMinutes(startTime, properties.getInterval())));
+        payload.put("stStartTime", startStringTime);
+        payload.put("stEndTime", FormatUtil.formatTimeHHmmss(FormatUtil.getTime(startStringTime, properties.getInterval())));
+
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", authToken);

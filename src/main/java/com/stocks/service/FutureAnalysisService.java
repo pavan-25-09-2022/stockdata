@@ -56,7 +56,7 @@ public class FutureAnalysisService {
     public Map<String, Map<String, FutureAnalysis>> futureAnalysis(Properties properties) {
 
         // Path to the file containing the stock list
-        String filePath = "src/main/resources/stocksEodList.txt";
+        String filePath = "src/main/resources/stocksList.txt";
 
         // Read all lines from the file into a List
         List<String> stockList;
@@ -74,7 +74,7 @@ public class FutureAnalysisService {
         Map<String, Map<String, FutureAnalysis>> futureAnalysisStocks = new HashMap<>();
 
         // Process stocks in parallel
-        long count = stockList.parallelStream().map(stock -> {
+        long count = stockList.stream().map(stock -> {
             try {
                 // Make POST request
                 ApiResponse apiResponse= ioPulseService.sendRequest(properties, stock);
@@ -169,7 +169,8 @@ public class FutureAnalysisService {
             firstCandleStrength = Math.abs(Double.parseDouble(df.format(firstCandleLtpChange / firstCandleOiChange)));
         }
         String firstCandleDuration = MARKET_START_TIME+"-"+MARKET_START_TIME.plusMinutes(properties.getInterval());
-        FutureAnalysis firstCandleFutureAnalysis = new FutureAnalysis(firstCandleDuration, (double) firstCandleTotalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), previousData.getClose(), firstCandleHigh, firstCandleLow, firstCandleOfADay.getOpen(), firstCandleOiChange, firstCandleOiInterpretation, "", firstCandleLtpChange, highVolume, false,firstCandleStrength);
+        double firstCandlePercentageChange = ((double) firstCandleOiChange /Long.parseLong(previousEodChunk.getOpenInterest()))*100;
+        FutureAnalysis firstCandleFutureAnalysis = new FutureAnalysis(stock, firstCandleDuration, (double) firstCandleTotalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), previousData.getClose(), firstCandleHigh, firstCandleLow, firstCandleOfADay.getOpen(), firstCandleOiChange, firstCandleOiInterpretation, "", firstCandleLtpChange, highVolume, false,firstCandleStrength, firstCandlePercentageChange);
         futureAnalysisMap.put(firstCandleDuration, firstCandleFutureAnalysis);
         for (int i = 2; i < chunks.size() - 1; i++) {
             List<ApiResponse.Data> chunk = chunks.get(i);
@@ -257,7 +258,9 @@ public class FutureAnalysisService {
                 strength = Math.abs(Double.parseDouble(df.format(ltpChange / oiChange)));
             }
 
-            FutureAnalysis futureAnalysis = new FutureAnalysis(duration, (double) totalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), recentData.getClose(), curHigh, curLow, firstCandle.getOpen(), oiChange, oiInterpretation, "", ltpChange, totalVolume, isHigher,strength);
+            double percentageChange = ((double) oiChange /Long.parseLong(previousData.getOpenInterest()))*100;
+
+            FutureAnalysis futureAnalysis = new FutureAnalysis(stock, duration, (double) totalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), recentData.getClose(), curHigh, curLow, firstCandle.getOpen(), oiChange, oiInterpretation, "", ltpChange, totalVolume, isHigher,strength, percentageChange);
             futureAnalysisMap.put(duration, futureAnalysis);
 
         }

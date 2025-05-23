@@ -3,6 +3,8 @@ package com.stocks.dto;
 
 public class FutureAnalysis {
 
+    String symbol;
+
     String duration;
 
     Double totalOI;
@@ -35,9 +37,12 @@ public class FutureAnalysis {
 
     double strength;
 
+    Double percentageChange;
+
     private HistoricalQuote historicalQuote;
 
-    public FutureAnalysis(String duration, Double totalOI, Double totalChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength) {
+    public FutureAnalysis(String symbol, String duration, Double totalOI, Double totalChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength) {
+       this.symbol = symbol;
         this.duration = duration;
         this.totalOI = totalOI;
         this.totalChangeInOI = totalChangeInOI;
@@ -54,6 +59,27 @@ public class FutureAnalysis {
         this.volume = volume;
         this.highVolume = highVolume;
         this.strength = strength;
+    }
+
+    public FutureAnalysis(String symbol,String duration, Double totalOI, Double totalChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength, double percentageChange) {
+        this.symbol=symbol;
+        this.duration = duration;
+        this.totalOI = totalOI;
+        this.totalChangeInOI = totalChangeInOI;
+        this.dayHigh = dayHigh;
+        this.dayLow = dayLow;
+        this.close = close;
+        this.high = high;
+        this.low = low;
+        this.open = open;
+        this.oiChange = oiChange;
+        this.interpretation = interpretation;
+        this.levelBreak = levelBreak;
+        this.ltpChange = ltpChange;
+        this.volume = volume;
+        this.highVolume = highVolume;
+        this.strength = strength;
+        this.percentageChange = percentageChange;
     }
 
     public String getInterpretation() {
@@ -192,11 +218,27 @@ public class FutureAnalysis {
         this.historicalQuote = historicalQuote;
     }
 
+    public Double getPercentageChange() {
+        return percentageChange;
+    }
+
+    public void setPercentageChange(Double percentageChange) {
+        this.percentageChange = percentageChange;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
     @Override
     public String toString() {
-        String historicalQuote = getHistoricalQuote() != null ? getHistoricalQuote().toString() : "null";
         return "FutureAnalysis{" +
-                "duration='" + duration + '\'' +
+                "symbol='" + symbol + '\'' +
+                ", duration='" + duration + '\'' +
                 ", totalOI=" + totalOI +
                 ", totalChangeInOI=" + totalChangeInOI +
                 ", dayHigh=" + dayHigh +
@@ -212,7 +254,8 @@ public class FutureAnalysis {
                 ", volume=" + volume +
                 ", highVolume=" + highVolume +
                 ", strength=" + strength +
-                ", HistoricalQuote {" + historicalQuote +
+                ", percentageChange=" + percentageChange +
+                ", historicalQuote=" + historicalQuote +
                 '}';
     }
 }

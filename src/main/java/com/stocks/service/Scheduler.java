@@ -32,6 +32,8 @@ public class Scheduler {
     private FutureEodAnalyzerService futureAnalysisService;
     @Autowired
     private TodayFirstCandleTrendLine todayFirstCandleTrendLine;
+    @Autowired
+    private FutureEodAnalyzerService futureEodAnalyzerService;
 
     @Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
     public void callApi() {
@@ -108,4 +110,17 @@ public class Scheduler {
         String currentTime = LocalTime.now().format(formatter);
         log.info("Current Time: " + currentTime);
     }
+
+
+    @Scheduled(cron = "50 0/5 9-15 * * ?")
+    public void sector() {
+        log.info("Scheduler started");
+        logTime();
+        Properties properties = new Properties();
+        properties.setInterval(5);
+         properties.setStockDate("2025-05-19");
+        futureEodAnalyzerService.getTrendLinesForNiftyAndBankNifty(properties);;
+        System.gc();
+    }
+
 }
