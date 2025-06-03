@@ -18,6 +18,8 @@ public class Properties {
     private String previousStockDate;
     private boolean fromScheduler;
     private Integer noOfCandles;
+    private boolean checkRecentCandle;
+    private boolean withVolume;
 
     public String getStockDate() {
         return stockDate;

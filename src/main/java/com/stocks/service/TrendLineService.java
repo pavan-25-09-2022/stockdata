@@ -44,7 +44,7 @@ public class TrendLineService {
 
                     if (isTrendLine) {
                         System.out.println("future time " + stringFutureAnalysisEntry.getKey());
-                        futureTrendLines.add(futureAnalysis.getLow() + " at " +futureAnalysis.getDuration());
+                        //futureTrendLines.add(futureAnalysis.getLow() + " at " +futureAnalysis.getDuration());
                     }
 
                     isTrendLine = false;

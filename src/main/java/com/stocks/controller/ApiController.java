@@ -84,17 +84,19 @@ public class ApiController {
     @GetMapping("/apiDayHighLow")
     public String apiDayHighLow(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
                                 @RequestParam(name = "fetchAll", required = false) boolean fetchAll,
+                                @RequestParam(name = "checkRecentCandle", required = false) boolean checkRecentCandle,
                                 @RequestParam(name = "exitMins", required = false, defaultValue = "0") int exitMins) {
         Properties properties = new Properties();
         properties.setStockDate(stockDate);
         properties.setExitMins(exitMins);
         properties.setFetchAll(fetchAll);
+        properties.setCheckRecentCandle(checkRecentCandle);
         List<StockResponse> list = dayHighLowService.dayHighLow(properties);
         if (list == null || list.isEmpty()) {
             return "No data found";
         }
         String data = mailService.beautifyResults(list, properties);
-        mailService.sendMail(data, properties);
+       // mailService.sendMail(data, properties);
         System.gc();
         return data;
     }

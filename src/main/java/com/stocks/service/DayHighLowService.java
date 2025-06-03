@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 @Service
 public class DayHighLowService {
 
-    private static final int MINS = 3;
+    private static final int MINS = 15;
     private static final LocalTime START_TIME = LocalTime.of(9, 16, 0); // Configurable start time
 
     @Autowired
@@ -56,7 +56,7 @@ public class DayHighLowService {
     public List<StockResponse> dayHighLow(Properties properties) {
 
         // Path to the file containing the stock list
-        String filePath = "src/main/resources/stocksList.txt";
+        String filePath = "src/main/resources/sectorList.txt";
 
         // Read all lines from the file into a List
         List<String> stockList;
@@ -68,7 +68,8 @@ public class DayHighLowService {
         }
 
         // Process stocks in parallel
-        List<StockResponse> emailList = stockList.parallelStream().map(stock -> {
+        List<StockResponse> emailList = new ArrayList<>();
+        stockList.parallelStream().mapToLong(stock -> {
             try {
                 // Make POST request
                 ApiResponse apiResponse = ioPulseService.sendRequest(properties,stock);
@@ -77,23 +78,18 @@ public class DayHighLowService {
 //                ApiResponse apiResponse = response.getBody();
                 if (apiResponse == null || apiResponse.getData().size() <= 6) {
                     log.info("Data size is less than or equal to 6 for stock: " + stock);
-                    return null;
+                    return 0;
                 }
-//                if (apiResponse.getData().get(0).getHigh() < 150 || apiResponse.getData().get(0).getHigh() > 30000) {
-//                    return null;
-//                }
-                if (apiResponse.getData().get(0).getTradedVolume() < 10000) {
-                    return null;
-                }
+                processApiResponse(apiResponse, stock, properties, emailList);
 
-                return processApiResponse(apiResponse, stock);
             } catch (Exception e) {
                 log.error("Error processing stock: " + stock + ", " + e.getMessage());
-                return null;
+                return 0;
             }
-        }).filter(Objects::nonNull).collect(Collectors.toList());
+            return 0;
+        }).sum();
 
-        testingResultsService.testingResults(emailList, properties);
+       // testingResultsService.testingResults(emailList, properties);
 
         return emailList;
     }
@@ -121,7 +117,7 @@ public class DayHighLowService {
         return new ArrayList<>(groupedData.values());
     }
 
-    private StockResponse processApiResponse(ApiResponse apiResponse, String stock) {
+    private void processApiResponse(ApiResponse apiResponse, String stock, Properties properties, List<StockResponse> stockResponses) {
         List<ApiResponse.Data> list = apiResponse.getData();
         ApiResponse.Data previousData;
 //        List<Long> volumes = new ArrayList<>();
@@ -132,7 +128,7 @@ public class DayHighLowService {
         List<List<ApiResponse.Data>> chunks = chunkByMinutes(list);
         if (chunks.size() < 3) {
             log.info("Data size is less than 3 for stock: " + stock);
-            return null;
+            return ;
         }
         double dayHigh = 0.0;
         double dayLow = 0.0;
@@ -154,7 +150,7 @@ public class DayHighLowService {
         }
         highVolume = previousVolume;
         previousData = newList.get(newList.size() - 1);
-        for (int i = 2; i < chunks.size() - 1; i++) {
+        for (int i = 2; i <= chunks.size() - 1; i++) {
             List<ApiResponse.Data> chunk = chunks.get(i);
             long totalVolume = 0;
             ApiResponse.Data recentData = null;
@@ -193,7 +189,7 @@ public class DayHighLowService {
             LocalTime localTime = LocalTime.parse(recentData.getTime());
             LocalTime endLocalTime = LocalTime.parse(endTime);
             if (localTime.isAfter(endLocalTime)) {
-                return null;
+                return ;
             }
             double ltpChange = recentData.getClose() - previousData.getClose();
             ltpChange = Double.parseDouble(String.format("%.2f", ltpChange));
@@ -217,16 +213,39 @@ public class DayHighLowService {
                 isDayLow = true;
                 dayLow = curLow;
             }
-            if (isHigher) {
+
+            if (properties.isWithVolume() && isHigher) {
                 if (isDayHigh && ("SBU".equals(oiInterpretation) || "LU".equals(oiInterpretation))) {
-                    return new StockResponse(stock, "N", firstCandle.getTime(),recentData.getTime(), oiInterpretation, firstCandleHigh, curClose, totalVolume);
+
+                    stockResponses.add(new StockResponse(stock, "N", firstCandle.getTime(),recentData.getTime(), oiInterpretation, curHigh, curClose, totalVolume));
+
                 }
                 if (isDayLow && ("LBU".equals(oiInterpretation) || "SC".equals(oiInterpretation))) {
-                    return new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, firstCandleLow, curClose, totalVolume);
+                    stockResponses.add(new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, curLow, curClose, totalVolume));
+                }
+            } else if (properties.isCheckRecentCandle()) {
+                if (i == chunks.size() - 1) {
+                    if (isDayHigh && ("SBU".equals(oiInterpretation) || "LU".equals(oiInterpretation))) {
+
+                        stockResponses.add(new StockResponse(stock, "N", firstCandle.getTime(), recentData.getTime(), oiInterpretation, curHigh, curClose, totalVolume));
+
+                    }
+                    if (isDayLow && ("LBU".equals(oiInterpretation) || "SC".equals(oiInterpretation))) {
+                        stockResponses.add(new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, curLow, curClose, totalVolume));
+                    }
+                }
+            } else {
+                if (isDayHigh && ("SBU".equals(oiInterpretation) || "LU".equals(oiInterpretation))) {
+
+                    stockResponses.add(new StockResponse(stock, "N", firstCandle.getTime(),recentData.getTime(), oiInterpretation, curHigh, curClose, totalVolume));
+
+                }
+                if (isDayLow && ("LBU".equals(oiInterpretation) || "SC".equals(oiInterpretation))) {
+                    stockResponses.add(new StockResponse(stock, "P", firstCandle.getTime(), recentData.getTime(), oiInterpretation, curLow, curClose, totalVolume));
                 }
             }
             previousData = chunk.get(chunk.size() - 1);
         }
-        return null;
     }
+
 }

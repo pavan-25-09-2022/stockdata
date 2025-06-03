@@ -53,11 +53,14 @@ public class Scheduler {
         log.info("Scheduler finished " + list.size());
     }
 
-//    @Scheduled(cron = "15 18/3 9-14 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
+    @Scheduled(cron = "50 30/15 9-16 * * ?")
     public void dayHighLow() {
-//        log.info("Scheduler started");
-//        dayHighLowService.dayHighLow();
-//        log.info("Scheduler finished");
+        log.info("Scheduler started");
+        Properties properties = new Properties();
+        properties.setInterval(15);
+        properties.setCheckRecentCandle(true);
+        dayHighLowService.dayHighLow(properties);
+        log.info("Scheduler finished");
     }
 
 //    @Scheduled(cron = "15 */5 9-14 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00

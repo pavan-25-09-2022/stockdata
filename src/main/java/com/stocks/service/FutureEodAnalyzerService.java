@@ -342,7 +342,7 @@ public class FutureEodAnalyzerService {
             stockProperty.setInterval(properties.getInterval());
             stockProperty.setStockName(futureAnalysis.getSymbol());
             stockProperty.setStartTime("09:15:00");
-            stockProperty.setExpiryDate("250529");
+            stockProperty.setExpiryDate("250626");
             boolean validStock = calculateOptionChain.isValidStock(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, true);
             if(validStock){
                 conditionSatisfiedStocks.add("Positive " +futureAnalysis.getSymbol()+ " at " + futureAnalysis.getDuration());
@@ -428,7 +428,7 @@ public class FutureEodAnalyzerService {
                 stockProperty.setStockName(futureAnalysis.getSymbol());
                 String startTime = futureAnalysis.getDuration().split("-")[0]+":00";
                 stockProperty.setStartTime(startTime);
-                stockProperty.setExpiryDate("250529");
+                stockProperty.setExpiryDate("250626");
                 //calculateOptionChain.changeInOI(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, true);
                 if (futureAnalysis.getInterpretation().equals("LBU")) {
                     boolean validStock = calculateOptionChain.changeInOI(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, true);
