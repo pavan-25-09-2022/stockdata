@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,6 +52,8 @@ public class MarketDataService {
     private int eodValue;
 
     private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
+    @Autowired
+    private CommonValidation commonValidation;
 
 
     public List<StockResponse> callApi(Properties properties) {
@@ -72,38 +76,98 @@ public class MarketDataService {
 
         // Process stocks in parallel
         List<StockResponse> emailList =
-                ("test".equalsIgnoreCase(properties.getEnv()) ? stockList.stream() : stockList.parallelStream())
+                ("test1".equalsIgnoreCase(properties.getEnv()) ? stockList.stream() : stockList.parallelStream())
                         .map(stock -> {
                             return processStock(stock, properties);
                         }).filter(Objects::nonNull).collect(Collectors.toList());
 
-        if ("test".equalsIgnoreCase(properties.getEnv())) {
-            List<StockResponse> list = emailList.stream()
-                    .filter(stock -> "".equals(stock.getTrend()))
-                    .collect(Collectors.toList());
-            testingResultsService.testingResults(list, properties);
-        }
+//        if ("test".equalsIgnoreCase(properties.getEnv())) {
+//            List<StockResponse> list = emailList.stream()
+//                    .filter(stock -> "".equals(stock.getTrend()))
+//                    .collect(Collectors.toList());
+//            testingResultsService.testingResults(list, properties);
+//        }
 
         return emailList;
     }
 
     private StockResponse processStock(String stock, Properties properties) {
         try {
-            List<Candle> candles = processCandleSticks.getCandles(properties, stock);
-            StockResponse res = processCandleSticks.getStockResponse(stock,properties, candles);
-            if (res != null && res.getCurCandle().getHigh()>100) {
+            List<Candle> candles = commonValidation.getCandles(properties, stock);
+            Properties prop = new Properties();
+            prop.setStockDate(FormatUtil.addDays(properties.getStockDate(), -1));
+            prop.setStockName(properties.getStockName());
+            List<Candle> ystCandles = commonValidation.getCandles(prop, stock);
+            List<Candle> list = new ArrayList<>();
+            StockResponse sr1 = null;
+            Candle luCandle = null;
+            Candle sbuCandle = null;
+            Candle lbuCandle = null;
+            List<Long> volumes = new ArrayList<>();
+            for (Candle c : candles) {
+                list.add(c);
+                ystCandles.add(c);
+                if (list.size() < 2) {
+                    continue; // Skip if not enough candles
+                }
+                if (sr1 != null) {
+                    lbuCandle = sr1.getValidCandle();
+                    if (lbuCandle != null && "LBU".equals(c.getOiInt())) {
+                        if (lbuCandle.getVolume() < c.getVolume()) {
+                            lbuCandle = c;
+                        }
+                    }
+//                    else if (lbuCandle != null && "LU".equals(c.getOiInt())) {
+//                        if (luCandle == null) {
+//                            luCandle = c;
+//                        } else if (Math.abs(luCandle.getLtpChange()) > Math.abs(c.getLtpChange())) {
+//                            luCandle = c;
+//                        }
+//                    }
+                    else if (lbuCandle != null && "SBU".equals(c.getOiInt())) {
+                        if (sbuCandle == null) {
+                            sbuCandle = c;
+                        } else if (Math.abs(c.getCandleStrength()) > Math.abs(lbuCandle.getCandleStrength())) {
+                            sbuCandle = c;
+                        }
+                    }
+
+                }
+                volumes.add(c.getVolume());
+                if (sr1 != null) {
+                    Candle validCandle = sr1.getValidCandle();
+                    if("test1".equalsIgnoreCase(properties.getEnv()) && sr1.getStock().contains("*")) {
+                        commonValidation.checkExitSignal(sr1, c);
+                    }
+                    if (c.getVolume() > 1000 && validCandle != null && c.getEndTime().isBefore(LocalTime.of(10, 30)) && c.getOpen() <= validCandle.getLow() && c.getClose() > c.getOpen() && (c.getOiInt().equals("LBU") || c.getOiInt().equals("SC"))) {
+                        if (lbuCandle != null) {
+                            if(sbuCandle != null && Math.abs(sbuCandle.getLtpChange()) > Math.abs(lbuCandle.getLtpChange())){
+//                            if (((sbuCandle != null && sbuCandle.getVolume() >= 0.9 * lbuCandle.getVolume() && Math.abs(sbuCandle.getLtpChange()) > Math.abs(lbuCandle.getLtpChange())) || (luCandle != null && luCandle.getVolume() >= 0.9 * lbuCandle.getVolume()) && luCandle.getLtpChange() > lbuCandle.getLtpChange())) {
+                                continue;
+                            }
+                        }
+
+                        sr1.setStock(stock + "*");
+                        sr1.setCurCandle(c);
+                    }
+                } else {
+                    StockResponse res = processCandleSticks.getStockResponse(stock, properties, list, ystCandles);
+
+                    if (res != null && res.getCurCandle().getHigh() > 100) {
 //                if (Math.abs(res.getChgeInPer()) > 1) {
 //                    return null;
 //                }
-                StockData s1 = stockDataManager.getRecord(stock, FormatUtil.getCurDate(properties), FormatUtil.formatTimeHHmm(res.getCurCandle().getStartTime()));
-                if (s1 == null) {
-                    if (!res.getStockType().isEmpty()) {
-                        List<String> details = calculateOptionChain.processStock(res.getStock(), res.getStockType(), FormatUtil.formatTimeHHmmss(res.getCurCandle().getStartTime()), properties);
-                        if(!details.isEmpty()) {
-                            res.setOptionChain(details.get(0));
-                        }
-                        stockDataManager.saveStockData(stock, FormatUtil.getCurDate(properties), FormatUtil.formatTimeHHmm(res.getCurCandle().getStartTime()), "", res.getStockType(), res.getLimit());
-                        processEodResponse(res);
+                        StockData s1 = stockDataManager.getRecord(stock, FormatUtil.getCurDate(properties), FormatUtil.formatTimeHHmm(res.getCurCandle().getStartTime()));
+                        if (s1 == null) {
+                            if (!res.getStockType().isEmpty() && "P".equals(res.getStockType())) {
+//                            List<String> details = calculateOptionChain.processStock(res.getStock(), res.getStockType(), FormatUtil.formatTimeHHmmss(res.getCurCandle().getStartTime()), properties);
+//                            if (!details.isEmpty()) {
+//                                res.setOptionChain(details.get(0));
+//                            }
+                                if (!properties.isFetchAll()) {
+                                    stockDataManager.saveStockData(stock, FormatUtil.getCurDate(properties), FormatUtil.formatTimeHHmm(res.getCurCandle().getStartTime()), "", res.getStockType(), res.getLimit());
+                                }
+//                       processEodResponse(res);
 //                    optionChainService.processOptionChain(res, properties);
 //                        if(res.getStockType().equals("N")) {
 //                            if("+ve".equals(res.getOptionChain())){
@@ -114,9 +178,58 @@ public class MarketDataService {
 //                                return res;
 //                            }
 //                        }
-                        return res;
+                                sr1 = res;
+                            }
+                        }
                     }
                 }
+            }
+            if (sr1 != null && sr1.getStock().contains("*")) {
+                    if ("test1".equalsIgnoreCase(properties.getEnv()) && sr1.getStockProfitResult() == null) {
+                        log.info("{} first candle {}", sr1.getStock(), sr1.getFirstCandle());
+                        log.info("{} current candle {}", sr1.getStock(), sr1.getCurCandle());
+                        log.info("{} valid candle {}", sr1.getStock(), sr1.getValidCandle());
+                        int i = 1;
+                        boolean calculateForward = true;
+                        int maxDays= 5;
+                        String curDate = FormatUtil.addDays(LocalDate.now().toString(), 1);
+                        Candle prevCandle = null;
+                        while (calculateForward){
+                            Thread.sleep(2000);
+                            Properties prop1 = new Properties();
+                            prop1.setStockDate(FormatUtil.addDays(properties.getStockDate(), i));
+                            prop1.setStockName(properties.getStockName());
+                            if(prop1.getStockDate().equals(curDate)){
+                                calculateForward = false;
+                            }
+                            try {
+                                List<Candle> plus1Candles = commonValidation.getCandles(prop1, stock);
+                                log.info("Date {} candles {} curDate {}", prop1.getStockDate(), plus1Candles.size(), curDate);
+                                for (Candle c : plus1Candles) {
+                                    prevCandle = c;
+                                    commonValidation.checkExitSignal(sr1, c);
+                                    if (sr1.getStockProfitResult() != null) {
+                                        String sell =                                sr1.getStockProfitResult().getSellTime();
+                                        sr1.getStockProfitResult().setSellTime(sell + " " + prop1.getStockDate());
+                                    }
+                                }
+                            }catch (Exception e){
+                                calculateForward = false;
+                            }
+                            if(sr1.getStockProfitResult() != null){
+                                calculateForward = false;
+                            }
+                            if(maxDays == i){
+                                calculateForward = false;
+                            }
+                            i++;
+                        }
+
+                    }
+
+                return sr1;
+            } else {
+                return sr1;
             }
         } catch (Exception e) {
             log.error("Error processing stock: {}, {}", stock, e.getMessage(), e);
@@ -148,10 +261,10 @@ public class MarketDataService {
 
         // Determine priority based on stock type and interpretations
         if ("N".equals(res.getStockType()) && "SBU".equals(res.getOiInterpretation())) {
-            if (res.getCurLow() < dayM1.getInDayLow()) {
-                res.setYestDayBreak("Y");
-            }
-            res.setPriority(determinePriority(oi1, "SBU", "LU"));
+//            if (res.getCurLow() < dayM1.getInDayLow()) {
+//                res.setYestDayBreak("Y");
+//            }
+//            res.setPriority(determinePriority(oi1, "SBU", "LU"));
         } else if ("P".equals(res.getStockType()) && "LBU".equals(res.getOiInterpretation())) {
             if (res.getCurHigh() > dayM1.getInDayHigh()) {
                 res.setYestDayBreak("Y");
@@ -178,3 +291,4 @@ public class MarketDataService {
     }
 
 }
+

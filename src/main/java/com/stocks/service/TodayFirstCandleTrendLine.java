@@ -21,6 +21,8 @@ public class TodayFirstCandleTrendLine {
     @Autowired
     private
     ProcessCandleSticks processCandleSticks;
+    @Autowired
+    private CommonValidation commonValidation;
 
     public List<StockResponse> getTrendLines(Properties prop) {
         List<StockResponse> stockResponses = new ArrayList<>();
@@ -39,14 +41,14 @@ public class TodayFirstCandleTrendLine {
     }
 
     private StockResponse getStock(String stock, String type, Properties prop) {
-        List<Candle> candles = processCandleSticks.getCandles(prop, stock);
+        List<Candle> candles = commonValidation.getCandles(prop, stock);
         if (candles.size() > 2) {
             List<Candle> newCandles = new ArrayList<>();
             int totalCandleSticks = candles.size();
             newCandles.add(candles.get(0));
             newCandles.add(candles.get(totalCandleSticks - 1));
              for (totalCandleSticks = candles.size() ; totalCandleSticks > 2; totalCandleSticks--) {
-                StockResponse res = processCandleSticks.getStockResponse(stock, prop, newCandles);
+                StockResponse res = processCandleSticks.getStockResponse(stock, prop, newCandles, new ArrayList<>());
                 if(res != null) {
                     if (type.equals("P")) {
                         res.setStockType("P");

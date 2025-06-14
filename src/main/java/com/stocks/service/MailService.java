@@ -67,16 +67,16 @@ public class MailService {
         }
     }
 
-    public void sendEmailList(List<String> body, String subject)  {
+    public void sendEmailList(List<String> body, String subject) {
         try {
-        MimeMessage message = javaMailSender.createMimeMessage();
-        message.setFrom(mailUsername);
-        message.addRecipients(Message.RecipientType.TO, recipients);
+            MimeMessage message = javaMailSender.createMimeMessage();
+            message.setFrom(mailUsername);
+            message.addRecipients(Message.RecipientType.TO, recipients);
 
-        String mailBody = buildBody(body);
-        message.setContent(mailBody, "text/html" );
-        message.setSubject(subject);
-        javaMailSender.send(message);
+            String mailBody = buildBody(body);
+            message.setContent(mailBody, "text/html");
+            message.setSubject(subject);
+            javaMailSender.send(message);
         } catch (Exception ex) {
             log.error("send mail error", ex);
         }
@@ -114,15 +114,21 @@ public class MailService {
                 .append("<th>SL</th>")
                 .append("<th>EOD OI</th>")
                 .append("<th>Vol</th>")
+                .append("<th>Init C</th>")
 //                .append("<th>Chge in %</th>")
 //                .append("<th>YDB</th>")
         ;
         if ("test".equalsIgnoreCase(properties.getEnv())) {
-            htmlContent.append("<th> profit</th>")
-                    .append("<th> sellPrice</th>")
-                    .append("<th> buyPrice</th>")
-                    .append("<th> buyTime</th>")
-                    .append("<th> sellTime</th>");
+            htmlContent.append("<th>profit</th>")
+                    .append("<th>sellPrice</th>")
+                    .append("<th>buyPrice</th>")
+                    .append("<th>buyTime</th>")
+                    .append("<th>sellTime</th>");
+        }
+        if ("test1".equalsIgnoreCase(properties.getEnv())) {
+            htmlContent
+                    .append("<th>sellPrice</th>")
+                    .append("<th>sellTime</th>");
         }
         htmlContent.append("</tr>");
 
@@ -150,31 +156,35 @@ public class MailService {
                 htmlContent.append("<tr style='background-color: #ffcccc;'>")
                         .append("<td>").append(stock.getPriority()).append("</td>")
                         .append("<td>").append(stock.getStock()).append("</td>")
-                        .append("<td>").append( stock.getRsi()).append("</td>")
-                        .append("<td>").append(stock.getStockType()).append("</td>")
-                        .append("<td>").append(stock.getCurrentPrice()).append("</td>")
-                        .append("<td>").append(stock.getStartTime()).append("-").append(stock.getEndTime()).append("</td>")
+                        .append("<td>").append(stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getOptionChain()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getClose()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getStartTime()).append("-").append(stock.getCurCandle().getEndTime()).append("</td>")
                         .append("<td>").append(stock.getOiInterpretation()).append("</td>")
-                        .append("<td>").append(stock.getStopLoss()).append("</td>")
+                        .append("<td>").append(stock.getFirstCandle().getHigh()).append("</td>")
                         .append("<td>").append(stock.getEodData()).append("</td>")
-                        .append("<td>").append(stock.getCurCandle() != null ? stock.getCurCandle().getVolume() : "").append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getVolume()).append("</td>")
 //                        .append("<td>").append(stock.getCay()).append("</td>")
 //                        .append("<td>").append(stock.getYestDayBreak()).append("</td>")
                 ;
                 if (stock.getStockProfitResult() != null) {
                     negativeStocks = negativeStocks + 1;
                     totalNegativeProfit = totalNegativeProfit + stock.getStockProfitResult().getProfit();
-                    htmlContent.append("<td style='background-color: ")
-                            .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
-                            .append(";'>")
-                            .append(String.format("%.2f", stock.getStockProfitResult().getProfit()))
-                            .append("</td>")
-                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getSellPrice())).append("</td>")
-                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getBuyPrice())).append("</td>")
-                            .append("<td>").append(stock.getStockProfitResult().getBuyTime()).append("</td>")
-                            .append("<td>").append(stock.getStockProfitResult().getSellTime()).append("</td>");
+                    if ("test".equalsIgnoreCase(properties.getEnv())) {
+                        htmlContent.append("<td style='background-color: ")
+                                .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
+                                .append(";'>")
+                                .append(String.format("%.2f", stock.getStockProfitResult().getProfit()))
+                                .append("</td>")
+                                .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getSellPrice())).append("</td>")
+                                .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getBuyPrice())).append("</td>")
+                                .append("<td>").append(stock.getStockProfitResult().getBuyTime()).append("</td>")
+                                .append("<td>").append(stock.getStockProfitResult().getSellTime()).append("</td>");
+                    } else if ("test1".equalsIgnoreCase(properties.getEnv())) {
+
+                    }
+                    htmlContent.append("</tr>");
                 }
-                htmlContent.append("</tr>");
             }
             htmlContent.append("<tr style='height: 20px;'></tr>");
 
@@ -196,31 +206,40 @@ public class MailService {
                 htmlContent.append("<tr style='background-color: #ccffcc;'>")
                         .append("<td>").append(stock.getPriority()).append("</td>")
                         .append("<td>").append(stock.getStock()).append("</td>")
-                        .append("<td>").append( stock.getRsi()).append("</td>")
-                        .append("<td>").append(stock.getStockType()).append("</td>")
-                        .append("<td>").append(stock.getCurrentPrice()).append("</td>")
-                        .append("<td>").append(stock.getStartTime()).append("-").append(stock.getEndTime()).append("</td>")
+                        .append("<td>").append(stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getOptionChain()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getClose()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getStartTime()).append("-").append(stock.getCurCandle().getEndTime()).append("</td>")
                         .append("<td>").append(stock.getOiInterpretation()).append("</td>")
-                        .append("<td>").append(stock.getStopLoss()).append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getLow()).append("</td>")
                         .append("<td>").append(stock.getEodData()).append("</td>")
-                        .append("<td>").append(stock.getCurCandle() != null ? stock.getCurCandle().getVolume() : "").append("</td>")
+                        .append("<td>").append(stock.getCurCandle().getVolume()).append("</td>");
+                        if(stock.getValidCandle() != null) {
+                            htmlContent.append("<td>").append(stock.getValidCandle().getStartTime()).append("-").append(stock.getValidCandle().getEndTime()).append("</td>");
+                        }
 //                        .append("<td>").append(stock.getCay()).append("</td>")
 //                        .append("<td>").append(stock.getYestDayBreak()).append("</td>")
                 ;
                 if (stock.getStockProfitResult() != null) {
                     positiveStocks = positiveStocks + 1;
                     totalPositiveProfit = totalPositiveProfit + stock.getStockProfitResult().getProfit();
-                    htmlContent.append("<td style='background-color: ")
-                            .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
-                            .append(";'>")
-                            .append(String.format("%.2f", stock.getStockProfitResult().getProfit()))
-                            .append("</td>")
-                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getSellPrice())).append("</td>")
-                            .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getBuyPrice())).append("</td>")
-                            .append("<td>").append(stock.getStockProfitResult().getBuyTime()).append("</td>")
-                            .append("<td>").append(stock.getStockProfitResult().getSellTime()).append("</td>");
+                    if ("test".equalsIgnoreCase(properties.getEnv())) {
+
+                        htmlContent.append("<td style='background-color: ")
+                                .append(stock.getStockProfitResult().getProfit() > 0 ? "#ccffcc" : "#ffcccc")
+                                .append(";'>")
+                                .append(String.format("%.2f", stock.getStockProfitResult().getProfit()))
+                                .append("</td>")
+                                .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getSellPrice())).append("</td>")
+                                .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getBuyPrice())).append("</td>")
+                                .append("<td>").append(stock.getStockProfitResult().getBuyTime()).append("</td>")
+                                .append("<td>").append(stock.getStockProfitResult().getSellTime()).append("</td>");
+                    } else if ("test1".equalsIgnoreCase(properties.getEnv())) {
+                        htmlContent
+                                .append("<td>").append(String.format("%.2f", stock.getStockProfitResult().getSellPrice())).append("</td>")
+                                .append("<td>").append(stock.getStockProfitResult().getSellTime()).append("</td>");
+                    }
                 }
-                log.info(stock.getStock());
                 htmlContent.append("</tr>");
             }
             htmlContent.append("<tr style='height: 20px;'></tr>");
@@ -229,7 +248,7 @@ public class MailService {
         }
         htmlContent.append("</table>");
         htmlContent.append("</body></html>");
-        if("test".equalsIgnoreCase(properties.getEnv())) {
+        if ("test".equalsIgnoreCase(properties.getEnv())) {
             htmlContent.append("<br>");
             htmlContent.append("<br>");
             htmlContent.append(negativeStocks)
@@ -293,7 +312,7 @@ public class MailService {
 //                }
                 htmlContent.append("<tr style='background-color: #ffcccc;'>")
                         .append("<td>").append(stock.getStock()).append("</td>")
-                        .append("<td>").append( stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getRsi()).append("</td>")
                         .append("<td>").append(stock.getOptionChain()).append("</td>")
                         .append("<td>").append(stock.getCurrentPrice()).append("</td>")
                         .append("<td>").append(stock.getCurSt()).append("</td>")
@@ -337,7 +356,7 @@ public class MailService {
 //                }
                 htmlContent.append("<tr style='background-color: #ccffcc;'>")
                         .append("<td>").append(stock.getStock()).append("</td>")
-                        .append("<td>").append( stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getRsi()).append("</td>")
                         .append("<td>").append(stock.getOptionChain()).append("</td>")
                         .append("<td>").append(stock.getCurrentPrice()).append("</td>")
                         .append("<td>").append(stock.getCurSt()).append("</td>")
@@ -502,7 +521,7 @@ public class MailService {
 //                }
                 htmlContent.append("<tr style='background-color: #ffcccc;'>")
                         .append("<td>").append(stock.getStock()).append("</td>")
-                        .append("<td>").append( stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getRsi()).append("</td>")
                         .append("<td>").append(stock.getOptionChain()).append("</td>")
                         .append("<td>").append(stock.getCurrentPrice()).append("</td>")
                         .append("<td>").append(stock.getCurSt()).append("</td>")
@@ -546,7 +565,7 @@ public class MailService {
 //                }
                 htmlContent.append("<tr style='background-color: #ccffcc;'>")
                         .append("<td>").append(stock.getStock()).append("</td>")
-                        .append("<td>").append( stock.getRsi()).append("</td>")
+                        .append("<td>").append(stock.getRsi()).append("</td>")
                         .append("<td>").append(stock.getOptionChain()).append("</td>")
                         .append("<td>").append(stock.getCurrentPrice()).append("</td>")
                         .append("<td>").append(stock.getCurSt()).append("</td>")

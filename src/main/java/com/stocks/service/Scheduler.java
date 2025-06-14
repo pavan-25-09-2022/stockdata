@@ -35,7 +35,7 @@ public class Scheduler {
     @Autowired
     private FutureEodAnalyzerService futureEodAnalyzerService;
 
-    @Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
+//    @Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
     public void callApi() {
         log.info("Scheduler started API stocks");
         logTime();
@@ -90,7 +90,7 @@ public class Scheduler {
         futureAnalysisService.getTrendLinesForNiftyAndBankNifty(properties);
     }
 
-    @Scheduled(cron = "10 */5 9,12 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
+//    @Scheduled(cron = "10 */5 9,12 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
     public void trendLines() {
         log.info("Scheduler started Trend stocks");
         logTime();
@@ -115,7 +115,7 @@ public class Scheduler {
     }
 
 
-    @Scheduled(cron = "50 0/5 9-15 * * ?")
+//    @Scheduled(cron = "50 0/5 9-15 * * ?")
     public void sector() {
         log.info("Scheduler started");
         logTime();

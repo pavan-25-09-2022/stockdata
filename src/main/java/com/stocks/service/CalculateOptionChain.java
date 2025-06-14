@@ -201,7 +201,8 @@ public class CalculateOptionChain {
 
 
 public boolean isValidStock(String stock, String time, Properties properties, boolean isPositive) {
-    LocalTime startTime = FormatUtil.getTime(time, 0);
+        String time1 = properties.getStartTime() != null ? properties.getStartTime() : "09:15:00";
+    LocalTime startTime = FormatUtil.getTime(time1, 0);
     OptionChainResponse response = ioPulseService.getOptionChain(properties, stock, startTime);
     if (response == null || response.getData() == null) {
         return false;

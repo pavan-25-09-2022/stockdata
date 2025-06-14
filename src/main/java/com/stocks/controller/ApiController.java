@@ -71,7 +71,7 @@ public class ApiController {
         try {
             if(!list1.isEmpty()) {
                 data = mailService.beautifyResults(list1, properties);
-                mailService.sendMail(data, properties);
+//                mailService.sendMail(data, properties);
             }
         } catch (Exception e) {
             log.error("error in beautifyResults: ", e);

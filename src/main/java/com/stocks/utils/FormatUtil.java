@@ -65,7 +65,7 @@ public class FormatUtil {
 
     }
 
-    public static String getYesterdayDate(String stockDate) {
+    public static String addDays(String stockDate, int days) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDate date;
         if (stockDate != null && !stockDate.isEmpty()) {
@@ -73,6 +73,6 @@ public class FormatUtil {
         } else {
             date = LocalDate.now();
         }
-       return date.minusDays(1).format(formatter);
+       return date.plusDays(days).format(formatter);
     }
 }

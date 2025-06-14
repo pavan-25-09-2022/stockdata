@@ -24,6 +24,8 @@ public class OptionChainService {
     CalculateOptionChain calculateOptionChain;
     @Autowired
     ProcessCandleSticks processCandleSticks;
+    @Autowired
+    private CommonValidation commonValidation;
 
     public List<StockResponse> getOptionChain(Properties properties) {
         List<StockResponse> data = new ArrayList<>();
@@ -63,8 +65,9 @@ public class OptionChainService {
                     .map(stock -> {
                         List<String> val = calculateOptionChain.processStock(stock.getStock(), stock.getType(), FormatUtil.formatTimeHHmmss(finalStartTime.plusMinutes(-3)), properties);
                         if (!val.isEmpty()) {
-                            List<Candle> candles = processCandleSticks.getCandles(properties, stock.getStock());
-                            StockResponse res = processCandleSticks.getStockResponse( stock.getStock(),properties, candles);
+                            List<Candle> candles = commonValidation.getCandles(properties, stock.getStock());
+                            List<Candle> ystCandles = new ArrayList<>();
+                            StockResponse res = processCandleSticks.getStockResponse( stock.getStock(),properties, candles, ystCandles);
                             res.setStockType(stock.getType());
                             res.setOptionChain(val.get(0));
                             res.setCurSt(val.get(1));

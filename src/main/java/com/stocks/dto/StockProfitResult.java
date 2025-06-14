@@ -1,5 +1,8 @@
 package com.stocks.dto;
 
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
 public class StockProfitResult {
     private double total;
     private double profit;

@@ -55,9 +55,20 @@ public class StockDataManager {
                 .uniqueResult();
     }
 
+    @Transactional(readOnly = true)
+    public StockData getRecentRecord(String stock, String date) {
+        String hql = "FROM StockData WHERE stock = :stock AND date = :date AND time = (SELECT MAX(time) FROM StockData WHERE stock = :stock AND date = :date)";
+        Session session = entityManager.unwrap(Session.class);
+        return session.createQuery(hql, StockData.class)
+                .setParameter("stock", stock)
+                .setParameter("date", date)
+                .uniqueResult();
+    }
+
     public List<StockData> getAllRecord() {
         String hql = "FROM StockData";
         Session session = entityManager.unwrap(Session.class);
         return session.createQuery(hql, StockData.class).getResultList();
     }
 }
+
