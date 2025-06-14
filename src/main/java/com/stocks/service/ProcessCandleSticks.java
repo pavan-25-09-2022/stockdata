@@ -255,6 +255,7 @@ public class ProcessCandleSticks {
             return candles;
         }
 
+        ApiResponse.Data previousEodChunk = chunks.get(0).get(0);
         List<ApiResponse.Data> firstCandleChunk = chunks.get(1);
 //        if(firstCandleChunk.size() < 3){
 //            return null;
@@ -286,12 +287,20 @@ public class ProcessCandleSticks {
         firstCandleStick.setVolume(previousVolume);
         firstCandleStick.setCount(firstCandleChunk.size());
         firstCandleStick.setStartTime(FormatUtil.getTimeHHmm("09:15"));
-        LocalTime endTime = FormatUtil.getTime("09:15:00", properties.getInterval());
+        LocalTime endTime = FormatUtil.getTime("09:15:00", Math.min(properties.getInterval(), 15));
         firstCandleStick.setEndTime(endTime);
+        double firstCandleLtpChange = firstCandleStick.getClose() - previousEodChunk.getClose();
+        firstCandleLtpChange = Double.parseDouble(String.format("%.2f", firstCandleLtpChange));
+        long firstCandleOiChange = firstCandleStick.getOpenInterest() - Long.parseLong(previousEodChunk.getOpenInterest());
+        String firstCandleOiInterpretation = (firstCandleOiChange > 0)
+                ? (firstCandleLtpChange > 0 ? "LBU" : "SBU")
+                : (firstCandleLtpChange > 0 ? "SC" : "LU");
+        firstCandleStick.setOiChange(firstCandleOiChange);
+        firstCandleStick.setOiInt(firstCandleOiInterpretation);
         candles.add(firstCandleStick);
         long highVolume = previousVolume;
         Candle prevCandle = firstCandleStick;
-        for (int i = 2; i < chunks.size() - 1; i++) {
+        for (int i = 2; i < chunks.size() ; i++) {
             List<ApiResponse.Data> chunk = chunks.get(i);
             long totalVolume = 0;
             ApiResponse.Data firstCandle = null;
@@ -351,7 +360,7 @@ public class ProcessCandleSticks {
                     ? (ltpChange > 0 ? "LBU" : "SBU")
                     : (ltpChange > 0 ? "SC" : "LU");
             candle.setOiChange(oiChange);
-candle.setOiInt(oiInterpretation);
+            candle.setOiInt(oiInterpretation);
             candles.add(candle);
             prevCandle = candle;
         }
@@ -433,16 +442,26 @@ candle.setOiInt(oiInterpretation);
 
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-        // Group data by intervals
         Map<LocalTime, List<ApiResponse.Data>> groupedData = dataList.stream()
                 .collect(Collectors.groupingBy(
                         data -> {
                             LocalTime time = LocalTime.parse(data.getTime(), timeFormatter);
-                            int minutesSinceStart = (int) java.time.Duration.between(START_TIME, time).toMinutes();
-                            int minuteBucket = (minutesSinceStart / finalMinutes) * finalMinutes;
-                            return START_TIME.plusMinutes(minuteBucket).withSecond(0);
+                            if (finalMinutes > 15) {
+                                LocalTime firstGroupEnd = START_TIME.plusMinutes(14);
+                                if (!time.isAfter(firstGroupEnd)) {
+                                    return START_TIME.plusSeconds(0);
+                                } else {
+                                    int minutesSince930 = (int) java.time.Duration.between(LocalTime.of(9, 31), time).toMinutes();
+                                    int minuteBucket = (minutesSince930 / finalMinutes) * finalMinutes;
+                                    return LocalTime.of(9, 31).plusMinutes(minuteBucket).withSecond(0);
+                                }
+                            } else {
+                                int minutesSinceStart = (int) java.time.Duration.between(START_TIME, time).toMinutes();
+                                int minuteBucket = (minutesSinceStart / finalMinutes) * finalMinutes;
+                                return START_TIME.plusMinutes(minuteBucket).withSecond(0);
+                            }
                         },
-                        LinkedHashMap::new, // Maintain order
+                        LinkedHashMap::new,
                         Collectors.toList()
                 ));
         return new ArrayList<>(groupedData.values());

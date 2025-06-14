@@ -140,17 +140,23 @@ public class FutureAnalysisService {
             return null;
         }
         ApiResponse.Data previousEodChunk = chunks.get(0).get(0);
+        double dayHigh = 0.0;
+        double dayLow = 0.0;
         List<ApiResponse.Data> firstCandleChunk = chunks.get(1);
         for (ApiResponse.Data data : firstCandleChunk) {
             previousVolume += data.getTradedVolume();
             if (firstCandleHigh == 0.0) {
                 firstCandleHigh = data.getHigh();
+                dayHigh = data.getHigh();
             }
             if (firstCandleLow == 0.0) {
                 firstCandleLow = data.getLow();
+                dayLow = data.getLow();
             }
             firstCandleHigh = Math.max(data.getHigh(), firstCandleHigh);
             firstCandleLow = Math.min(data.getLow(), firstCandleLow);
+            dayHigh = Math.max(data.getHigh(), dayHigh);
+            dayLow = Math.min(data.getLow(), dayLow);
 
         }
         long highVolume = previousVolume;
@@ -237,6 +243,19 @@ public class FutureAnalysisService {
                 highVolume = totalVolume;
             }
 
+            boolean isDayHigh = false;
+            boolean isDayLow = false;
+            if (dayHigh < curHigh) {
+                isDayHigh = true;
+                dayHigh = curHigh;
+            }
+            if (curLow < dayLow) {
+                isDayLow = true;
+                dayLow = curLow;
+            }
+
+            String isLevelBreak =  isDayHigh ? "D.H.B" : isDayLow ? "D.L.B" : "";
+
 
             previousData = chunk.get(chunk.size() - 1);
             // match the key interval if data is missing
@@ -260,7 +279,7 @@ public class FutureAnalysisService {
 
             double percentageChange = ((double) oiChange /Long.parseLong(previousData.getOpenInterest()))*100;
 
-            FutureAnalysis futureAnalysis = new FutureAnalysis(stock, duration, (double) totalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), recentData.getClose(), curHigh, curLow, firstCandle.getOpen(), oiChange, oiInterpretation, "", ltpChange, totalVolume, isHigher,strength, percentageChange);
+            FutureAnalysis futureAnalysis = new FutureAnalysis(stock, duration, (double) totalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), recentData.getClose(), curHigh, curLow, firstCandle.getOpen(), oiChange, oiInterpretation, isLevelBreak, ltpChange, totalVolume, isHigher,strength, percentageChange);
             futureAnalysisMap.put(duration, futureAnalysis);
 
         }

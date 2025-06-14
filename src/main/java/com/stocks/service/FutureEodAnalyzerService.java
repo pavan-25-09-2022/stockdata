@@ -51,7 +51,7 @@ public class FutureEodAnalyzerService {
 
         // Read all lines from the file into a List
         List<String> stockList;
-        if(properties.getStockName() != null){
+        if(properties.getStockName() != null && !properties.getStockName().isEmpty()){
             stockList = Arrays.asList(properties.getStockName().split(","));
         } else {
             try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
