@@ -27,6 +27,7 @@ public class TrendLineService {
                 HistoricalQuote historicalQuote = futureAnalysis.getHistoricalQuote();
                 boolean isTrendLine = false;
                 if (futureAnalysis.getInterpretation().equals("LBU")) {
+                    StringBuilder rejectedAt = new StringBuilder( "rejected at :");
                     for (int j = i + 1; j < entries.size() - 1; j++) {
 
                         Map.Entry<String, FutureAnalysis> stringFutureAnalysisEntry1 = entries.get(j);
@@ -34,6 +35,7 @@ public class TrendLineService {
                         if (compareWithFutureAnalysis.getLow() <= futureAnalysis.getLow() && compareWithFutureAnalysis.getClose() > futureAnalysis.getLow()
                                 && futureAnalysis.getStrength() > compareWithFutureAnalysis.getStrength()) {
                             //futureTrendLines.add(futureAnalysis.getLow() + " at " +futureAnalysis.getDuration() +" rejected at " +compareWithFutureAnalysis.getDuration());
+                            rejectedAt.append(compareWithFutureAnalysis.getDuration()).append("  ");
                             isTrendLine = true;
                         }
                         if (compareWithFutureAnalysis.getClose() < futureAnalysis.getLow()) {
@@ -43,13 +45,14 @@ public class TrendLineService {
                     }
 
                     if (isTrendLine) {
-                        System.out.println("future time " + stringFutureAnalysisEntry.getKey());
-                        //futureTrendLines.add(futureAnalysis.getLow() + " at " +futureAnalysis.getDuration());
+                        //System.out.println("future time " + stringFutureAnalysisEntry.getKey());
+                        futureTrendLines.add(futureAnalysis.getLow() + " at " +futureAnalysis.getDuration() + " " + rejectedAt.toString());
                     }
 
                     isTrendLine = false;
 
                     if (historicalQuote != null) {
+                        StringBuilder quoteRejectedAt = new StringBuilder( "rejected at :");
                         for (int j = i + 1; j < entries.size() - 1; j++) {
                             Map.Entry<String, FutureAnalysis> stringFutureAnalysisEntry2 = entries.get(j);
                             FutureAnalysis compareWithFutureAnalysis = stringFutureAnalysisEntry2.getValue();
@@ -58,9 +61,12 @@ public class TrendLineService {
                                 continue;
                             }
                             if (compareWithHistoricalQuote.getLow().compareTo(historicalQuote.getLow()) <= 0
-                                    && compareWithHistoricalQuote.getClose().compareTo(historicalQuote.getLow()) > 0) {
+                                    && compareWithHistoricalQuote.getClose().compareTo(historicalQuote.getLow()) > 0
+                                    //&& futureAnalysis.getStrength() > compareWithFutureAnalysis.getStrength()) {
+                            ){
                                 //spotTrenLines.add(historicalQuote.getLow()+ " at "+futureAnalysis.getDuration() +" rejected at " +compareWithHistoricalQuote.getDate().getTime());
                                 isTrendLine = true;
+                                quoteRejectedAt.append(compareWithFutureAnalysis.getDuration()).append("  ");
                             }
                             if (compareWithHistoricalQuote.getClose().compareTo(historicalQuote.getLow()) < 0) {
                                 isTrendLine = false;
@@ -68,7 +74,7 @@ public class TrendLineService {
                             }
                         }
                        if (isTrendLine) {
-                            spotTrenLines.add(historicalQuote.getLow()+ " at "+futureAnalysis.getDuration());
+                            spotTrenLines.add(historicalQuote.getLow()+ " at "+futureAnalysis.getDuration() + " " + quoteRejectedAt.toString());
                         }
 
                     }
@@ -82,6 +88,7 @@ public class TrendLineService {
                 HistoricalQuote historicalQuote = futureAnalysis.getHistoricalQuote();
                 boolean isTrendLine = false;
                 if (futureAnalysis.getInterpretation().equals("SBU")) {
+                    StringBuilder rejectedAt = new StringBuilder( "rejected at :");
                     for (int j = i + 1; j < entries.size() - 1; j++) {
 
                         Map.Entry<String, FutureAnalysis> stringFutureAnalysisEntry1 = entries.get(j);
@@ -90,6 +97,7 @@ public class TrendLineService {
                                 && compareWithFutureAnalysis.getClose() < futureAnalysis.getHigh()
                                 && compareWithFutureAnalysis.getStrength() < futureAnalysis.getStrength()) {
                             isTrendLine = true;
+                            rejectedAt.append(compareWithFutureAnalysis.getDuration()).append("  ");
                             //futureTrendLines.add(futureAnalysis.getHigh()+ " at "+futureAnalysis.getDuration()+" rejected at " +compareWithFutureAnalysis.getDuration());
                         }
                         if (compareWithFutureAnalysis.getClose() > futureAnalysis.getHigh()) {
@@ -99,7 +107,7 @@ public class TrendLineService {
                     }
 
                     if (isTrendLine) {
-                        futureTrendLines.add(futureAnalysis.getHigh()+ " at "+futureAnalysis.getDuration());
+                        futureTrendLines.add(futureAnalysis.getHigh()+ " at "+futureAnalysis.getDuration() + " " + rejectedAt.toString());
                     }
 
                     isTrendLine = false;
@@ -107,12 +115,14 @@ public class TrendLineService {
                     if(historicalQuote == null){
                         continue;
                     }
+                    StringBuilder quoteRejectedAt = new StringBuilder( "rejected at :");
                     for (int j = i + 1; j < entries.size() - 1; j++) {
                         Map.Entry<String, FutureAnalysis> stringFutureAnalysisEntry2 = entries.get(j);
                         FutureAnalysis compareWithFutureAnalysis = stringFutureAnalysisEntry2.getValue();
                         HistoricalQuote compareWithHistoricalQuote = compareWithFutureAnalysis.getHistoricalQuote();
                         if (compareWithHistoricalQuote.getHigh().compareTo(historicalQuote.getHigh()) > 0 && compareWithHistoricalQuote.getClose().compareTo(historicalQuote.getHigh()) < 0) {
                             isTrendLine = true;
+                            quoteRejectedAt.append(compareWithFutureAnalysis.getDuration()).append("  ");
                             //spotTrenLines.add(historicalQuote.getHigh()+ " at "+futureAnalysis.getDuration()+" rejected at " +compareWithHistoricalQuote.getDate().getTime());
                         }
                         if (compareWithHistoricalQuote.getClose().compareTo(historicalQuote.getHigh()) > 0) {
@@ -121,7 +131,7 @@ public class TrendLineService {
                         }
                     }
                     if (isTrendLine) {
-                        spotTrenLines.add(historicalQuote.getHigh()+ " at "+futureAnalysis.getDuration());
+                        spotTrenLines.add(historicalQuote.getHigh()+ " at "+futureAnalysis.getDuration() +   " " + quoteRejectedAt.toString());
                     }
 
                 }
