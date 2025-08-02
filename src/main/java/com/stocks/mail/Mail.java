@@ -37,6 +37,14 @@ public class Mail {
 
     }
 
+    public void sendMail(List<String> data, Properties properties) {
+        if(!data.isEmpty()) {
+            String result = String.join(" ", data);
+            sendMail(result, properties);
+        }
+
+    }
+
     public void sendTrendsMail(String data, Properties properties) {
         // Send email
         LocalDate currentDate = LocalDate.now();

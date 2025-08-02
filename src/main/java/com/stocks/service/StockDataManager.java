@@ -70,5 +70,27 @@ public class StockDataManager {
         Session session = entityManager.unwrap(Session.class);
         return session.createQuery(hql, StockData.class).getResultList();
     }
+
+    @Transactional
+    public void saveStockData(String stock, String date, String time, String oiInterpretation, String type, Integer  entryPrice1, Integer entryPrice2,
+                              Integer stopLoss,  Integer targetPrice1, Integer targetPrice2, Integer averagePrice) {
+
+       if(getRecentTime(stock, date) != null) {
+            // If the record already exists for the given stock, date, and time, do not save it again
+            return;
+        }
+        StockData stockData = new StockData(stock, type);
+        stockData.setDate(date);
+        stockData.setTime(time);
+        stockData.setOiInterpretation(oiInterpretation);
+       // stockData.setTrend(String.format("%.2f", limit));
+        stockData.setEntryPrice1(entryPrice1);
+        stockData.setEntryPrice2(entryPrice2);
+        stockData.setStopLoss(stopLoss);
+        stockData.setTargetPrice1(targetPrice1);
+        stockData.setTargetPrice2(targetPrice2);
+        stockData.setAveragePrice(averagePrice);
+        entityManager.persist(stockData);
+    }
 }
 

@@ -1,9 +1,9 @@
 package com.stocks.service;
 
-import com.stocks.dto.OptionChainData;
-import com.stocks.dto.OptionChainResponse;
+import com.stocks.dto.*;
 import com.stocks.dto.Properties;
-import com.stocks.dto.UnderLyingAssetData;
+import com.stocks.pdf.OptionChainCombinedBarChartPdf;
+import com.stocks.pdf.OptionChainCombinedPieChartPdf;
 import com.stocks.utils.FormatUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -17,6 +17,15 @@ public class CalculateOptionChain {
 
     @Autowired
     private IOPulseService ioPulseService;
+
+    @Autowired
+    private OptionChainCombinedPieChartPdf optionChainCombinedPieChartPdf;
+
+    @Autowired
+    private OptionChainCombinedBarChartPdf optionChainCombinedBarChartPdf;
+
+    @Autowired
+    StockDataManager stockDataManager;
 
     public List<String> processStock(String stock, String type, String time, Properties properties) {
         LocalTime startTime = FormatUtil.getTime(time, 0);
@@ -352,7 +361,7 @@ public boolean isValidStock(String stock, String time, Properties properties, bo
     return isMaxCEVolumeBelowFocusKey && isMaxPEVolumeAboveFocusKey &&  isValidStock;
 }
 
-    public boolean changeInOI(String stock, String time, Properties properties, boolean isPositive) {
+    public boolean changeInOI(String stock, String time, Properties properties, boolean isPositive, String oiInterpretation) {
         LocalTime startTime = FormatUtil.getTime(time, 0);
         OptionChainResponse response = ioPulseService.getOptionChain(properties, stock, startTime);
         if (response == null || response.getData() == null) {
@@ -380,44 +389,137 @@ public boolean isValidStock(String stock, String time, Properties properties, bo
             return false;
         }
 
-        int fromBelow = Math.max(0, focusIndex - 4);
+        int fromBelow = Math.max(0, focusIndex - 3);
         int toBelow = focusIndex; // exclusive
         List<Integer> belowStricks = keys.subList(fromBelow, toBelow);
 
-        int fromAbove = focusIndex + 2;
-        int toAbove = Math.min(keys.size(), focusIndex + 6);
+        int fromAbove = focusIndex + 1;
+        int toAbove = Math.min(keys.size(), focusIndex + 4);
         List<Integer> aboveStricks = keys.subList(fromAbove, toAbove);
 
-        long totalPEOIAboveStricks = aboveStricks.stream()
+        int fromBelowCombine = Math.max(0, focusIndex - 3);
+        int toAboveCombine = Math.min(keys.size(), focusIndex + 4);
+        List<Integer> combineStrikes = keys.subList(fromBelowCombine, toAboveCombine);
+
+        TreeMap<Integer, List<OptionChainData>> combinedData = combineStrikes.stream()
+                .map(groupedData::get)
+                .flatMap(Collection::stream)
+                .collect(Collectors.groupingBy(
+                        OptionChainData::getInStrikePrice,
+                        TreeMap::new,
+                        Collectors.toList()
+                ));
+
+        try {
+            String fileName = "C:\\Users\\nithin.venkaiahgari\\Documents\\Oipulse\\" + stock + "-" + properties.getStockDate() + "-FROM-" + properties.getStartTime().replace(":", "-") + "-TO-" + properties.getEndTime().replace(":", "-") + ".png";
+            //optionChainCombinedBarChartPdf.createPdfWithCombinedBarChart(groupedData1, fileName);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        long allNegativeCEBelowCount = belowStricks.stream()
+                .map(groupedData::get)
+                .flatMap(Collection::stream)
+                .filter(data -> "CE".equals(data.getStOptionsType()))
+                .filter(data -> (data.getInNewOi() - data.getInOldOi()) < 0).count();
+
+        long allPositiveCEBelowCount = belowStricks.stream()
+                .map(groupedData::get)
+                .flatMap(Collection::stream)
+                .filter(data -> "CE".equals(data.getStOptionsType()))
+                .filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0).count();
+
+        long allNegativePEAboveCount = aboveStricks.stream()
                 .map(groupedData::get)
                 .flatMap(Collection::stream)
                 .filter(data -> "PE".equals(data.getStOptionsType()))
+                .filter(data -> (data.getInNewOi() - data.getInOldOi()) < 0).count();
+
+        long allPositivePEAboveCount = aboveStricks.stream()
+                .map(groupedData::get)
+                .flatMap(Collection::stream)
+                .filter(data -> "PE".equals(data.getStOptionsType()))
+                .filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0).count();
+
+       /* System.out.println("option chain data for " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime());
+
+        long totalPEOIAboveStricks = aboveStricks.stream()
+                .map(combinedData::get)
+                .flatMap(Collection::stream)
+                .filter(data -> {
+                    if ("PE".equals(data.getStOptionsType())) {
+                        System.out.println("PE above OI Change " + data.getOIChange() + " strike " + data.getInStrikePrice());
+                        return true;
+                    } else {
+                        return false;
+                    }
+                })
                 .mapToLong(OptionChainData::getOIChange)
                 .sum();
 
         long totalCEOIAboveStricks = aboveStricks.stream()
-                .map(groupedData::get)
+                .map(combinedData::get)
                 .flatMap(Collection::stream)
-                .filter(data -> "CE".equals(data.getStOptionsType()))
+                .filter(data -> {
+                    if ("CE".equals(data.getStOptionsType())) {
+                        System.out.println("CE above OI Change " + data.getOIChange() + " strike " + data.getInStrikePrice());
+                        return true;
+                    } else {
+                        return false;
+                    }
+                })
                 .mapToLong(OptionChainData::getOIChange)
                 .sum();
 
 
         long totalCEOIBelowStricks = belowStricks.stream()
-                .map(groupedData::get)
+                .map(combinedData::get)
                 .flatMap(Collection::stream)
-                .filter(data -> "CE".equals(data.getStOptionsType()))
+                .filter(data -> {
+                    if ("CE".equals(data.getStOptionsType())) {
+                        System.out.println("CE below OI Change " + data.getOIChange() + " strike " + data.getInStrikePrice());
+                        return true;
+                    } else {
+                        return false;
+                    }
+                })
                 .mapToLong(OptionChainData::getOIChange)
                 .sum();
         long totalPEOIBelowStricks = belowStricks.stream()
-                .map(groupedData::get)
+                .map(combinedData::get)
                 .flatMap(Collection::stream)
-                .filter(data -> "PE".equals(data.getStOptionsType()))
+                .filter(data -> {
+                    if ("PE".equals(data.getStOptionsType())) {
+                        System.out.println("PE below OI Change " + data.getOIChange() + " strike " + data.getInStrikePrice());
+                        return true;
+                    } else {
+                        return false;
+                    }
+                })
                 .mapToLong(OptionChainData::getOIChange)
                 .sum();
         boolean isPEGreater = totalPEOIAboveStricks > totalCEOIAboveStricks;
-        System.out.println("Total CE OI below stricks: " + totalCEOIAboveStricks + " Total PE OI above stricks: " + totalPEOIAboveStricks + " Trend " + (isPEGreater ? "Positive" : "Negative") + " at " +startTime);
+        System.out.println( "above stricks :" + aboveStricks + "  below stricks :" + belowStricks);
+        System.out.println("Total CE OI below stricks: " + totalCEOIBelowStricks + " Total PE OI above stricks: " + totalPEOIAboveStricks + " Trend " + (isPEGreater ? "Positive" : "Negative") + " from  " +startTime + " to " +properties.getEndTime() );
 
-        return isPositive ? totalCEOIBelowStricks < 0 && totalPEOIAboveStricks > 0 : totalCEOIBelowStricks > 0 && totalPEOIAboveStricks < 0;
+        return isPositive ? totalCEOIBelowStricks < 0 && totalPEOIAboveStricks > 0 : totalCEOIBelowStricks > 0 && totalPEOIAboveStricks < 0;*/
+
+        if( allNegativeCEBelowCount == 3 && allPositivePEAboveCount == 3) {
+            System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is positive");
+
+            stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Positive",
+                    focusKey, (focusKey+combineStrikes.get(4))/2, combineStrikes.get(0), (combineStrikes.get(5) +combineStrikes.get(6))/2 ,
+                    combineStrikes.get(6), combineStrikes.get(2) );
+            return true;
+        }
+        if( allPositiveCEBelowCount == 3 && allNegativePEAboveCount == 3){
+            System.out.println("Stock " + stock + " from " +properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
+            stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Negative",
+                    (focusKey + combineStrikes.get(4))/2, combineStrikes.get(4), combineStrikes.get(6), combineStrikes.get(1),
+                    (combineStrikes.get(1) +combineStrikes.get(0))/2, combineStrikes.get(5) );
+
+            return true;
+        }
+        return false;
     }
 }

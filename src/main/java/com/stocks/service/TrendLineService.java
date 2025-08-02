@@ -2,15 +2,23 @@ package com.stocks.service;
 
 import com.stocks.dto.FutureAnalysis;
 import com.stocks.dto.HistoricalQuote;
+import com.stocks.dto.Properties;
+import com.stocks.utils.FormatUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+
 @Service
 public class TrendLineService {
+
+    @Autowired
+    private CalculateOptionChain calculateOptionChain;
 
 
     public Map<String, List<String>> findTrendLines(Map<String, FutureAnalysis> stocksFutureAnalysis, boolean isPositive) {
@@ -145,5 +153,55 @@ public class TrendLineService {
         }
         System.gc();
         return stockTrendLines;
+    }
+
+    public void findTrend(Map<String, FutureAnalysis> stocksFutureAnalysis, String stock, Properties properties, StringBuilder message) {
+
+        List<Map.Entry<String, FutureAnalysis>> entries = new ArrayList<>(stocksFutureAnalysis.entrySet());
+
+        for (int i = 1; i < entries.size(); i++) {
+            Map.Entry<String, FutureAnalysis> stringFutureAnalysisEntry = entries.get(i);
+            FutureAnalysis futureAnalysis = stringFutureAnalysisEntry.getValue();
+            if (futureAnalysis.getOiChange() > 50000 && futureAnalysis.getVolume().compareTo(futureAnalysis.getOiChange()) > 0) {
+                for (int j = i + 1; j < entries.size() - 1; j++) {
+                    System.out.println("Comparing " + futureAnalysis.getDuration() + " with " + entries.get(j).getKey());
+                    Map.Entry<String, FutureAnalysis> stringFutureAnalysisEntry1 = entries.get(j);
+                    FutureAnalysis compareWithFutureAnalysis = stringFutureAnalysisEntry1.getValue();
+                    if (compareWithFutureAnalysis.getInterpretation().equals("SC")
+                            && compareWithFutureAnalysis.getVolume() > futureAnalysis.getVolume()
+                            && compareWithFutureAnalysis.getClose() > futureAnalysis.getHigh()) {
+                        String startTime = futureAnalysis.getDuration().split("-")[0]+":00";
+                        String endTime = compareWithFutureAnalysis.getDuration().split("-")[1]+":00";
+                        properties.setStartTime(startTime);
+                        properties.setEndTime(endTime);
+                         message.append(stock +" positive from " + startTime + " to " + endTime);
+                        checkOptionChain(stock, properties, message);
+                        return;
+                    }
+                    if (compareWithFutureAnalysis.getInterpretation().equals("LU")
+                            //&& compareWithFutureAnalysis.getVolume() > futureAnalysis.getVolume()
+                            && compareWithFutureAnalysis.getClose() < futureAnalysis.getLow()) {
+                        String startTime = futureAnalysis.getDuration().split("-")[0]+":00";
+                        String endTime = compareWithFutureAnalysis.getDuration().split("-")[1]+":00";
+                        properties.setStartTime(startTime);
+                        properties.setEndTime(endTime);
+                        message.append(stock+" negative from " + startTime + " to " + endTime);
+                        checkOptionChain(stock, properties, message);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    public void checkOptionChain(String stock, Properties properties, StringBuilder message) {
+        for (int i = 0; i < 5; i++) {
+            if (calculateOptionChain.changeInOI(stock, properties.getStartTime(), properties, message.toString().contains("positive"), null)) {
+                if( i > 0) {
+                    message.append("  And Option short covered from ").append(properties.getStartTime()).append(" to  ").append(properties.getEndTime());
+                }
+            }
+            properties.setEndTime(FormatUtil.getTime(properties.getEndTime(), properties.getInterval()).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+        }
     }
 }

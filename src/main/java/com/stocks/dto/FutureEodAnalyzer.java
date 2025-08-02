@@ -14,6 +14,8 @@ public class FutureEodAnalyzer {
     private long oiChange;
     private String oiInterpretation;
     private double strength;
+    private double percentageChangeInLtp;
+    private double percentageChangeInOi;
 
     public String getStFetchDate() {
         return stFetchDate;
@@ -111,6 +113,22 @@ public class FutureEodAnalyzer {
         this.strength = strength;
     }
 
+    public double getPercentageChangeInLtp() {
+        return percentageChangeInLtp;
+    }
+
+    public void setPercentageChangeInLtp(double percentageChangeInLtp) {
+        this.percentageChangeInLtp = percentageChangeInLtp;
+    }
+
+    public double getPercentageChangeInOi() {
+        return percentageChangeInOi;
+    }
+
+    public void setPercentageChangeInOi(double percentageChangeInOi) {
+        this.percentageChangeInOi = percentageChangeInOi;
+    }
+
     @Override
     public String toString() {
         return "FutureEodAnalyzer{" +
@@ -126,6 +144,8 @@ public class FutureEodAnalyzer {
                 ", oiChange=" + oiChange +
                 ", oiInterpretation='" + oiInterpretation + '\'' +
                 ", strength=" + strength +
+                ", percentageChangeInLtp=" + percentageChangeInLtp +
+                ", percentageChangeInOi=" + percentageChangeInOi +
                 '}';
     }
 }

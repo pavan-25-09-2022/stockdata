@@ -1,10 +1,9 @@
 package com.stocks.service;
 
-import com.stocks.dto.FutureAnalysis;
+import com.stocks.controller.ApiController;
 import com.stocks.dto.Properties;
 import com.stocks.dto.StockResponse;
 import com.stocks.mail.Mail;
-import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +34,10 @@ public class Scheduler {
     @Autowired
     private FutureEodAnalyzerService futureEodAnalyzerService;
 
-//    @Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
+    @Autowired
+    private ApiController apiController;
+
+    //    @Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
     public void callApi() {
         log.info("Scheduler started API stocks");
         logTime();
@@ -53,7 +55,7 @@ public class Scheduler {
         log.info("Scheduler finished " + list.size());
     }
 
-    @Scheduled(cron = "50 30/15 9-16 * * ?")
+    // @Scheduled(cron = "50 30/15 9-16 * * ?")
     public void dayHighLow() {
         log.info("Scheduler started");
         Properties properties = new Properties();
@@ -63,34 +65,34 @@ public class Scheduler {
         log.info("Scheduler finished");
     }
 
-//    @Scheduled(cron = "15 */5 9-14 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
+    //    @Scheduled(cron = "15 */5 9-14 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
     public void optionChain() {
         log.info("Scheduler started");
         Properties properties = new Properties();
         properties.setInterval(5);
         properties.setExpiryDate("250529");
         List<StockResponse> list = optionChainService.getOptionChain(properties);
-        if(list.isEmpty()){
+        if (list.isEmpty()) {
             log.info("No records found");
             return;
         }
         String data = mailService.beautifyOptChnResults(list);
-            mailService.sendOptMail(data);
+        mailService.sendOptMail(data);
         log.info("Scheduler finished");
     }
 
-//        @Scheduled(cron = "15 */5 9-14 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
-    public void eodTrendAnalyser(){
-            log.info("Scheduler started");
-            Properties properties = new Properties();
-            String selectedDate =  LocalDate.now().toString();
+    //        @Scheduled(cron = "15 */5 9-14 * * *") // Starts at 9:18:02 and runs every 3 minutes until 15:00
+    public void eodTrendAnalyser() {
+        log.info("Scheduler started");
+        Properties properties = new Properties();
+        String selectedDate = LocalDate.now().toString();
 
-            properties.setStockDate(selectedDate);
+        properties.setStockDate(selectedDate);
         properties.setInterval(5);
         futureAnalysisService.getTrendLinesForNiftyAndBankNifty(properties);
     }
 
-//    @Scheduled(cron = "10 */5 9,12 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
+    //    @Scheduled(cron = "10 */5 9,12 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
     public void trendLines() {
         log.info("Scheduler started Trend stocks");
         logTime();
@@ -115,15 +117,39 @@ public class Scheduler {
     }
 
 
-//    @Scheduled(cron = "50 0/5 9-15 * * ?")
+    //@Scheduled(cron = "50 0/5 9-15 * * ?")
     public void sector() {
         log.info("Scheduler started");
         logTime();
         Properties properties = new Properties();
         properties.setInterval(5);
-         properties.setStockDate("2025-05-19");
-        futureEodAnalyzerService.getTrendLinesForNiftyAndBankNifty(properties);;
+        properties.setStockDate("2025-06-19");
+        futureEodAnalyzerService.getTrendLinesForNiftyAndBankNifty(properties);
+        ;
         System.gc();
     }
+
+    @Scheduled(cron = "50 0/5 9-15 * * ?")
+    public void marketMavesAndOptionChain() {
+        log.info("Scheduler started Market Movers and Option Chain");
+        logTime();
+        Properties properties = new Properties();
+        properties.setInterval(5);
+        properties.setStockDate(LocalDate.now().toString());
+        futureEodAnalyzerService.createOptionChainImages(properties);
+        System.gc();
+        log.info("Scheduler finished Market Movers and Option Chain ");
+    }
+
+
+    @Scheduled(cron = "50 0/5 9-15 * * ?")
+    public void verifyStockData() {
+        log.info("Scheduler started verifyStockData");
+        logTime();
+        apiController.verifyStockData(LocalDate.now().toString(), 5);
+        System.gc();
+        log.info("Scheduler finished Verify Stock Data ");
+    }
+
 
 }

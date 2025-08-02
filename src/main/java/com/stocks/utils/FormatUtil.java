@@ -27,6 +27,15 @@ public class FormatUtil {
         }
     }
 
+    public static LocalTime getTimeHHmmss(String input) {
+        try {
+            return LocalTime.parse(input, DateTimeFormatter.ofPattern("HH:mm:ss"));
+        } catch (Exception e) {
+            log.error("Error parsing time: " + input, e);
+            return null;
+        }
+    }
+
     public static String formatTimeHHmm(LocalTime input) {
         return input.format(DateTimeFormatter.ofPattern("HH:mm"));
     }

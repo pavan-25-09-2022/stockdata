@@ -114,6 +114,9 @@ public class IOPulseService {
         Map<String, String> payload = new HashMap<>();
 
         String startStringTime = startTime != null ? startTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")) : "09:15:00";
+        String endStringTime = properties.getEndTime() != null ? properties.getEndTime() : FormatUtil.formatTimeHHmmss(FormatUtil.getTime(startStringTime, properties.getInterval()));
+        properties.setStartTime(startStringTime);
+        properties.setEndTime(endStringTime);
         payload.put("stSelectedOptions", stock);
         String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : LocalDate.now().toString();
 
@@ -128,7 +131,7 @@ public class IOPulseService {
         }
         payload.put("inSelectedavailableTimeRange", "CUSTOM_TIME");
         payload.put("stStartTime", startStringTime);
-        payload.put("stEndTime", FormatUtil.formatTimeHHmmss(FormatUtil.getTime(startStringTime, properties.getInterval())));
+        payload.put("stEndTime", endStringTime);
 
 
         HttpHeaders headers = new HttpHeaders();
@@ -143,12 +146,12 @@ public class IOPulseService {
         ResponseEntity<OptionChainResponse> response = restTemplate.exchange(apiOptionChainUrl, HttpMethod.POST, requestEntity, OptionChainResponse.class);
         return response.getBody();
         }catch (Exception e){
-           log.error("Error in getOptionChain", e);
+           //log.error("Error in getOptionChain", e);
             return null;
         }
     }
 
-    public void marketMovers(Properties properties){
+    public MarketMoversResponse marketMovers(Properties properties){
         try{
             // Create payload
 
@@ -173,15 +176,11 @@ public class IOPulseService {
             HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(payload, headers);
 
             // Make POST request
-            ResponseEntity<ApiResponse> response = restTemplate.exchange(apiMarketMoversUrl, HttpMethod.POST, requestEntity, ApiResponse.class);
-            if (response.getBody() != null) {
-//            log.error("Response msg for stock: "+ stock +"--- " + response.getBody().getMsg());
-//                return response;ejhgcbruejkreldglhcrktutfluljvvkleguetvcknuv
-            }
-//            return response;
+            ResponseEntity<MarketMoversResponse> response = restTemplate.exchange(apiMarketMoversUrl, HttpMethod.POST, requestEntity, MarketMoversResponse.class);
+            return response.getBody();
         }catch (Exception e){
-            log.error("Error in sendRequest", e);
-//            return null;
+            log.error("Error in getOptionChain", e);
+            return null;
         }
     }
 }

@@ -1,11 +1,15 @@
 package com.stocks.controller;
 
+import com.stocks.dto.HistoricalQuote;
 import com.stocks.dto.Properties;
+import com.stocks.dto.StockData;
 import com.stocks.dto.StockResponse;
+import com.stocks.enumaration.QueryInterval;
 import com.stocks.mail.Mail;
 import com.stocks.service.DayHighLowService;
 import com.stocks.service.MarketDataService;
 import com.stocks.service.OptionChainService;
+import com.stocks.yahoo.HistQuotesQuery2V8RequestImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.stocks.service.*;
@@ -14,7 +18,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -46,6 +59,11 @@ public class ApiController {
 
     @Autowired
     private Mail mailService;
+
+    @Autowired
+    StockDataManager stockDataManager;
+
+    List<String> sectorList = List.of("NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SMALLCAP", "NIFTYIT", "NIFTYFMCG", "NIFTYMETAL", "NIFTYPHARMA");
 
     @GetMapping("/call-api")
     public String callApi(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
@@ -96,7 +114,7 @@ public class ApiController {
             return "No data found";
         }
         String data = mailService.beautifyResults(list, properties);
-       // mailService.sendMail(data, properties);
+        mailService.sendMail(data, properties);
         System.gc();
         return data;
     }
@@ -230,5 +248,191 @@ public class ApiController {
 
         return  "success";
     }
+
+    @GetMapping("/divergenceBasedOnOpenInterest")
+    public String divergenceBasedOnOpenInterest(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+                                @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
+                                @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName,
+                                                @RequestParam(name = "fileName", required = false) String fileName) {
+        Properties properties = new Properties();
+        properties.setStockDate(stockDate);
+        properties.setInterval(interval);
+        properties.setStockName(stockName);
+        properties.setFileName(fileName);
+        return futureEodAnalyzerService.findDivergenceBasedOnOpenInterest(properties);
+    }
+
+    @GetMapping("/optionChainImages")
+    public String optionChainImages(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+                                                @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
+                                                @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName,
+                                                @RequestParam(name = "fileName", required = false) String fileName) {
+        Properties properties = new Properties();
+        properties.setStockDate(stockDate);
+        properties.setInterval(interval);
+        properties.setStockName(stockName);
+        properties.setFileName(fileName);
+        return futureEodAnalyzerService.createOptionChainImages(properties);
+    }
+
+    @GetMapping("/analyseEodResponse")
+    public List<String> analyseEodResponse(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+                                    @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
+                                    @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName,
+                                    @RequestParam(name = "fileName", required = false) String fileName) {
+        Properties properties = new Properties();
+        properties.setStockDate(stockDate);
+        properties.setInterval(interval);
+        properties.setStockName(stockName);
+        properties.setFileName(fileName);
+        return futureEodAnalyzerService.analyseEodResponse(properties);
+    }
+
+    @GetMapping("/getAllRecord")
+    public List<StockData> analyseEodResponse(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate) {
+        if(stockDate != null && !stockDate.isEmpty()) {
+            List<StockData> stockDataList = stockDataManager.getStocksByDate(stockDate);
+            if (stockDataList != null && !stockDataList.isEmpty()) {
+                return stockDataList;
+            } else {
+                return List.of();
+            }
+        }
+        return stockDataManager.getAllRecord();
+    }
+
+
+    @GetMapping("/verifyStockData")
+    public List<String> verifyStockData(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+                                @RequestParam(name = "interval", required = false, defaultValue = "5") Integer interval) {
+        stockDate = stockDate.isEmpty() ? LocalDate.now().toString() : stockDate;
+        List<StockData> stockDataList = stockDataManager.getStocksByDate(stockDate);
+
+       List<String> stockNames = new ArrayList<>();
+        for (StockData data : stockDataList) {
+            String[] splitTime = data.getTime().split(":");
+            String[] splitDate = data.getDate().split("-");
+
+            Calendar from = Calendar.getInstance();
+            from.set(Calendar.YEAR, Integer.parseInt(splitDate[0]));
+            from.set(Calendar.MONTH, Integer.parseInt(splitDate[1]) - 1); // Month is 0-based
+            from.set(Calendar.DAY_OF_MONTH, Integer.parseInt(splitDate[2]));
+            from.set(Calendar.HOUR_OF_DAY, Integer.parseInt(splitTime[0]));
+            from.set(Calendar.MINUTE, Integer.parseInt(splitTime[1]));
+            from.set(Calendar.SECOND, 0);
+            from.set(Calendar.MILLISECOND, 0);
+
+            Calendar to = Calendar.getInstance();
+            to.set(Calendar.YEAR, Integer.parseInt(splitDate[0]));
+            to.set(Calendar.MONTH, Integer.parseInt(splitDate[1]) - 1); // Month is 0-based
+            to.set(Calendar.DAY_OF_MONTH, Integer.parseInt(splitDate[2]));
+            int addedDays = 0;
+            while (addedDays < 5) {
+                to.add(Calendar.DAY_OF_MONTH, 1);
+                int dayOfWeek = to.get(Calendar.DAY_OF_WEEK);
+                if (dayOfWeek != Calendar.SATURDAY && dayOfWeek != Calendar.SUNDAY) {
+                    addedDays++;
+                }
+            }
+            to.set(Calendar.HOUR_OF_DAY, 15);
+            to.set(Calendar.MINUTE, 30);
+            to.set(Calendar.SECOND, 0);
+            to.set(Calendar.MILLISECOND, 0);
+
+            if(sectorList.contains(data.getStock())) {
+                log.info("Skipping sector stock: " + data.getStock());
+                continue; // Skip sector stocks
+            }
+
+            String symbol = data.getStock() + ".NS"; // For NSE stocks
+            QueryInterval queryInterval = QueryInterval.getInstance(interval + "m");
+            HistQuotesQuery2V8RequestImpl impl1 = new HistQuotesQuery2V8RequestImpl(symbol, from, to, queryInterval);
+
+            try {
+                boolean isEntered = false;
+                boolean isTargetAchieved = false;
+                boolean isStopLossHit = false;
+
+                List<HistoricalQuote> completeResult = impl1.getCompleteResult();
+                StringBuilder sb = new StringBuilder();
+                if(data.getType().equals("Positive")) {
+                    for (int i = 0; i < completeResult.size()-1;  i++) {
+
+                        HistoricalQuote quote = completeResult.get(i);
+                        if(quote.getHigh() == null || quote.getLow() == null || quote.getHigh().intValue() == 0 || quote.getLow().intValue() == 0) {
+                            continue; // Skip quotes with null values
+                        }
+                        if (!isEntered && (quote.getLow().intValue() < data.getEntryPrice1() || quote.getLow().intValue() < data.getEntryPrice2())) {
+                            sb.append("Positive Stock ").append(data.getStock()).append("  Entered at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getLow().intValue());
+                            isEntered = true;
+                        }
+
+                        if (isEntered) {
+                            if (quote.getHigh().intValue() >= data.getTargetPrice1() || quote.getHigh().intValue() >= data.getTargetPrice2()) {
+                                isTargetAchieved = true;
+                                sb.append(" Target Achieved at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getHigh().intValue()).append("\n");
+                            } else if (quote.getLow().intValue() <= data.getStopLoss()) {
+                                isStopLossHit = true;
+                                sb.append(" Stop Loss Hit at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getLow().intValue()).append("\n");
+                            }
+                        }
+                        if (isTargetAchieved || isStopLossHit) {
+
+                            break; // Exit loop if target or stop loss is hit
+                        }
+
+                    }
+                } else {
+
+                    for (int i = 0; i < completeResult.size()-1;  i++) {
+
+                        HistoricalQuote quote = completeResult.get(i);
+
+                        if(quote.getHigh() == null || quote.getLow() == null || quote.getHigh().intValue() == 0 || quote.getLow().intValue() == 0) {
+                            continue; // Skip quotes with null values
+                        }
+                        if (!isEntered && (quote.getHigh().intValue() > data.getEntryPrice1() || quote.getHigh().intValue() > data.getEntryPrice2())) {
+                            sb.append("Negative Stock ").append(data.getStock()).append(" Entered at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getLow());
+                            isEntered = true;
+                        }
+
+                        if (isEntered) {
+                            if (quote.getLow().intValue() <= data.getTargetPrice1() || quote.getLow().intValue() <= data.getTargetPrice2()) {
+                                isTargetAchieved = true;
+                                sb.append(" Target Achieved at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getHigh()).append("\n");
+                            } else if (quote.getHigh().intValue() >= data.getStopLoss()) {
+                                isStopLossHit = true;
+                                sb.append(" Stop Loss Hit at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getLow()).append("\n");
+                            }
+                        }
+
+                        if (isTargetAchieved || isStopLossHit) {
+
+                            break; // Exit loop if target or stop loss is hit
+                        }
+
+                    }
+
+                }
+                if(sb.toString().length() > 10) {
+                    stockNames.add(sb.toString());
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        if(!stockNames.isEmpty()) {
+            //mailService.sendMail(stockNames, new Properties());
+        } else {
+            log.info("No records found for verifyStockData");
+        }
+        return  stockNames;
+    }
+
+
+
+
+
 
 }

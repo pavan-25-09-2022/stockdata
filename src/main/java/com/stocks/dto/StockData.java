@@ -17,6 +17,12 @@ public class StockData {
     private String oiInterpretation;
     private String type;
     private String trend;
+    private Integer entryPrice1;
+    private Integer entryPrice2;
+    private Integer stopLoss;
+    private Integer targetPrice1;
+    private Integer targetPrice2;
+    private Integer averagePrice;
 
     public StockData(String s, String p) {
         this.stock = s;
@@ -75,10 +81,61 @@ public class StockData {
     public void setType(String type) {
         this.type = type;
     }
+
     public String getTrend() {
         return trend;
     }
+
     public void setTrend(String trend) {
         this.trend = trend;
+    }
+
+    public Integer getEntryPrice1() {
+        return entryPrice1;
+    }
+
+    public void setEntryPrice1(Integer entryPrice1) {
+        this.entryPrice1 = entryPrice1;
+    }
+
+    public Integer getEntryPrice2() {
+        return entryPrice2;
+    }
+
+    public void setEntryPrice2(Integer entryPrice2) {
+        this.entryPrice2 = entryPrice2;
+    }
+
+    public Integer getStopLoss() {
+        return stopLoss;
+    }
+
+    public void setStopLoss(Integer stopLoss) {
+        this.stopLoss = stopLoss;
+    }
+
+
+    public Integer getTargetPrice1() {
+        return targetPrice1;
+    }
+
+    public void setTargetPrice1(Integer targetPrice1) {
+        this.targetPrice1 = targetPrice1;
+    }
+
+    public Integer getTargetPrice2() {
+        return targetPrice2;
+    }
+
+    public void setTargetPrice2(Integer targetPrice2) {
+        this.targetPrice2 = targetPrice2;
+    }
+
+    public Integer getAveragePrice() {
+        return averagePrice;
+    }
+
+    public void setAveragePrice(Integer averagePrice) {
+        this.averagePrice = averagePrice;
     }
 }

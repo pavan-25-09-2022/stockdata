@@ -10,6 +10,7 @@ public class Properties {
     private boolean fetchAll;
     private int amtInvested;
     private String stockName = "";
+    private String fileName;
     private String startTime;
     private String endTime;
     private String expiryDate;
@@ -112,5 +113,45 @@ public class Properties {
 
     public void setEnv(String env) {
         this.env = env;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public boolean isFromScheduler() {
+        return fromScheduler;
+    }
+
+    public void setFromScheduler(boolean fromScheduler) {
+        this.fromScheduler = fromScheduler;
+    }
+
+    public Integer getNoOfCandles() {
+        return noOfCandles;
+    }
+
+    public void setNoOfCandles(Integer noOfCandles) {
+        this.noOfCandles = noOfCandles;
+    }
+
+    public boolean isCheckRecentCandle() {
+        return checkRecentCandle;
+    }
+
+    public void setCheckRecentCandle(boolean checkRecentCandle) {
+        this.checkRecentCandle = checkRecentCandle;
+    }
+
+    public boolean isWithVolume() {
+        return withVolume;
+    }
+
+    public void setWithVolume(boolean withVolume) {
+        this.withVolume = withVolume;
     }
 }

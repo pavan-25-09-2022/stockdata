@@ -13,8 +13,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class FutureEodAnalyzerService {
@@ -54,7 +57,7 @@ public class FutureEodAnalyzerService {
         if(properties.getStockName() != null && !properties.getStockName().isEmpty()){
             stockList = Arrays.asList(properties.getStockName().split(","));
         } else {
-            try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
+            try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
                 stockList = lines.collect(Collectors.toList());
             } catch (IOException e) {
                 log.error("Error reading file: " + e.getMessage());
@@ -223,12 +226,17 @@ public class FutureEodAnalyzerService {
         String oiInterpretation = (oiChange > 0) ? (ltpChange > 0 ? "LBU" : "SBU") : (ltpChange > 0 ? "SC" : "LU");
         if(oiChange != 0) {
             DecimalFormat df = new DecimalFormat("#.###########");
-            double strength = Math.abs(Double.parseDouble(df.format(ltpChange / oiChange)));
+            double percentageChangeInLTP = (ltpChange / previous.getInClose()) * 100;
+            current.setPercentageChangeInLtp(percentageChangeInLTP);
+            double percentageChangeInOI = ((double) oiChange / Long.parseLong(previous.getInOi())) * 100;
+            current.setPercentageChangeInOi(percentageChangeInOI);
+            double strength = Math.abs(Double.parseDouble(df.format(percentageChangeInLTP / percentageChangeInOI)));
             current.setStrength(strength);
         }
         current.setLtpChange(ltpChange);
         current.setOiChange(oiChange);
         current.setOiInterpretation(oiInterpretation);
+
 
     }
 
@@ -242,7 +250,7 @@ public class FutureEodAnalyzerService {
         if(properties.getStockName() != null && !properties.getStockName().isEmpty()){
             stockList = Arrays.asList(properties.getStockName().split(","));
         } else {
-            try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
+            try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
                 stockList = lines.collect(Collectors.toList());
                 properties.setStockName(String.join(",",stockList));
             } catch (IOException e) {
@@ -294,7 +302,7 @@ public class FutureEodAnalyzerService {
         if(properties.getStockName() != null){
             stockList = Arrays.asList(properties.getStockName().split(","));
         } else {
-            try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
+            try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
                 stockList = lines.collect(Collectors.toList());
                 properties.setStockName(String.join(",",stockList));
             } catch (IOException e) {
@@ -311,22 +319,21 @@ public class FutureEodAnalyzerService {
         for (Map.Entry<String, Map<String, FutureAnalysis>> outerEntry : stringMapMap.entrySet()) {
             String outerKey = outerEntry.getKey();
             Map<String, FutureAnalysis> innerMap = outerEntry.getValue();
-
             if (!innerMap.isEmpty()) {
                 FutureAnalysis firstInnerValue = innerMap.values().iterator().next();
                 result.add(firstInnerValue);
             }
         }
 
-        List<FutureAnalysis> collect = result.stream().sorted(Comparator.comparing(FutureAnalysis::getPercentageChange).reversed()).collect(Collectors.toList());
+       // List<FutureAnalysis> collect = result.stream().sorted(Comparator.comparing(FutureAnalysis::getPercentageChange).reversed()).collect(Collectors.toList());
 
         List<FutureAnalysis> positive = new ArrayList<>();
         List<FutureAnalysis> negative = new ArrayList<>();
-        for(FutureAnalysis futureAnalysis :collect){
-            if(futureAnalysis.getPercentageChange() > 1 && futureAnalysis.getInterpretation().equals("LBU")){
+        for(FutureAnalysis futureAnalysis :result){
+            if( futureAnalysis.getPercentageChange() > 1 && futureAnalysis.getInterpretation().equals("LBU") || futureAnalysis.getInterpretation().equals("SC")){
                 positive.add( futureAnalysis);
             }
-            if(futureAnalysis.getPercentageChange() > 1 && futureAnalysis.getInterpretation().equals("SBU")){
+            if(futureAnalysis.getInterpretation().equals("SBU") || futureAnalysis.getInterpretation().equals("LU")){
                 negative.add(futureAnalysis);
             }
         }
@@ -406,7 +413,7 @@ public class FutureEodAnalyzerService {
         if(properties.getStockName() != null && !properties.getStockName().isEmpty()){
             stockList = Arrays.asList(properties.getStockName().split(","));
         } else {
-            try (java.util.stream.Stream<String> lines = Files.lines(Paths.get(filePath))) {
+            try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
                 stockList = lines.collect(Collectors.toList());
                 properties.setStockName(String.join(",",stockList));
             } catch (IOException e) {
@@ -431,13 +438,13 @@ public class FutureEodAnalyzerService {
                 stockProperty.setExpiryDate("250626");
                 //calculateOptionChain.changeInOI(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, true);
                 if (futureAnalysis.getInterpretation().equals("LBU")) {
-                    boolean validStock = calculateOptionChain.changeInOI(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, true);
+                    boolean validStock = calculateOptionChain.changeInOI(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, true, futureAnalysis.getInterpretation());
                     if (validStock) {
                         conditionSatisfiedStocks.add("Positive " +futureAnalysis.getSymbol() + " at " + futureAnalysis.getDuration());
                     }
                 }
                 if(futureAnalysis.getInterpretation().equals("SBU")){
-                    boolean validStock = calculateOptionChain.changeInOI(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, false);
+                    boolean validStock = calculateOptionChain.changeInOI(futureAnalysis.getSymbol(), stockProperty.getStartTime(), stockProperty, false, futureAnalysis.getInterpretation());
                     if (validStock) {
                         conditionSatisfiedStocks.add("Negative "+futureAnalysis.getSymbol() + " at " + futureAnalysis.getDuration());
                     }
@@ -447,6 +454,186 @@ public class FutureEodAnalyzerService {
 
         return conditionSatisfiedStocks;
 
+    }
+
+
+    public String findDivergenceBasedOnOpenInterest(Properties properties) {
+
+        // Path to the file containing the stock list
+        String filePath = "src/main/resources/";
+
+        if (properties.getFileName() != null && !properties.getFileName().isEmpty()) {
+            filePath = filePath + properties.getFileName() + ".txt";
+        } else {
+            filePath = filePath + "sectorList.txt";
+        }
+
+        // Read all lines from the file into a List
+        List<String> stockList;
+        if (properties.getStockName() != null && !properties.getStockName().isEmpty()) {
+            stockList = Arrays.asList(properties.getStockName().split(","));
+        } else {
+            try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
+                stockList = lines.collect(Collectors.toList());
+                properties.setStockName(String.join(",", stockList));
+            } catch (IOException e) {
+                log.error("Error reading file: " + e.getMessage());
+                return "No Records";
+            }
+        }
+
+        Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
+        StringBuilder emailContent = new StringBuilder();
+        for (Map.Entry<String, Map<String, FutureAnalysis>> stringMapEntry : stringMapMap.entrySet()) {
+            String stock = stringMapEntry.getKey();
+            StringBuilder message = new StringBuilder();
+            properties.setExpiryDate("250731");
+            trendLineService.findTrend(stringMapMap.get(stock), stock, properties, message);
+            if(message.length() > 50) {
+                emailContent.append(message).append("\n");
+            }
+        }
+        if(emailContent.length() < 10){
+            emailContent.append("No Divergence found based on Open Interest");
+        }
+        return emailContent.toString();
+    }
+
+    public String createOptionChainImages(Properties properties) {
+
+        // Path to the file containing the stock list
+        String filePath = "src/main/resources/";
+
+        if (properties.getFileName() != null && !properties.getFileName().isEmpty()) {
+            filePath = filePath + properties.getFileName() + ".txt";
+        } else {
+            filePath = filePath + "sectorList.txt";
+        }
+
+        // Read all lines from the file into a List
+        List<String> stockList;
+        if (properties.getStockName() != null && !properties.getStockName().isEmpty()) {
+            stockList = Arrays.asList(properties.getStockName().split(","));
+        } else {
+            try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
+                stockList = lines.collect(Collectors.toList());
+                properties.setStockName(String.join(",", stockList));
+            } catch (IOException e) {
+                log.error("Error reading file: " + e.getMessage());
+                return "No Records";
+            }
+        }
+
+        MarketMoversResponse marketMoversResponse = ioPulseService.marketMovers(properties);
+
+        if(marketMoversResponse == null || marketMoversResponse.getData() == null || marketMoversResponse.getData().isEmpty()) {
+            log.error("No Market Movers data found");
+            return "No Market Movers data found";
+        }
+
+        for (MarketMoverData marketMoverData : marketMoversResponse.getData()) {
+            String stock = marketMoverData.getStSymbolName();
+            if(marketMoverData.getInOldOi() == null || marketMoverData.getInNewOi() == null ||
+                    marketMoverData.getInOldClose() == null || marketMoverData.getInNewClose() == null) {
+                log.error("OI or Close data is missing for stock: {}", stock);
+                continue;
+            }
+            double oldOi = Double.parseDouble(marketMoverData.getInOldOi());
+            double newOi = Double.parseDouble(marketMoverData.getInNewOi());
+            double oldClose = Double.parseDouble(marketMoverData.getInOldClose());
+            double newClose = Double.parseDouble(marketMoverData.getInNewClose());
+            double ltpChange = newClose - oldClose;
+            double percentageChangeInLTP = (ltpChange / oldClose) * 100;
+            double percentageChange = ((newOi - oldOi) / oldOi) * 100;
+            String oiInterpretation = (percentageChange > 0)
+                    ? (ltpChange > 0 ? "LBU" : "SBU")
+                    : (ltpChange > 0 ? "SC" : "LU");
+            System.out.println("Stock: " + stock + ", OI Change: " + percentageChange +
+                    ", LTP Change: " + percentageChangeInLTP + ", Interpretation: " + oiInterpretation);
+            if ((percentageChange > 3 || percentageChange < -3 )  && ( percentageChangeInLTP > 2 || percentageChangeInLTP < -2) ) {
+                System.out.println("Stock " + stock + " with OI Change " + percentageChange );
+                properties.setStartTime("09:15:00");
+                //properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+                properties.setEndTime(FormatUtil.getTime(properties.getStartTime(), properties.getInterval()).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+                properties.setExpiryDate("250626");
+                System.out.println("Stock " + stock);
+                while (FormatUtil.getTimeHHmmss(properties.getEndTime()).isBefore(FormatUtil.getTimeHHmmss("14:00:00"))) {
+
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    if (calculateOptionChain.changeInOI(stock, properties.getStartTime(), properties, false, oiInterpretation)) {
+                       break;
+                    }
+                    properties.setEndTime(FormatUtil.getTime(properties.getEndTime(), properties.getInterval()).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+                }
+            }
+        }
+        return  "Option Chain Images created successfully for stocks: " + properties.getStockName();
+    }
+
+
+    public List<String> analyseEodResponse(Properties properties) {
+        // Path to the file containing the stock list
+        String filePath = "src/main/resources/stocksList.txt";
+
+        // Read all lines from the file into a List
+        List<String> stockList;
+        if (properties.getStockName() != null && !properties.getStockName().isEmpty()) {
+            stockList = Arrays.asList(properties.getStockName().split(","));
+        } else {
+            try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
+                stockList = lines.collect(Collectors.toList());
+            } catch (IOException e) {
+                log.error("Error reading file: " + e.getMessage());
+                return Collections.EMPTY_LIST;
+            }
+        }
+
+        List<String> positiveStocks = new ArrayList<>();
+
+        for (String stock : stockList) {
+
+            StockEODResponse eod = ioPulseService.getMonthlyData(stock);
+            if (eod == null || eod.getData() == null || eod.getData().size() < 3) {
+                log.info("EOD data is insufficient for stock: {}", stock);
+                continue;
+            }
+
+            if(eod.getData().size() < 15) {
+                log.info("EOD data is less than 60 for stock: {}", stock);
+                continue;
+            }
+            for (int i = 0; i < 15; i++) {
+                calculateOiInterpretation(eod.getData().get(i), eod.getData().get(i + 1));
+            }
+
+            for (int i = 15; i >= 0; i--) {
+
+                FutureEodAnalyzer stockDetails = eod.getData().get(i);
+                if ("LBU".equals(stockDetails.getOiInterpretation())
+                        && stockDetails.getPercentageChangeInOi() > 2 && stockDetails.getStrength() > 0.8) {
+                    System.out.println("Positive Stock " + stock + " with LTP " + stockDetails.getInClose() +
+                            " and OI Change " + stockDetails.getInOi() + " at " + stockDetails.getStFetchDate() +
+                            " with Strength " + stockDetails.getStrength());
+                    for (int j = i - 1; j >= 0; j--) {
+                        FutureEodAnalyzer nextStockDetails = eod.getData().get(j);
+                        if (nextStockDetails.getInDayLow() > stockDetails.getInDayLow() && nextStockDetails.getInDayLow() < stockDetails.getInDayOpen()) {
+                            String message = "Positive Stock " + stock + " on  " + nextStockDetails.getStFetchDate() +
+                                    " with respect to " + stockDetails.getStFetchDate() +
+                                    " with Strength " + stockDetails.getStrength();
+                            positiveStocks.add(message);
+                        }
+                    }
+                }
+            }
+        }
+
+
+        return positiveStocks;
     }
 
 
