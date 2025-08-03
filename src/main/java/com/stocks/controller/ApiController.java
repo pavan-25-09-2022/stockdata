@@ -1,9 +1,7 @@
 package com.stocks.controller;
 
-import com.stocks.dto.HistoricalQuote;
+import com.stocks.dto.*;
 import com.stocks.dto.Properties;
-import com.stocks.dto.StockData;
-import com.stocks.dto.StockResponse;
 import com.stocks.enumaration.QueryInterval;
 import com.stocks.mail.Mail;
 import com.stocks.service.DayHighLowService;
@@ -25,6 +23,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -62,6 +61,9 @@ public class ApiController {
 
     @Autowired
     StockDataManager stockDataManager;
+
+    @Autowired
+    StockResultManager stockResultManager;
 
     List<String> sectorList = List.of("NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SMALLCAP", "NIFTYIT", "NIFTYFMCG", "NIFTYMETAL", "NIFTYPHARMA");
 
@@ -304,9 +306,13 @@ public class ApiController {
 
     @GetMapping("/verifyStockData")
     public List<String> verifyStockData(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
-                                @RequestParam(name = "interval", required = false, defaultValue = "5") Integer interval) {
+                                @RequestParam(name = "interval", required = false, defaultValue = "5") Integer interval,
+                                        @RequestParam(name = "isAverageAsStopLoss", required = false, defaultValue = "false") boolean isAverageAsStopLoss ) {
         stockDate = stockDate.isEmpty() ? LocalDate.now().toString() : stockDate;
         List<StockData> stockDataList = stockDataManager.getStocksByDate(stockDate);
+        Properties properties = new Properties();
+        properties.setStockDate(stockDate);
+        properties.setInterval(interval);
 
        List<String> stockNames = new ArrayList<>();
         for (StockData data : stockDataList) {
@@ -327,7 +333,7 @@ public class ApiController {
             to.set(Calendar.MONTH, Integer.parseInt(splitDate[1]) - 1); // Month is 0-based
             to.set(Calendar.DAY_OF_MONTH, Integer.parseInt(splitDate[2]));
             int addedDays = 0;
-            while (addedDays < 5) {
+            while (addedDays < 10) {
                 to.add(Calendar.DAY_OF_MONTH, 1);
                 int dayOfWeek = to.get(Calendar.DAY_OF_WEEK);
                 if (dayOfWeek != Calendar.SATURDAY && dayOfWeek != Calendar.SUNDAY) {
@@ -352,10 +358,12 @@ public class ApiController {
                 boolean isEntered = false;
                 boolean isTargetAchieved = false;
                 boolean isStopLossHit = false;
-
+                boolean isAveragePriceHit = false;
+                StockProfitLossResult stockProfitLossResult = null;
                 List<HistoricalQuote> completeResult = impl1.getCompleteResult();
                 StringBuilder sb = new StringBuilder();
                 if(data.getType().equals("Positive")) {
+
                     for (int i = 0; i < completeResult.size()-1;  i++) {
 
                         HistoricalQuote quote = completeResult.get(i);
@@ -363,15 +371,33 @@ public class ApiController {
                             continue; // Skip quotes with null values
                         }
                         if (!isEntered && (quote.getLow().intValue() < data.getEntryPrice1() || quote.getLow().intValue() < data.getEntryPrice2())) {
+                            stockProfitLossResult = new StockProfitLossResult();
+                            stockProfitLossResult.setStock(data.getStock());
+                            stockProfitLossResult.setDate(data.getDate());
+                            stockProfitLossResult.setType("Positive");
+                            stockProfitLossResult.setBuyPrice(quote.getLow().intValue());
+                            int quantity = (int) (100000 / stockProfitLossResult.getBuyPrice());
+                            stockProfitLossResult.setQuantity(quantity);
+                            stockProfitLossResult.setBuyTime(LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()));
                             sb.append("Positive Stock ").append(data.getStock()).append("  Entered at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getLow().intValue());
                             isEntered = true;
                         }
 
+                       /* if (!isAveragePriceHit && quote.getLow().intValue() < data.getAveragePrice()) {
+                            stockProfitLossResult.setQuantity(2 * stockProfitLossResult.getQuantity());
+                            isAveragePriceHit = true;
+
+                        }*/
+
                         if (isEntered) {
                             if (quote.getHigh().intValue() >= data.getTargetPrice1() || quote.getHigh().intValue() >= data.getTargetPrice2()) {
+                                stockProfitLossResult.setSellPrice(quote.getHigh().intValue());
+                                stockProfitLossResult.setSellTime(LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()));
                                 isTargetAchieved = true;
                                 sb.append(" Target Achieved at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getHigh().intValue()).append("\n");
-                            } else if (quote.getLow().intValue() <= data.getStopLoss()) {
+                            } else if (quote.getLow().intValue() <= (isAverageAsStopLoss ? data.getAveragePrice() : data.getStopLoss())) {
+                                stockProfitLossResult.setSellPrice(quote.getLow().intValue());
+                                stockProfitLossResult.setSellTime(LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()));
                                 isStopLossHit = true;
                                 sb.append(" Stop Loss Hit at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getLow().intValue()).append("\n");
                             }
@@ -392,15 +418,32 @@ public class ApiController {
                             continue; // Skip quotes with null values
                         }
                         if (!isEntered && (quote.getHigh().intValue() > data.getEntryPrice1() || quote.getHigh().intValue() > data.getEntryPrice2())) {
+                            stockProfitLossResult = new StockProfitLossResult();
+                            stockProfitLossResult.setStock(data.getStock());
+                            stockProfitLossResult.setDate(data.getDate());
+                            stockProfitLossResult.setType("Negative");
+                            stockProfitLossResult.setSellPrice(quote.getHigh().intValue());
+                            stockProfitLossResult.setSellTime(LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()));
+                            int quantity = (int) (100000 / stockProfitLossResult.getSellPrice());
+                            stockProfitLossResult.setQuantity(quantity);
                             sb.append("Negative Stock ").append(data.getStock()).append(" Entered at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getLow());
                             isEntered = true;
                         }
 
+                        /*if (!isAveragePriceHit && quote.getHigh().intValue() > data.getAveragePrice()) {
+                            stockProfitLossResult.setQuantity(2 * stockProfitLossResult.getQuantity());
+                            isAveragePriceHit = true;
+                        }*/
+
                         if (isEntered) {
                             if (quote.getLow().intValue() <= data.getTargetPrice1() || quote.getLow().intValue() <= data.getTargetPrice2()) {
+                                stockProfitLossResult.setBuyPrice(quote.getLow().intValue());
+                                stockProfitLossResult.setBuyTime(LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()));
                                 isTargetAchieved = true;
                                 sb.append(" Target Achieved at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getHigh()).append("\n");
-                            } else if (quote.getHigh().intValue() >= data.getStopLoss()) {
+                            } else if (quote.getHigh().intValue() >= (isAverageAsStopLoss ? data.getAveragePrice() : data.getStopLoss())) {
+                                stockProfitLossResult.setBuyPrice(quote.getHigh().intValue());
+                                stockProfitLossResult.setBuyTime(LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()));
                                 isStopLossHit = true;
                                 sb.append(" Stop Loss Hit at: ").append(quote.getDate().getTime()).append(" with price: ").append(quote.getLow()).append("\n");
                             }
@@ -417,13 +460,21 @@ public class ApiController {
                 if(sb.toString().length() > 10) {
                     stockNames.add(sb.toString());
                 }
+                if(stockProfitLossResult != null && stockProfitLossResult.getSellPrice() > 0 && stockProfitLossResult.getBuyPrice() > 0) {
+                    if (stockProfitLossResult.getType().equals("Positive")) {
+                        stockProfitLossResult.setTotal(stockProfitLossResult.getSellPrice() * stockProfitLossResult.getQuantity() - stockProfitLossResult.getBuyPrice() * stockProfitLossResult.getQuantity());
+                    } else {
+                        stockProfitLossResult.setTotal(stockProfitLossResult.getBuyPrice() * stockProfitLossResult.getQuantity() - stockProfitLossResult.getSellPrice() * stockProfitLossResult.getQuantity());
+                    }
+                   // stockResultManager.saveStockProfitLoss(stockProfitLossResult);
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
         if(!stockNames.isEmpty()) {
-            //mailService.sendMail(stockNames, new Properties());
+            //mailService.sendMail(stockNames, properties);
         } else {
             log.info("No records found for verifyStockData");
         }
@@ -432,7 +483,37 @@ public class ApiController {
 
 
 
+    @GetMapping("/deleteStockByDate")
+    public void deleteStockByDate(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate ){
+        if(!stockDate.isEmpty()) {
+            stockDataManager.deleteStocksByDate(stockDate);
+        }
+    }
+
+    @GetMapping("/deleteStockByDateRange")
+    public void deleteStockByDateRange(@RequestParam(name = "stockDate", required = false, defaultValue = "") String fromstockDate,
+                                       @RequestParam(name = "toStockDate", required = false, defaultValue = "") String toStockDate) {
+        if(!fromstockDate.isEmpty() && !toStockDate.isEmpty()) {
+            stockDataManager.deleteStocksByDateRange(fromstockDate, toStockDate);
+        }
+    }
 
 
+    @GetMapping("/totalProfitLoss")
+    public List<StockProfitLossResult> totalProfitLoss(@RequestParam(name = "stockDate", required = false, defaultValue = "") String fromstockDate) {
+        if(!fromstockDate.isEmpty() ) {
+            return  stockResultManager.getResultsByDate(fromstockDate);
+        }
+        return Collections.EMPTY_LIST;
+    }
+
+
+
+    @GetMapping("/deleteResultsByDate")
+    public void deleteResultsByDate(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate ){
+        if(!stockDate.isEmpty()) {
+            stockResultManager.deleteResultsByDate(stockDate);
+        }
+    }
 
 }

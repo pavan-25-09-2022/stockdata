@@ -92,5 +92,24 @@ public class StockDataManager {
         stockData.setAveragePrice(averagePrice);
         entityManager.persist(stockData);
     }
+
+    @Transactional
+    public void deleteStocksByDate(String date) {
+        String hql = "DELETE FROM StockData WHERE date = :date";
+        Session session = entityManager.unwrap(Session.class);
+        session.createQuery(hql)
+                .setParameter("date", date)
+                .executeUpdate();
+    }
+
+    @Transactional
+    public void deleteStocksByDateRange(String fromDate, String toDate) {
+        String hql = "DELETE FROM StockData WHERE date >= :fromDate AND date <= :toDate";
+        Session session = entityManager.unwrap(Session.class);
+        session.createQuery(hql)
+                .setParameter("fromDate", fromDate)
+                .setParameter("toDate", toDate)
+                .executeUpdate();
+    }
 }
 

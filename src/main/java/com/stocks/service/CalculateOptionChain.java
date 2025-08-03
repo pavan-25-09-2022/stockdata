@@ -441,6 +441,19 @@ public boolean isValidStock(String stock, String time, Properties properties, bo
                 .filter(data -> "PE".equals(data.getStOptionsType()))
                 .filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0).count();
 
+
+        boolean allSticksEitherLBUOrSC = combineStrikes.stream()
+                .map(groupedData::get)
+                .flatMap(Collection::stream)
+                .filter(data -> "CE".equals(data.getStOptionsType()))
+                .allMatch(data -> (data.getInNewClose() - data.getInOldClose()) > 0);
+
+        boolean allSticksEitherSBUOrLU = combineStrikes.stream()
+                .map(groupedData::get)
+                .flatMap(Collection::stream)
+                .filter(data -> "CE".equals(data.getStOptionsType()))
+                .allMatch(data -> (data.getInNewClose() - data.getInOldClose()) < 0);
+
        /* System.out.println("option chain data for " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime());
 
         long totalPEOIAboveStricks = aboveStricks.stream()
@@ -504,7 +517,7 @@ public boolean isValidStock(String stock, String time, Properties properties, bo
 
         return isPositive ? totalCEOIBelowStricks < 0 && totalPEOIAboveStricks > 0 : totalCEOIBelowStricks > 0 && totalPEOIAboveStricks < 0;*/
 
-        if( allNegativeCEBelowCount == 3 && allPositivePEAboveCount == 3) {
+        if( allSticksEitherLBUOrSC && allNegativeCEBelowCount == 3 && allPositivePEAboveCount == 3) {
             System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is positive");
 
             stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Positive",
@@ -512,7 +525,7 @@ public boolean isValidStock(String stock, String time, Properties properties, bo
                     combineStrikes.get(6), combineStrikes.get(2) );
             return true;
         }
-        if( allPositiveCEBelowCount == 3 && allNegativePEAboveCount == 3){
+        if( allSticksEitherSBUOrLU && allPositiveCEBelowCount == 3 && allNegativePEAboveCount == 3){
             System.out.println("Stock " + stock + " from " +properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
             stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Negative",
                     (focusKey + combineStrikes.get(4))/2, combineStrikes.get(4), combineStrikes.get(6), combineStrikes.get(1),

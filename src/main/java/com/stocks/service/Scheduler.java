@@ -146,7 +146,7 @@ public class Scheduler {
     public void verifyStockData() {
         log.info("Scheduler started verifyStockData");
         logTime();
-        apiController.verifyStockData(LocalDate.now().toString(), 5);
+        apiController.verifyStockData(LocalDate.now().toString(), 5, false);
         System.gc();
         log.info("Scheduler finished Verify Stock Data ");
     }

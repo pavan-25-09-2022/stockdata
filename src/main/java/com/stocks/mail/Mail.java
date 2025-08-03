@@ -39,7 +39,7 @@ public class Mail {
 
     public void sendMail(List<String> data, Properties properties) {
         if(!data.isEmpty()) {
-            String result = String.join(" ", data);
+            String result = String.join("\n ", data);
             sendMail(result, properties);
         }
 
