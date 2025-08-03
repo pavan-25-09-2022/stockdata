@@ -27,6 +27,11 @@ public class CalculateOptionChain {
     @Autowired
     StockDataManager stockDataManager;
 
+    @Autowired
+    OptionChainDataRepository optionChainDataRepository;
+
+    //private String criteria1 = "Check all above and below 3 strikes for OI change and interpretation";
+
     public List<String> processStock(String stock, String type, String time, Properties properties) {
         LocalTime startTime = FormatUtil.getTime(time, 0);
         List<String> details = new ArrayList<>();
@@ -454,6 +459,20 @@ public boolean isValidStock(String stock, String time, Properties properties, bo
                 .filter(data -> "CE".equals(data.getStOptionsType()))
                 .allMatch(data -> (data.getInNewClose() - data.getInOldClose()) < 0);
 
+        // Get all OptionChainData at focusKey
+        List<OptionChainData> focusKeyData = combinedData.get(focusKey);
+
+        // Sum OI changes for PE and CE
+        int peOiChange = focusKeyData.stream()
+                .filter(data -> "PE".equals(data.getStOptionsType()))
+                .mapToInt(data -> data.getInNewOi() - data.getInOldOi())
+                .sum();
+
+        int ceOiChange = focusKeyData.stream()
+                .filter(data -> "CE".equals(data.getStOptionsType()))
+                .mapToInt(data -> data.getInNewOi() - data.getInOldOi())
+                .sum();
+
        /* System.out.println("option chain data for " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime());
 
         long totalPEOIAboveStricks = aboveStricks.stream()
@@ -517,21 +536,77 @@ public boolean isValidStock(String stock, String time, Properties properties, bo
 
         return isPositive ? totalCEOIBelowStricks < 0 && totalPEOIAboveStricks > 0 : totalCEOIBelowStricks > 0 && totalPEOIAboveStricks < 0;*/
 
-        if( allSticksEitherLBUOrSC && allNegativeCEBelowCount == 3 && allPositivePEAboveCount == 3) {
+        if (allSticksEitherLBUOrSC && allNegativeCEBelowCount == 3 && allPositivePEAboveCount == 3) {
             System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is positive");
+            StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
+            if(recentStockData == null) {
+                stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Positive",
+                        focusKey, (focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(0), (combineStrikes.get(5) + combineStrikes.get(6)) / 2,
+                        combineStrikes.get(6), combineStrikes.get(2), "criteria1");
+                recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
+                if(recentStockData !=null) {
+                    for (List<OptionChainData> dataList : combinedData.values()) {
+                        for (OptionChainData data : dataList) {
+                            data.setStockData(recentStockData);
+                            optionChainDataRepository.save(data);
+                        }
+                    }
+                }
+            }
 
-            stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Positive",
-                    focusKey, (focusKey+combineStrikes.get(4))/2, combineStrikes.get(0), (combineStrikes.get(5) +combineStrikes.get(6))/2 ,
-                    combineStrikes.get(6), combineStrikes.get(2) );
-            return true;
+        } else if (allSticksEitherSBUOrLU && allPositiveCEBelowCount == 3 && allNegativePEAboveCount == 3) {
+            System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
+            StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
+            if(recentStockData == null) {
+                stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Negative",
+                        (focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(4), combineStrikes.get(6), combineStrikes.get(1),
+                        (combineStrikes.get(1) + combineStrikes.get(0)) / 2, combineStrikes.get(5), "criteria1");
+                recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
+                if (recentStockData != null) {
+                    for (List<OptionChainData> dataList : combinedData.values()) {
+                        for (OptionChainData data : dataList) {
+                            data.setStockData(recentStockData);
+                            optionChainDataRepository.save(data);
+                        }
+                    }
+                }
+            }
         }
-        if( allSticksEitherSBUOrLU && allPositiveCEBelowCount == 3 && allNegativePEAboveCount == 3){
-            System.out.println("Stock " + stock + " from " +properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
-            stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Negative",
-                    (focusKey + combineStrikes.get(4))/2, combineStrikes.get(4), combineStrikes.get(6), combineStrikes.get(1),
-                    (combineStrikes.get(1) +combineStrikes.get(0))/2, combineStrikes.get(5) );
 
-            return true;
+        if (allSticksEitherLBUOrSC && allNegativeCEBelowCount >= 2 && allPositivePEAboveCount >= 2 && peOiChange > ceOiChange) {
+            System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is positive");
+            StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
+            if(recentStockData == null) {
+            stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Positive",
+                    focusKey, (focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(0), (combineStrikes.get(5) + combineStrikes.get(6)) / 2,
+                    combineStrikes.get(6), combineStrikes.get(2), "criteria2");
+                recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
+                if (recentStockData != null) {
+                    for (List<OptionChainData> dataList : combinedData.values()) {
+                        for (OptionChainData data : dataList) {
+                            data.setStockData(recentStockData);
+                            optionChainDataRepository.save(data);
+                        }
+                    }
+                }
+            }
+        } else if (allSticksEitherSBUOrLU && allPositiveCEBelowCount >= 2 && allNegativePEAboveCount >= 2 && peOiChange < ceOiChange) {
+            System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
+            StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
+            if(recentStockData == null) {
+            stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Negative",
+                    (focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(4), combineStrikes.get(6), combineStrikes.get(1),
+                    (combineStrikes.get(1) + combineStrikes.get(0)) / 2, combineStrikes.get(5), "criteria2");
+                recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
+                if (recentStockData != null) {
+                    for (List<OptionChainData> dataList : combinedData.values()) {
+                        for (OptionChainData data : dataList) {
+                            data.setStockData(recentStockData);
+                            optionChainDataRepository.save(data);
+                        }
+                    }
+                }
+            }
         }
         return false;
     }

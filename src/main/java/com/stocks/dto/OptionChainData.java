@@ -1,6 +1,24 @@
 package com.stocks.dto;
 
+
+import lombok.Data;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = "option_chain_data")
+@Data
 public class OptionChainData {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // Foreign key to StockData
+    @ManyToOne
+    @JoinColumn(name = "stock_data_id", referencedColumnName = "id")
+    private StockData stockData;
+
     private String stFetchDate;
     private int inStrikePrice;
     private String stOptionsType;
@@ -16,121 +34,8 @@ public class OptionChainData {
     private double inNewDayLow;
     private String stExpiryDate;
 
-
-    // Getters and Setters
-    public String getStFetchDate() {
-        return stFetchDate;
-    }
-
-    public void setStFetchDate(String stFetchDate) {
-        this.stFetchDate = stFetchDate;
-    }
-
-    public int getInStrikePrice() {
-        return inStrikePrice;
-    }
-
-    public void setInStrikePrice(int inStrikePrice) {
-        this.inStrikePrice = inStrikePrice;
-    }
-
-    public String getStOptionsType() {
-        return stOptionsType;
-    }
-
-    public void setStOptionsType(String stOptionsType) {
-        this.stOptionsType = stOptionsType;
-    }
-
-    public int getInTradedVolume() {
-        return inTradedVolume;
-    }
-
-    public void setInTradedVolume(int inTradedVolume) {
-        this.inTradedVolume = inTradedVolume;
-    }
-
-    public int getInOldOi() {
-        return inOldOi;
-    }
-
-    public void setInOldOi(int inOldOi) {
-        this.inOldOi = inOldOi;
-    }
-
-    public double getInOldIv() {
-        return inOldIv;
-    }
-
-    public void setInOldIv(double inOldIv) {
-        this.inOldIv = inOldIv;
-    }
-
-    public double getInOldClose() {
-        return inOldClose;
-    }
-
-    public void setInOldClose(double inOldClose) {
-        this.inOldClose = inOldClose;
-    }
-
-    public int getInNewOi() {
-        return inNewOi;
-    }
-
-    public void setInNewOi(int inNewOi) {
-        this.inNewOi = inNewOi;
-    }
-
-    public double getInNewClose() {
-        return inNewClose;
-    }
-
-    public void setInNewClose(double inNewClose) {
-        this.inNewClose = inNewClose;
-    }
-
-    public double getInNewIv() {
-        return inNewIv;
-    }
-
-    public void setInNewIv(double inNewIv) {
-        this.inNewIv = inNewIv;
-    }
-
-    public double getInNewDayOpen() {
-        return inNewDayOpen;
-    }
-
-    public void setInNewDayOpen(double inNewDayOpen) {
-        this.inNewDayOpen = inNewDayOpen;
-    }
-
-    public double getInNewDayHigh() {
-        return inNewDayHigh;
-    }
-
-    public void setInNewDayHigh(double inNewDayHigh) {
-        this.inNewDayHigh = inNewDayHigh;
-    }
-
-    public double getInNewDayLow() {
-        return inNewDayLow;
-    }
-
-    public void setInNewDayLow(double inNewDayLow) {
-        this.inNewDayLow = inNewDayLow;
-    }
-
-    public String getStExpiryDate() {
-        return stExpiryDate;
-    }
-
-    public void setStExpiryDate(String stExpiryDate) {
-        this.stExpiryDate = stExpiryDate;
-    }
-
     public int getOIChange(){
         return  inNewOi-inOldOi;
     }
+
 }

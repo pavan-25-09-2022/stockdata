@@ -15,14 +15,14 @@ public class StockProfitLossResult {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String stock;
-    private String date;
-    private double total;
-    private double quantity;
-    private double sellPrice;
     private double buyPrice;
     private LocalDateTime buyTime;
+    private String date;
+    private double quantity;
+    private double sellPrice;
     private LocalDateTime sellTime;
+    private String stock;
+    private double total;
     private String type;
 
 

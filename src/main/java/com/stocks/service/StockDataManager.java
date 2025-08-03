@@ -37,6 +37,18 @@ public class StockDataManager {
     }
 
     @Transactional(readOnly = true)
+    public StockData getRecordBasedOnCriteria(String stock, String date, String criteria) {
+        String hql = "FROM StockData WHERE stock = :stock AND date = :date AND criteria = :criteria";
+        Session session = entityManager.unwrap(Session.class);
+        return session.createQuery(hql, StockData.class)
+                .setParameter("stock", stock)
+                .setParameter("date", date)
+                .setParameter("criteria", criteria)
+                .uniqueResult();
+    }
+
+
+    @Transactional(readOnly = true)
     public List<StockData> getStocksByDate(String date) {
         String hql = "FROM StockData WHERE date = :date";
         Session session = entityManager.unwrap(Session.class);
@@ -52,6 +64,17 @@ public class StockDataManager {
         return session.createQuery(hql, String.class)
                 .setParameter("stock", stock)
                 .setParameter("date", date)
+                .uniqueResult();
+    }
+
+    @Transactional(readOnly = true)
+    public String getRecentTime(String stock, String date, String criteria) {
+        String hql = "SELECT MAX(time) FROM StockData WHERE stock = :stock AND date = :date AND criteria = :criteria";
+        Session session = entityManager.unwrap(Session.class);
+        return session.createQuery(hql, String.class)
+                .setParameter("stock", stock)
+                .setParameter("date", date)
+                .setParameter("criteria", criteria)
                 .uniqueResult();
     }
 
@@ -73,12 +96,9 @@ public class StockDataManager {
 
     @Transactional
     public void saveStockData(String stock, String date, String time, String oiInterpretation, String type, Integer  entryPrice1, Integer entryPrice2,
-                              Integer stopLoss,  Integer targetPrice1, Integer targetPrice2, Integer averagePrice) {
+                              Integer stopLoss,  Integer targetPrice1, Integer targetPrice2, Integer averagePrice, String criteria) {
 
-       if(getRecentTime(stock, date) != null) {
-            // If the record already exists for the given stock, date, and time, do not save it again
-            return;
-        }
+
         StockData stockData = new StockData(stock, type);
         stockData.setDate(date);
         stockData.setTime(time);
@@ -90,6 +110,7 @@ public class StockDataManager {
         stockData.setTargetPrice1(targetPrice1);
         stockData.setTargetPrice2(targetPrice2);
         stockData.setAveragePrice(averagePrice);
+        stockData.setCriteria(criteria);
         entityManager.persist(stockData);
     }
 
