@@ -1,7 +1,11 @@
 package com.stocks.service;
 
-import com.stocks.dto.*;
+import com.stocks.dto.OptionChainData;
+import com.stocks.dto.OptionChainResponse;
 import com.stocks.dto.Properties;
+import com.stocks.dto.StockData;
+import com.stocks.dto.StrikeTO;
+import com.stocks.dto.UnderLyingAssetData;
 import com.stocks.pdf.OptionChainCombinedBarChartPdf;
 import com.stocks.pdf.OptionChainCombinedPieChartPdf;
 import com.stocks.utils.FormatUtil;
@@ -9,59 +13,67 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalTime;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Component
 public class CalculateOptionChain {
 
-    @Autowired
-    private IOPulseService ioPulseService;
+	@Autowired
+	private IOPulseService ioPulseService;
 
-    @Autowired
-    private OptionChainCombinedPieChartPdf optionChainCombinedPieChartPdf;
+	@Autowired
+	private OptionChainCombinedPieChartPdf optionChainCombinedPieChartPdf;
 
-    @Autowired
-    private OptionChainCombinedBarChartPdf optionChainCombinedBarChartPdf;
+	@Autowired
+	private OptionChainCombinedBarChartPdf optionChainCombinedBarChartPdf;
 
-    @Autowired
-    StockDataManager stockDataManager;
+	@Autowired
+	StockDataManager stockDataManager;
 
-    @Autowired
-    OptionChainDataRepository optionChainDataRepository;
+	@Autowired
+	OptionChainDataRepository optionChainDataRepository;
 
-    //private String criteria1 = "Check all above and below 3 strikes for OI change and interpretation";
+	//private String criteria1 = "Check all above and below 3 strikes for OI change and interpretation";
 
-    public List<String> processStock(String stock, String type, String time, Properties properties) {
-        LocalTime startTime = FormatUtil.getTime(time, 0);
-        List<String> details = new ArrayList<>();
-        OptionChainResponse response = ioPulseService.getOptionChain(properties, stock, startTime);
-        if (response == null || response.getData() == null) {
-            return details;
-        }
+	public List<String> processStock(String stock, String type, String time, Properties properties) {
+		LocalTime startTime = FormatUtil.getTime(time, 0);
+		List<String> details = new ArrayList<>();
+		OptionChainResponse response = ioPulseService.getOptionChain(properties, stock, startTime);
+		if (response == null || response.getData() == null) {
+			return details;
+		}
 
-        UnderLyingAssetData underLyingAssetData = response.getData().getUnderLyingAssetData();
-        List<OptionChainData> list = response.getData().getData();
+		UnderLyingAssetData underLyingAssetData = response.getData().getUnderLyingAssetData();
+		List<OptionChainData> list = response.getData().getData();
 
-        TreeMap<Integer, List<OptionChainData>> groupedData = list.stream()
-                .collect(Collectors.groupingBy(
-                        OptionChainData::getInStrikePrice,
-                        TreeMap::new,
-                        Collectors.toList()
-                ));
+		TreeMap<Double, List<OptionChainData>> groupedData = list.stream()
+				.collect(Collectors.groupingBy(
+						OptionChainData::getInStrikePrice,
+						TreeMap::new,
+						Collectors.toList()
+				));
 
-        Integer focusKey = groupedData.floorKey((int) underLyingAssetData.getInLtp());
-        if (focusKey == null) {
-            return details;
-        }
+		Double focusKey = groupedData.floorKey((double) underLyingAssetData.getInLtp());
+		if (focusKey == null) {
+			return details;
+		}
 
-        List<Integer> keys = new ArrayList<>(groupedData.keySet());
-        int focusIndex = keys.indexOf(focusKey);
-        if (focusIndex == -1) {
-            return details;
-        }
+		List<Double> keys = new ArrayList<>(groupedData.keySet());
+		int focusIndex = keys.indexOf(focusKey);
+		if (focusIndex == -1) {
+			return details;
+		}
 
-        // Extract rows based on range
+		// Extract rows based on range
 //        int range = 5;
 //        List<OptionChainData> rowUp2 = getRow(groupedData, keys, focusIndex - range);
 //        List<OptionChainData> rowDown2 = getRow(groupedData, keys, focusIndex + range);
@@ -105,27 +117,27 @@ public class CalculateOptionChain {
 //            rowDown2Put = getOptionByType(rowDown2, "PE");
 //        }
 
-        // Calculate max volumes using streams
-        int maxPEVolume = groupedData.values().stream()
-                .flatMap(Collection::stream)
-                .filter(data -> "PE".equals(data.getStOptionsType()))
-                .mapToInt(OptionChainData::getInTradedVolume)
-                .max()
-                .orElse(0);
+		// Calculate max volumes using streams
+		int maxPEVolume = groupedData.values().stream()
+				.flatMap(Collection::stream)
+				.filter(data -> "PE".equals(data.getStOptionsType()))
+				.mapToInt(OptionChainData::getInTradedVolume)
+				.max()
+				.orElse(0);
 
-        int maxCEVolume = groupedData.values().stream()
-                .flatMap(Collection::stream)
-                .filter(data -> "CE".equals(data.getStOptionsType()))
-                .mapToInt(OptionChainData::getInTradedVolume)
-                .max()
-                .orElse(0);
+		int maxCEVolume = groupedData.values().stream()
+				.flatMap(Collection::stream)
+				.filter(data -> "CE".equals(data.getStOptionsType()))
+				.mapToInt(OptionChainData::getInTradedVolume)
+				.max()
+				.orElse(0);
 
-        boolean isMaxCEVolumeBelowFocusKey = false;
-        boolean isMaxPEVolumeAboveFocusKey = false;
+		boolean isMaxCEVolumeBelowFocusKey = false;
+		boolean isMaxPEVolumeAboveFocusKey = false;
 
-        // Get all keys below and above the focusKey
-        List<Integer> aboveRows = keys.subList(0, focusIndex+1);
-        List<Integer> belowRows = keys.subList(focusIndex , keys.size());
+		// Get all keys below and above the focusKey
+		List<Double> aboveRows = keys.subList(0, focusIndex + 1);
+		List<Double> belowRows = keys.subList(focusIndex, keys.size());
 
 //        log.info("below rows " + belowRows );
 //        log.info("above rows " + aboveRows);
@@ -142,29 +154,29 @@ public class CalculateOptionChain {
 //                .anyMatch(data -> "PE".equals(data.getStOptionsType()) && data.getInTradedVolume() == maxPEVolume)
 //                ;
 
-        Map.Entry<Integer, Integer> maxCEVolumeEntry = groupedData.entrySet().stream()
-                .flatMap(entry -> entry.getValue().stream()
-                        .filter(data -> "CE".equals(data.getStOptionsType()))
-                        .map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), data.getInTradedVolume())))
-                .max(Comparator.comparingInt(Map.Entry::getValue))
-                .orElse(new AbstractMap.SimpleEntry<>(-1, 0)); // Default if no CE data is found
+		Map.Entry<Double, Integer> maxCEVolumeEntry = groupedData.entrySet().stream()
+				.flatMap(entry -> entry.getValue().stream()
+						.filter(data -> "CE".equals(data.getStOptionsType()))
+						.map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), data.getInTradedVolume())))
+				.max(Comparator.comparingInt(Map.Entry::getValue))
+				.orElse(new AbstractMap.SimpleEntry<>(-1d, 0)); // Default if no CE data is found
 
-        Map.Entry<Integer, Integer> maxPEVolumeEntry = groupedData.entrySet().stream()
-                .flatMap(entry -> entry.getValue().stream()
-                        .filter(data -> "PE".equals(data.getStOptionsType()))
-                        .map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), data.getInTradedVolume())))
-                .max(Comparator.comparingInt(Map.Entry::getValue))
-                .orElse(new AbstractMap.SimpleEntry<>(-1, 0)); // Default if no PE data is found
+		Map.Entry<Double, Integer> maxPEVolumeEntry = groupedData.entrySet().stream()
+				.flatMap(entry -> entry.getValue().stream()
+						.filter(data -> "PE".equals(data.getStOptionsType()))
+						.map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), data.getInTradedVolume())))
+				.max(Comparator.comparingInt(Map.Entry::getValue))
+				.orElse(new AbstractMap.SimpleEntry<>(-1d, 0)); // Default if no PE data is found
 
-        isMaxCEVolumeBelowFocusKey = belowRows.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .anyMatch(data -> "CE".equals(data.getStOptionsType()) && data.getInTradedVolume() == maxCEVolumeEntry.getValue());
+		isMaxCEVolumeBelowFocusKey = belowRows.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.anyMatch(data -> "CE".equals(data.getStOptionsType()) && data.getInTradedVolume() == maxCEVolumeEntry.getValue());
 
-        isMaxPEVolumeAboveFocusKey = aboveRows.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .anyMatch(data -> "PE".equals(data.getStOptionsType()) && data.getInTradedVolume() == maxPEVolumeEntry.getValue());
+		isMaxPEVolumeAboveFocusKey = aboveRows.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.anyMatch(data -> "PE".equals(data.getStOptionsType()) && data.getInTradedVolume() == maxPEVolumeEntry.getValue());
 
 
 //        log.info("Is maxCEVolume below focus key (within 5): " + isMaxCEVolumeBelowFocusKey);
@@ -197,281 +209,275 @@ public class CalculateOptionChain {
 //                }
 //            }
 //        }
-        if(isMaxCEVolumeBelowFocusKey && isMaxPEVolumeAboveFocusKey){
+		if (isMaxCEVolumeBelowFocusKey && isMaxPEVolumeAboveFocusKey) {
 //            log.info("Stock " + stock + " is positive");
-            details.add( "+ve");
-        } else {
+			details.add("+ve");
+		} else {
 //            log.info("Stock " + stock + " is negative");
-            details.add("-ve");
-        }
-        details.add(String.valueOf(focusKey));
-        details.add(String.valueOf(maxPEVolumeEntry.getKey()));
-        details.add(String.valueOf(maxPEVolumeEntry.getValue()));
-        details.add(String.valueOf(maxCEVolumeEntry.getKey()));
-        details.add(String.valueOf(maxCEVolumeEntry.getValue()));
+			details.add("-ve");
+		}
+		details.add(String.valueOf(focusKey));
+		details.add(String.valueOf(maxPEVolumeEntry.getKey()));
+		details.add(String.valueOf(maxPEVolumeEntry.getValue()));
+		details.add(String.valueOf(maxCEVolumeEntry.getKey()));
+		details.add(String.valueOf(maxCEVolumeEntry.getValue()));
 
-        return details;
-    }
-
-
-public boolean isValidStock(String stock, String time, Properties properties, boolean isPositive) {
-        String time1 = properties.getStartTime() != null ? properties.getStartTime() : "09:15:00";
-    LocalTime startTime = FormatUtil.getTime(time1, 0);
-    OptionChainResponse response = ioPulseService.getOptionChain(properties, stock, startTime);
-    if (response == null || response.getData() == null) {
-        return false;
-    }
-
-    UnderLyingAssetData underLyingAssetData = response.getData().getUnderLyingAssetData();
-    List<OptionChainData> list = response.getData().getData();
-
-    TreeMap<Integer, List<OptionChainData>> groupedData = list.stream()
-            .collect(Collectors.groupingBy(
-                    OptionChainData::getInStrikePrice,
-                    TreeMap::new,
-                    Collectors.toList()
-            ));
-
-    Integer focusKey = groupedData.floorKey((int) underLyingAssetData.getInLtp());
-    if (focusKey == null) {
-        return false;
-    }
-
-    List<Integer> keys = new ArrayList<>(groupedData.keySet());
-    int focusIndex = keys.indexOf(focusKey);
-    if (focusIndex == -1) {
-        return false;
-    }
-
-    boolean isMaxCEVolumeBelowFocusKey = false;
-    boolean isMaxPEVolumeAboveFocusKey = false;
-
-    // Get all keys below and above the focusKey
-    List<Integer> aboveRows = keys.subList(0, focusIndex+1);
-    List<Integer> belowRows = keys.subList(focusIndex , keys.size());
-
-    Map.Entry<Integer, Integer> maxCEVolumeEntry = groupedData.entrySet().stream()
-            .flatMap(entry -> entry.getValue().stream()
-                    .filter(data -> "CE".equals(data.getStOptionsType()))
-                    .map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), data.getInTradedVolume())))
-            .max(Comparator.comparingInt(Map.Entry::getValue))
-            .orElse(new AbstractMap.SimpleEntry<>(-1, 0)); // Default if no CE data is found
-
-    Map.Entry<Integer, Integer> maxPEVolumeEntry = groupedData.entrySet().stream()
-            .flatMap(entry -> entry.getValue().stream()
-                    .filter(data -> "PE".equals(data.getStOptionsType()))
-                    .map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), data.getInTradedVolume())))
-            .max(Comparator.comparingInt(Map.Entry::getValue))
-            .orElse(new AbstractMap.SimpleEntry<>(-1, 0)); // Default if no PE data is found
-
-    Map.Entry<Integer, Integer> maxCEExistOIEntry = groupedData.entrySet().stream()
-            .flatMap(entry -> entry.getValue().stream()
-                    .filter(data -> "CE".equals(data.getStOptionsType()))
-                    .map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), (data.getInNewOi() - data.getInOldOi()))))
-            .min(Comparator.comparingInt(Map.Entry::getValue))
-            .orElse(new AbstractMap.SimpleEntry<>(-1, 0));
-
-    Map.Entry<Integer, Integer> maxPEExistOIEntry = groupedData.entrySet().stream()
-            .flatMap(entry -> entry.getValue().stream()
-                    .filter(data -> "PE".equals(data.getStOptionsType()))
-                    .map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), (data.getInNewOi() - data.getInOldOi()))))
-            .min(Comparator.comparingInt(Map.Entry::getValue))
-            .orElse(new AbstractMap.SimpleEntry<>(-1, 0));
-
-    isMaxCEVolumeBelowFocusKey = belowRows.stream()
-            .map(groupedData::get)
-            .flatMap(Collection::stream)
-            .anyMatch(data -> "CE".equals(data.getStOptionsType()) && data.getInTradedVolume() == maxCEVolumeEntry.getValue());
-
-    isMaxPEVolumeAboveFocusKey = aboveRows.stream()
-            .map(groupedData::get)
-            .flatMap(Collection::stream)
-            .anyMatch(data -> "PE".equals(data.getStOptionsType()) && data.getInTradedVolume() == maxPEVolumeEntry.getValue());
+		return details;
+	}
 
 
-    // Get 3 below (if available)
-    int fromBelow = Math.max(0, focusIndex - 4);
-    int toBelow = focusIndex; // exclusive
-    List<Integer> below3 = keys.subList(fromBelow, toBelow);
+	public boolean isValidStock(String stock, String time, Properties properties, boolean isPositive) {
+		String time1 = properties.getStartTime() != null ? properties.getStartTime() : "09:15:00";
+		LocalTime startTime = FormatUtil.getTime(time1, 0);
+		OptionChainResponse response = ioPulseService.getOptionChain(properties, stock, startTime);
+		if (response == null || response.getData() == null) {
+			return false;
+		}
 
-    // Get 3 above (if available)
-    int fromAbove = focusIndex + 1;
-    int toAbove = Math.min(keys.size(), focusIndex + 5);
-    List<Integer> above3 = keys.subList(fromAbove, toAbove);
+		UnderLyingAssetData underLyingAssetData = response.getData().getUnderLyingAssetData();
+		List<OptionChainData> list = response.getData().getData();
 
-    boolean isValidStock = false;
+		TreeMap<Double, List<OptionChainData>> groupedData = list.stream()
+				.collect(Collectors.groupingBy(
+						OptionChainData::getInStrikePrice,
+						TreeMap::new,
+						Collectors.toList()
+				));
 
-    if(isPositive) {
+		Double focusKey = groupedData.floorKey((double) underLyingAssetData.getInLtp());
+		if (focusKey == null) {
+			return false;
+		}
 
-        // For CE: at least 2 of the 3 below have negative OI change
-        long negativeCECount = below3.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "CE".equals(data.getStOptionsType()))
-                .filter(data -> (data.getInNewOi() - data.getInOldOi()) < 0)
-                .count();
+		List<Double> keys = new ArrayList<>(groupedData.keySet());
+		int focusIndex = keys.indexOf(focusKey);
+		if (focusIndex == -1) {
+			return false;
+		}
 
-        boolean atLeastTwoNegativeCEBelow = negativeCECount >= 2;
+		boolean isMaxCEVolumeBelowFocusKey = false;
+		boolean isMaxPEVolumeAboveFocusKey = false;
 
-        // For PE: all 3 above have positive OI change
-        boolean allPositivePE = below3.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "PE".equals(data.getStOptionsType()))
-                .allMatch(data -> (data.getInNewOi() - data.getInOldOi()) > 0);
+		// Get all keys below and above the focusKey
+		List<Double> aboveRows = keys.subList(0, focusIndex + 1);
+		List<Double> belowRows = keys.subList(focusIndex, keys.size());
 
-        // For CE: at least 2 of the 3 below have negative OI change
-        long positivePECount = above3.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "PE".equals(data.getStOptionsType()))
-                .filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0)
-                .count();
+		Map.Entry<Double, Integer> maxCEVolumeEntry = groupedData.entrySet().stream()
+				.flatMap(entry -> entry.getValue().stream()
+						.filter(data -> "CE".equals(data.getStOptionsType()))
+						.map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), data.getInTradedVolume())))
+				.max(Comparator.comparingInt(Map.Entry::getValue))
+				.orElse(new AbstractMap.SimpleEntry<>(-1d, 0)); // Default if no CE data is found
 
-        boolean atLeastTwoPositivePEAbove = positivePECount >= 2;
+		Map.Entry<Double, Integer> maxPEVolumeEntry = groupedData.entrySet().stream()
+				.flatMap(entry -> entry.getValue().stream()
+						.filter(data -> "PE".equals(data.getStOptionsType()))
+						.map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), data.getInTradedVolume())))
+				.max(Comparator.comparingInt(Map.Entry::getValue))
+				.orElse(new AbstractMap.SimpleEntry<>(-1d, 0)); // Default if no PE data is found
 
-        isValidStock = atLeastTwoNegativeCEBelow && allPositivePE && atLeastTwoPositivePEAbove && below3.contains(maxCEExistOIEntry.getKey());
-    } else {
+		Map.Entry<Double, Integer> maxCEExistOIEntry = groupedData.entrySet().stream()
+				.flatMap(entry -> entry.getValue().stream()
+						.filter(data -> "CE".equals(data.getStOptionsType()))
+						.map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), (data.getInNewOi() - data.getInOldOi()))))
+				.min(Comparator.comparingInt(Map.Entry::getValue))
+				.orElse(new AbstractMap.SimpleEntry<>(-1d, 0));
 
-        // For CE: at least 2 of the 3 below have negative OI change
-        long negativePECount = above3.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "PE".equals(data.getStOptionsType()))
-                .filter(data -> (data.getInNewOi() - data.getInOldOi()) < 0)
-                .count();
+		Map.Entry<Double, Integer> maxPEExistOIEntry = groupedData.entrySet().stream()
+				.flatMap(entry -> entry.getValue().stream()
+						.filter(data -> "PE".equals(data.getStOptionsType()))
+						.map(data -> new AbstractMap.SimpleEntry<>(entry.getKey(), (data.getInNewOi() - data.getInOldOi()))))
+				.min(Comparator.comparingInt(Map.Entry::getValue))
+				.orElse(new AbstractMap.SimpleEntry<>(-1d, 0));
 
-        boolean atLeastTwoNegativePEBelow = negativePECount >= 2;
+		isMaxCEVolumeBelowFocusKey = belowRows.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.anyMatch(data -> "CE".equals(data.getStOptionsType()) && data.getInTradedVolume() == maxCEVolumeEntry.getValue());
 
-        // For PE: all 3 above have positive OI change
-        boolean allPositiveCE = above3.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "CE".equals(data.getStOptionsType()))
-                .allMatch(data -> (data.getInNewOi() - data.getInOldOi()) > 0);
-
-        // For CE: at least 2 of the 3 below have negative OI change
-        long positivePECount = below3.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "CE".equals(data.getStOptionsType()))
-                .filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0)
-                .count();
-
-        boolean atLeastTwoPositiveCEBelow = positivePECount >= 2;
-
-        isValidStock = atLeastTwoNegativePEBelow && allPositiveCE && atLeastTwoPositiveCEBelow && above3.contains(maxPEExistOIEntry.getKey());
-    }
-
-    return isMaxCEVolumeBelowFocusKey && isMaxPEVolumeAboveFocusKey &&  isValidStock;
-}
-
-    public boolean changeInOI(String stock, String time, Properties properties, boolean isPositive, String oiInterpretation) {
-        LocalTime startTime = FormatUtil.getTime(time, 0);
-        OptionChainResponse response = ioPulseService.getOptionChain(properties, stock, startTime);
-        if (response == null || response.getData() == null) {
-            return false;
-        }
-
-        UnderLyingAssetData underLyingAssetData = response.getData().getUnderLyingAssetData();
-        List<OptionChainData> list = response.getData().getData();
-
-        TreeMap<Integer, List<OptionChainData>> groupedData = list.stream()
-                .collect(Collectors.groupingBy(
-                        OptionChainData::getInStrikePrice,
-                        TreeMap::new,
-                        Collectors.toList()
-                ));
-
-        Integer focusKey = groupedData.floorKey((int) underLyingAssetData.getInLtp());
-        if (focusKey == null) {
-            return false;
-        }
-
-        List<Integer> keys = new ArrayList<>(groupedData.keySet());
-        int focusIndex = keys.indexOf(focusKey);
-        if (focusIndex == -1) {
-            return false;
-        }
-
-        int fromBelow = Math.max(0, focusIndex - 3);
-        int toBelow = focusIndex; // exclusive
-        List<Integer> belowStricks = keys.subList(fromBelow, toBelow);
-
-        int fromAbove = focusIndex + 1;
-        int toAbove = Math.min(keys.size(), focusIndex + 4);
-        List<Integer> aboveStricks = keys.subList(fromAbove, toAbove);
-
-        int fromBelowCombine = Math.max(0, focusIndex - 3);
-        int toAboveCombine = Math.min(keys.size(), focusIndex + 4);
-        List<Integer> combineStrikes = keys.subList(fromBelowCombine, toAboveCombine);
-
-        TreeMap<Integer, List<OptionChainData>> combinedData = combineStrikes.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .collect(Collectors.groupingBy(
-                        OptionChainData::getInStrikePrice,
-                        TreeMap::new,
-                        Collectors.toList()
-                ));
-
-        try {
-            String fileName = "C:\\Users\\nithin.venkaiahgari\\Documents\\Oipulse\\" + stock + "-" + properties.getStockDate() + "-FROM-" + properties.getStartTime().replace(":", "-") + "-TO-" + properties.getEndTime().replace(":", "-") + ".png";
-            //optionChainCombinedBarChartPdf.createPdfWithCombinedBarChart(groupedData1, fileName);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        long allNegativeCEBelowCount = belowStricks.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "CE".equals(data.getStOptionsType()))
-                .filter(data -> (data.getInNewOi() - data.getInOldOi()) < 0).count();
-
-        long allPositiveCEBelowCount = belowStricks.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "CE".equals(data.getStOptionsType()))
-                .filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0).count();
-
-        long allNegativePEAboveCount = aboveStricks.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "PE".equals(data.getStOptionsType()))
-                .filter(data -> (data.getInNewOi() - data.getInOldOi()) < 0).count();
-
-        long allPositivePEAboveCount = aboveStricks.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "PE".equals(data.getStOptionsType()))
-                .filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0).count();
+		isMaxPEVolumeAboveFocusKey = aboveRows.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.anyMatch(data -> "PE".equals(data.getStOptionsType()) && data.getInTradedVolume() == maxPEVolumeEntry.getValue());
 
 
-        boolean allSticksEitherLBUOrSC = combineStrikes.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "CE".equals(data.getStOptionsType()))
-                .allMatch(data -> (data.getInNewClose() - data.getInOldClose()) > 0);
+		// Get 3 below (if available)
+		int fromBelow = Math.max(0, focusIndex - 4);
+		int toBelow = focusIndex; // exclusive
+		List<Double> below3 = keys.subList(fromBelow, toBelow);
 
-        boolean allSticksEitherSBUOrLU = combineStrikes.stream()
-                .map(groupedData::get)
-                .flatMap(Collection::stream)
-                .filter(data -> "CE".equals(data.getStOptionsType()))
-                .allMatch(data -> (data.getInNewClose() - data.getInOldClose()) < 0);
+		// Get 3 above (if available)
+		int fromAbove = focusIndex + 1;
+		int toAbove = Math.min(keys.size(), focusIndex + 5);
+		List<Double> above3 = keys.subList(fromAbove, toAbove);
 
-        // Get all OptionChainData at focusKey
-        List<OptionChainData> focusKeyData = combinedData.get(focusKey);
+		boolean isValidStock = false;
 
-        // Sum OI changes for PE and CE
-        int peOiChange = focusKeyData.stream()
-                .filter(data -> "PE".equals(data.getStOptionsType()))
-                .mapToInt(data -> data.getInNewOi() - data.getInOldOi())
-                .sum();
+		if (isPositive) {
 
-        int ceOiChange = focusKeyData.stream()
-                .filter(data -> "CE".equals(data.getStOptionsType()))
-                .mapToInt(data -> data.getInNewOi() - data.getInOldOi())
-                .sum();
+			// For CE: at least 2 of the 3 below have negative OI change
+			long negativeCECount = below3.stream()
+					.map(groupedData::get)
+					.flatMap(Collection::stream)
+					.filter(data -> "CE".equals(data.getStOptionsType()))
+					.filter(data -> (data.getInNewOi() - data.getInOldOi()) < 0)
+					.count();
+
+			boolean atLeastTwoNegativeCEBelow = negativeCECount >= 2;
+
+			// For PE: all 3 above have positive OI change
+			boolean allPositivePE = below3.stream()
+					.map(groupedData::get)
+					.flatMap(Collection::stream)
+					.filter(data -> "PE".equals(data.getStOptionsType()))
+					.allMatch(data -> (data.getInNewOi() - data.getInOldOi()) > 0);
+
+			// For CE: at least 2 of the 3 below have negative OI change
+			long positivePECount = above3.stream()
+					.map(groupedData::get)
+					.flatMap(Collection::stream)
+					.filter(data -> "PE".equals(data.getStOptionsType()))
+					.filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0)
+					.count();
+
+			boolean atLeastTwoPositivePEAbove = positivePECount >= 2;
+
+			isValidStock = atLeastTwoNegativeCEBelow && allPositivePE && atLeastTwoPositivePEAbove && below3.contains(maxCEExistOIEntry.getKey());
+		} else {
+
+			// For CE: at least 2 of the 3 below have negative OI change
+			long negativePECount = above3.stream()
+					.map(groupedData::get)
+					.flatMap(Collection::stream)
+					.filter(data -> "PE".equals(data.getStOptionsType()))
+					.filter(data -> (data.getInNewOi() - data.getInOldOi()) < 0)
+					.count();
+
+			boolean atLeastTwoNegativePEBelow = negativePECount >= 2;
+
+			// For PE: all 3 above have positive OI change
+			boolean allPositiveCE = above3.stream()
+					.map(groupedData::get)
+					.flatMap(Collection::stream)
+					.filter(data -> "CE".equals(data.getStOptionsType()))
+					.allMatch(data -> (data.getInNewOi() - data.getInOldOi()) > 0);
+
+			// For CE: at least 2 of the 3 below have negative OI change
+			long positivePECount = below3.stream()
+					.map(groupedData::get)
+					.flatMap(Collection::stream)
+					.filter(data -> "CE".equals(data.getStOptionsType()))
+					.filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0)
+					.count();
+
+			boolean atLeastTwoPositiveCEBelow = positivePECount >= 2;
+
+			isValidStock = atLeastTwoNegativePEBelow && allPositiveCE && atLeastTwoPositiveCEBelow && above3.contains(maxPEExistOIEntry.getKey());
+		}
+
+		return isMaxCEVolumeBelowFocusKey && isMaxPEVolumeAboveFocusKey && isValidStock;
+	}
+
+	public boolean changeInOI(String stock, String time, Properties properties, boolean isPositive, String oiInterpretation) {
+		LocalTime startTime = FormatUtil.getTime(time, 0);
+		OptionChainResponse response = ioPulseService.getOptionChain(properties, stock, startTime);
+		if (response == null || response.getData() == null) {
+			return false;
+		}
+
+		UnderLyingAssetData underLyingAssetData = response.getData().getUnderLyingAssetData();
+		List<OptionChainData> list = response.getData().getData();
+
+		TreeMap<Double, List<OptionChainData>> groupedData = list.stream()
+				.collect(Collectors.groupingBy(
+						OptionChainData::getInStrikePrice,
+						TreeMap::new,
+						Collectors.toList()
+				));
+
+		Double focusKey = groupedData.floorKey((double) underLyingAssetData.getInLtp());
+		if (focusKey == null) {
+			return false;
+		}
+
+		List<Double> keys = new ArrayList<>(groupedData.keySet());
+		int focusIndex = keys.indexOf(focusKey);
+		if (focusIndex == -1) {
+			return false;
+		}
+
+		int fromBelow = Math.max(0, focusIndex - 3);
+		int toBelow = focusIndex; // exclusive
+		List<Double> belowStricks = keys.subList(fromBelow, toBelow);
+
+		int fromAbove = focusIndex + 1;
+		int toAbove = Math.min(keys.size(), focusIndex + 4);
+		List<Double> aboveStricks = keys.subList(fromAbove, toAbove);
+
+
+		int fromBelowCombine = Math.max(0, focusIndex - 3);
+		int toAboveCombine = Math.min(keys.size(), focusIndex + 4);
+		List<Double> combineStrikes = keys.subList(fromBelowCombine, toAboveCombine);
+
+		TreeMap<Double, List<OptionChainData>> combinedData = combineStrikes.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.collect(Collectors.groupingBy(
+						OptionChainData::getInStrikePrice,
+						TreeMap::new,
+						Collectors.toList()
+				));
+
+		long allNegativeCEBelowCount = belowStricks.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.filter(data -> "CE".equals(data.getStOptionsType()))
+				.filter(data -> (data.getInNewOi() - data.getInOldOi()) < 0).count();
+
+		long allPositiveCEBelowCount = belowStricks.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.filter(data -> "CE".equals(data.getStOptionsType()))
+				.filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0).count();
+
+		long allNegativePEAboveCount = aboveStricks.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.filter(data -> "PE".equals(data.getStOptionsType()))
+				.filter(data -> (data.getInNewOi() - data.getInOldOi()) < 0).count();
+
+		long allPositivePEAboveCount = aboveStricks.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.filter(data -> "PE".equals(data.getStOptionsType()))
+				.filter(data -> (data.getInNewOi() - data.getInOldOi()) > 0).count();
+
+
+		boolean allSticksEitherLBUOrSC = combineStrikes.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.filter(data -> "CE".equals(data.getStOptionsType()))
+				.allMatch(data -> (data.getInNewClose() - data.getInOldClose()) > 0);
+
+		boolean allSticksEitherSBUOrLU = combineStrikes.stream()
+				.map(groupedData::get)
+				.flatMap(Collection::stream)
+				.filter(data -> "CE".equals(data.getStOptionsType()))
+				.allMatch(data -> (data.getInNewClose() - data.getInOldClose()) < 0);
+
+		// Get all OptionChainData at focusKey
+		List<OptionChainData> focusKeyData = combinedData.get(focusKey);
+
+		// Sum OI changes for PE and CE
+		int peOiChange = focusKeyData.stream()
+				.filter(data -> "PE".equals(data.getStOptionsType()))
+				.mapToInt(data -> data.getInNewOi() - data.getInOldOi())
+				.sum();
+
+		int ceOiChange = focusKeyData.stream()
+				.filter(data -> "CE".equals(data.getStOptionsType()))
+				.mapToInt(data -> data.getInNewOi() - data.getInOldOi())
+				.sum();
 
        /* System.out.println("option chain data for " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime());
 
@@ -536,78 +542,158 @@ public boolean isValidStock(String stock, String time, Properties properties, bo
 
         return isPositive ? totalCEOIBelowStricks < 0 && totalPEOIAboveStricks > 0 : totalCEOIBelowStricks > 0 && totalPEOIAboveStricks < 0;*/
 
-        if (allSticksEitherLBUOrSC && allNegativeCEBelowCount == 3 && allPositivePEAboveCount == 3) {
-            System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is positive");
-            StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
-            if(recentStockData == null) {
-                stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Positive",
-                        focusKey, (focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(0), (combineStrikes.get(5) + combineStrikes.get(6)) / 2,
-                        combineStrikes.get(6), combineStrikes.get(2), "criteria1");
-                recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
-                if(recentStockData !=null) {
-                    for (List<OptionChainData> dataList : combinedData.values()) {
-                        for (OptionChainData data : dataList) {
-                            data.setStockData(recentStockData);
-                            optionChainDataRepository.save(data);
-                        }
-                    }
-                }
-            }
+		if (allSticksEitherLBUOrSC && allNegativeCEBelowCount == 3 && allPositivePEAboveCount == 3) {
+			System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is positive");
+			StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
+			if (recentStockData == null) {
+				stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Positive",
+						focusKey, (focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(0), (combineStrikes.get(5) + combineStrikes.get(6)) / 2,
+						combineStrikes.get(6), combineStrikes.get(2), "criteria1");
+				recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
+				if (recentStockData != null) {
+					for (List<OptionChainData> dataList : combinedData.values()) {
+						for (OptionChainData data : dataList) {
+							data.setStockData(recentStockData);
+							optionChainDataRepository.save(data);
+						}
+					}
+				}
+			}
 
-        } else if (allSticksEitherSBUOrLU && allPositiveCEBelowCount == 3 && allNegativePEAboveCount == 3) {
-            System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
-            StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
-            if(recentStockData == null) {
-                stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Negative",
-                        (focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(4), combineStrikes.get(6), combineStrikes.get(1),
-                        (combineStrikes.get(1) + combineStrikes.get(0)) / 2, combineStrikes.get(5), "criteria1");
-                recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
-                if (recentStockData != null) {
-                    for (List<OptionChainData> dataList : combinedData.values()) {
-                        for (OptionChainData data : dataList) {
-                            data.setStockData(recentStockData);
-                            optionChainDataRepository.save(data);
-                        }
-                    }
-                }
-            }
-        }
+		} else if (allSticksEitherSBUOrLU && allPositiveCEBelowCount == 3 && allNegativePEAboveCount == 3) {
+			System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
+			StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
+			if (recentStockData == null) {
+				stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Negative",
+						(focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(4), combineStrikes.get(6), combineStrikes.get(1),
+						(combineStrikes.get(1) + combineStrikes.get(0)) / 2, combineStrikes.get(5), "criteria1");
+				recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
+				if (recentStockData != null) {
+					for (List<OptionChainData> dataList : combinedData.values()) {
+						for (OptionChainData data : dataList) {
+							data.setStockData(recentStockData);
+							optionChainDataRepository.save(data);
+						}
+					}
+				}
+			}
+		}
 
-        if (allSticksEitherLBUOrSC && allNegativeCEBelowCount >= 2 && allPositivePEAboveCount >= 2 && peOiChange > ceOiChange) {
-            System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is positive");
-            StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
-            if(recentStockData == null) {
-            stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Positive",
-                    focusKey, (focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(0), (combineStrikes.get(5) + combineStrikes.get(6)) / 2,
-                    combineStrikes.get(6), combineStrikes.get(2), "criteria2");
-                recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
-                if (recentStockData != null) {
-                    for (List<OptionChainData> dataList : combinedData.values()) {
-                        for (OptionChainData data : dataList) {
-                            data.setStockData(recentStockData);
-                            optionChainDataRepository.save(data);
-                        }
-                    }
-                }
-            }
-        } else if (allSticksEitherSBUOrLU && allPositiveCEBelowCount >= 2 && allNegativePEAboveCount >= 2 && peOiChange < ceOiChange) {
-            System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
-            StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
-            if(recentStockData == null) {
-            stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Negative",
-                    (focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(4), combineStrikes.get(6), combineStrikes.get(1),
-                    (combineStrikes.get(1) + combineStrikes.get(0)) / 2, combineStrikes.get(5), "criteria2");
-                recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
-                if (recentStockData != null) {
-                    for (List<OptionChainData> dataList : combinedData.values()) {
-                        for (OptionChainData data : dataList) {
-                            data.setStockData(recentStockData);
-                            optionChainDataRepository.save(data);
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
+		if (allSticksEitherLBUOrSC && allNegativeCEBelowCount >= 2 && allPositivePEAboveCount >= 2 && peOiChange > ceOiChange) {
+			System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is positive");
+			StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
+			if (recentStockData == null) {
+				stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Positive",
+						focusKey, (focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(0), (combineStrikes.get(5) + combineStrikes.get(6)) / 2,
+						combineStrikes.get(6), combineStrikes.get(2), "criteria2");
+				recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
+				if (recentStockData != null) {
+					for (List<OptionChainData> dataList : combinedData.values()) {
+						for (OptionChainData data : dataList) {
+							data.setStockData(recentStockData);
+							optionChainDataRepository.save(data);
+						}
+					}
+				}
+			}
+		} else if (allSticksEitherSBUOrLU && allPositiveCEBelowCount >= 2 && allNegativePEAboveCount >= 2 && peOiChange < ceOiChange) {
+			System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
+			StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
+			if (recentStockData == null) {
+				stockDataManager.saveStockData(stock, properties.getStockDate(), properties.getEndTime(), oiInterpretation, "Negative",
+						(focusKey + combineStrikes.get(4)) / 2, combineStrikes.get(4), combineStrikes.get(6), combineStrikes.get(1),
+						(combineStrikes.get(1) + combineStrikes.get(0)) / 2, combineStrikes.get(5), "criteria2");
+				recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
+				if (recentStockData != null) {
+					for (List<OptionChainData> dataList : combinedData.values()) {
+						for (OptionChainData data : dataList) {
+							data.setStockData(recentStockData);
+							optionChainDataRepository.save(data);
+						}
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+
+	public Map<Integer, StrikeTO> getStrikes(Properties properties, String stock) {
+		LocalTime startTime = FormatUtil.getTime(properties.getStartTime(), 0);
+		OptionChainResponse response = ioPulseService.getOptionChain(properties, stock, startTime);
+		if (response == null || response.getData() == null) {
+			return Collections.emptyMap();
+		}
+
+		UnderLyingAssetData underLyingAssetData = response.getData().getUnderLyingAssetData();
+		List<OptionChainData> list = response.getData().getData();
+
+		TreeMap<Double, List<OptionChainData>> groupedData = list.stream()
+				.collect(Collectors.groupingBy(
+						OptionChainData::getInStrikePrice,
+						TreeMap::new,
+						Collectors.toList()
+				));
+
+		Double focusKey = groupedData.floorKey(Double.valueOf((double) underLyingAssetData.getInLtp()));
+		if (focusKey == null) {
+			return Collections.emptyMap();
+		}
+		Map<Integer, StrikeTO> strikes = new LinkedHashMap<>();
+		List<Double> strikeKeys = new ArrayList<>(groupedData.keySet());
+		int focusIndex = strikeKeys.indexOf(focusKey);
+		for (int i = 0; i < strikeKeys.size(); i++) {
+			int relIndex = i - focusIndex;
+			List<OptionChainData> dataList = groupedData.get(strikeKeys.get(i));
+			StrikeTO strikeTO = new StrikeTO();
+			if (dataList.size() == 2) {
+				buildStrikeTO(strikeTO, dataList.get(0));
+				buildStrikeTO(strikeTO, dataList.get(1));
+			} else if (dataList.size() == 1) {
+				buildStrikeTO(strikeTO, dataList.get(0));
+			}
+			strikeTO.setStrikePrice(strikeKeys.get(i));
+			strikeTO.setCurPrice(underLyingAssetData.getInLtp());
+			// ...map other fields from OptionChainData to StrikeTO as needed...
+			strikes.put(relIndex, strikeTO);
+		}
+		return strikes;
+
+	}
+
+	private void buildStrikeTO(StrikeTO strikeTO, OptionChainData data) {
+		if (data != null) {
+			double ltpChg = data.getInNewClose() - data.getInOldClose();
+			double oiChg = data.getInNewOi() - data.getInOldOi();
+			if (data.getStOptionsType().equals("CE")) {
+				strikeTO.setCeOi(data.getInNewOi());
+				strikeTO.setCeOiChg(oiChg);
+				strikeTO.setCeVolume(data.getInTradedVolume());
+				strikeTO.setCeLtpChg(ltpChg);
+				strikeTO.setCeOiInt(getOiInterpretation(oiChg, ltpChg));
+			} else if (data.getStOptionsType().equals("PE")) {
+				strikeTO.setPeOi(data.getInNewOi());
+				strikeTO.setPeOiChg(oiChg);
+				strikeTO.setPeVolume(data.getInTradedVolume());
+				strikeTO.setPeLtpChg(ltpChg);
+				strikeTO.setPeOiInt(getOiInterpretation(oiChg, ltpChg));
+			}
+		}
+	}
+
+	private String getOiInterpretation(double oiChg, double ltpChg) {
+		if (oiChg > 0) {
+			if (ltpChg > 0) {
+				return "LBU";// Long Build Up
+			} else {
+				return "SBU";// Short Build Up
+			}
+		} else {
+			if (ltpChg > 0) {
+				return "SC"; // Short Covering
+			} else {
+				return "LU";//  Long Unwinding
+			}
+		}
+	}
 }

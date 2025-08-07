@@ -12,37 +12,37 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Properties;
 
-@SpringBootApplication
 @EnableScheduling
 @PropertySource("classpath:application2.properties")
+@SpringBootApplication
 public class AppConfig {
 
-    @Value("${spring.mail.host}")
-    private String mailHost;
+	@Value("${spring.mail.host}")
+	private String mailHost;
 
-    @Value("${spring.mail.port}")
-    private int mailPort;
+	@Value("${spring.mail.port}")
+	private int mailPort;
 
-    @Value("${spring.mail.username}")
-    private String mailUsername;
+	@Value("${spring.mail.username}")
+	private String mailUsername;
 
-    @Value("${spring.mail.password}")
-    private String mailPassword;
+	@Value("${spring.mail.password}")
+	private String mailPassword;
 
-    @Value("${mail.recipients}")
-    private String recipients;
+	@Value("${mail.recipients}")
+	private String recipients;
 
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
+	@Bean
+	public RestTemplate restTemplate() {
+		return new RestTemplate();
+	}
 
-    public static void main(String[] args) {
-        SpringApplication.run(AppConfig.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(AppConfig.class, args);
+	}
 
-    @Bean
-    public JavaMailSender javaMailSender() {
+	@Bean
+	public JavaMailSender javaMailSender() {
         /*JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
 
         Properties mailProperties = new Properties();
@@ -55,24 +55,24 @@ public class AppConfig {
         mailSender.setPassword("fqpt zrbo rpnk saps");
         mailSender.setJavaMailProperties(mailProperties);*/
 
-        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-        mailSender.setHost(mailHost);
-        mailSender.setPort(mailPort);
-        mailSender.setUsername(mailUsername);
-        mailSender.setPassword(mailPassword);
+		JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+		mailSender.setHost(mailHost);
+		mailSender.setPort(mailPort);
+		mailSender.setUsername(mailUsername);
+		mailSender.setPassword(mailPassword);
 
-        Properties properties = mailSender.getJavaMailProperties();
-        properties.put("mail.smtp.starttls.enable", Boolean.TRUE);
-        properties.put("mail.transport.protocol", "smtp");
-        properties.put("mail.smtp.auth", Boolean.TRUE);
-        properties.put("mail.smtp.starttls.required", Boolean.TRUE);
-        properties.put("mail.smtp.ssl.enable", Boolean.FALSE);
-        properties.put("mail.test-connection", Boolean.TRUE);
-        properties.put("mail.debug", Boolean.TRUE);
+		Properties properties = mailSender.getJavaMailProperties();
+		properties.put("mail.smtp.starttls.enable", Boolean.TRUE);
+		properties.put("mail.transport.protocol", "smtp");
+		properties.put("mail.smtp.auth", Boolean.TRUE);
+		properties.put("mail.smtp.starttls.required", Boolean.TRUE);
+		properties.put("mail.smtp.ssl.enable", Boolean.FALSE);
+		properties.put("mail.test-connection", Boolean.TRUE);
+		properties.put("mail.debug", Boolean.TRUE);
 
-        mailSender.setJavaMailProperties(properties);
+		mailSender.setJavaMailProperties(properties);
 
 
-        return mailSender;
-    }
+		return mailSender;
+	}
 }
