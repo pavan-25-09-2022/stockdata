@@ -99,8 +99,8 @@ public class MarketMovers {
 					if (strikes != null && !strikes.isEmpty()) {
 						if (!isCriteria1Met) {
 							TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria1");
-							if (tradeSetup1 != null) {
-								buildTradeSetupTO(tradeSetup1, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+							buildTradeSetupTO(tradeSetup1, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+							if (isTradeProcessed(tradeSetup1)) {
 								tradeSetup1.setStrikes(strikes);
 								trades.add(tradeSetup1);
 								log.info("stock {} criteria1 met", marketMoverData.getStSymbolName());
@@ -109,8 +109,8 @@ public class MarketMovers {
 						}
 						if (!isCriteria2Met) {
 							TradeSetupTO tradeSetup2 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria2");
-							if (tradeSetup2 != null) {
-								buildTradeSetupTO(tradeSetup2, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+							buildTradeSetupTO(tradeSetup2, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+							if (isTradeProcessed(tradeSetup2)) {
 								tradeSetup2.setStrikes(strikes);
 								trades.add(tradeSetup2);
 								log.info("stock {} criteria2 met", marketMoverData.getStSymbolName());
@@ -119,8 +119,8 @@ public class MarketMovers {
 						}
 						if (!isCriteria3Met) {
 							TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria3");
-							if (tradeSetup3 != null) {
-								buildTradeSetupTO(tradeSetup3, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+							buildTradeSetupTO(tradeSetup3, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+							if (isTradeProcessed(tradeSetup3)) {
 								tradeSetup3.setStrikes(strikes);
 								trades.add(tradeSetup3);
 								log.info("stock {} criteria3 met", marketMoverData.getStSymbolName());
@@ -138,20 +138,20 @@ public class MarketMovers {
 				Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, marketMoverData.getStSymbolName());
 				if (strikes != null && !strikes.isEmpty()) {
 					TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria1");
-					if (tradeSetup1 != null) {
-						buildTradeSetupTO(tradeSetup1, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+					buildTradeSetupTO(tradeSetup1, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+					if (isTradeProcessed(tradeSetup1)) {
 						tradeSetup1.setStrikes(strikes);
 						trades.add(tradeSetup1);
 					}
 					TradeSetupTO tradeSetup2 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria2");
-					if (tradeSetup2 != null) {
-						buildTradeSetupTO(tradeSetup2, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+					buildTradeSetupTO(tradeSetup2, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+					if (isTradeProcessed(tradeSetup2)) {
 						tradeSetup2.setStrikes(strikes);
 						trades.add(tradeSetup2);
 					}
 					TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria3");
-					if (tradeSetup3 != null) {
-						buildTradeSetupTO(tradeSetup3, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+					buildTradeSetupTO(tradeSetup3, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+					if (isTradeProcessed(tradeSetup3)) {
 						tradeSetup3.setStrikes(strikes);
 						trades.add(tradeSetup3);
 					}
@@ -160,6 +160,10 @@ public class MarketMovers {
 		}
 		persistTrades(trades);
 		return trades;
+	}
+
+	private boolean isTradeProcessed(TradeSetupTO tradeSetup) {
+		return (tradeSetup != null && tradeSetupManager.findTradeSetupByStockAndStrategyAndDate(tradeSetup.getStockSymbol(), tradeSetup.getStrategy(), tradeSetup.getStockDate()) == null);
 	}
 
 	private void persistTrades(List<TradeSetupTO> trades) {
@@ -235,41 +239,41 @@ public class MarketMovers {
 	}
 
 	private void setTargetPrices(TradeSetupTO tradeSetupTO, StrikeTO strike0, StrikeTO strikeDown1, StrikeTO strikeDown2, StrikeTO strikeDown3, StrikeTO strikeDown4, StrikeTO strikeDown5, StrikeTO strikeDown6) {
-		Double target2Price = strikeDown2.getStrikePrice();
+		Double target2Price = null;
 		if (strikeDown1.getPeOiChg() < 0) {
 			target2Price = strike0.getStrikePrice();
 		} else if (strikeDown2.getPeOiChg() < 0) {
-			target2Price = strikeDown1.getStrikePrice();
+			target2Price = (strikeDown2.getStrikePrice() + strikeDown1.getStrikePrice()) / 2;
 		} else if (strikeDown3.getPeOiChg() < 0) {
-			target2Price = strikeDown2.getStrikePrice();
+			target2Price = (strikeDown3.getStrikePrice() + strikeDown2.getStrikePrice()) / 2;
 		} else if (strikeDown4.getPeOiChg() < 0) {
-			target2Price = strikeDown3.getStrikePrice();
+			target2Price = (strikeDown4.getStrikePrice() + strikeDown3.getStrikePrice()) / 2;
 		} else if (strikeDown5.getPeOiChg() < 0) {
-			target2Price = strikeDown4.getStrikePrice();
+			target2Price = (strikeDown5.getStrikePrice() + strikeDown4.getStrikePrice()) / 2;
 		} else if (strikeDown6.getPeOiChg() < 0) {
-			target2Price = strikeDown5.getStrikePrice();
+			target2Price = (strikeDown6.getStrikePrice() + strikeDown5.getStrikePrice()) / 2;
 		}
 
 		double highestCeOiChg = strike0.getCeOiChg();
 		Double target1Price = strike0.getStrikePrice();
 		if (strikeDown1.getCeOiChg() > highestCeOiChg) {
-			target1Price = strikeDown1.getStrikePrice();
+			target1Price = (strikeDown1.getStrikePrice() + strikeDown2.getStrikePrice()) / 2;
 			highestCeOiChg = strikeDown1.getCeOiChg();
 		}
 		if (strikeDown2.getCeOiChg() > highestCeOiChg) {
-			target1Price = strikeDown2.getStrikePrice();
+			target1Price = (strikeDown2.getStrikePrice() + strikeDown3.getStrikePrice()) / 2;
 			highestCeOiChg = strikeDown2.getCeOiChg();
 		}
 		if (strikeDown3.getCeOiChg() > highestCeOiChg) {
-			target1Price = strikeDown3.getStrikePrice();
+			target1Price = (strikeDown3.getStrikePrice() + strikeDown4.getStrikePrice()) / 2;
 			highestCeOiChg = strikeDown3.getCeOiChg();
 		}
 		if (strikeDown4.getCeOiChg() > highestCeOiChg) {
-			target1Price = strikeDown4.getStrikePrice();
+			target1Price = (strikeDown4.getStrikePrice() + strikeDown5.getStrikePrice()) / 2;
 			highestCeOiChg = strikeDown4.getCeOiChg();
 		}
 		if (strikeDown5.getCeOiChg() > highestCeOiChg) {
-			target1Price = strikeDown5.getStrikePrice();
+			target1Price = (strikeDown5.getStrikePrice() + strikeDown6.getStrikePrice()) / 2;
 			highestCeOiChg = strikeDown5.getCeOiChg();
 		}
 		if (strikeDown6.getCeOiChg() > highestCeOiChg) {
@@ -290,12 +294,14 @@ public class MarketMovers {
 	}
 
 	private void buildTradeSetupTO(TradeSetupTO tradeSetupTO, MarketMoverData marketMoverData, Properties prop, double oiChg, double ltpChg, String oiInterpretation, String value) {
-		tradeSetupTO.setStockSymbol(marketMoverData.getStSymbolName());
-		tradeSetupTO.setFetchTime(prop.getEndTime());
-		tradeSetupTO.setDate(prop.getStockDate());
-		tradeSetupTO.setOiChgPer(oiChg);
-		tradeSetupTO.setLtpChgPer(ltpChg);
-		tradeSetupTO.setType(value);
+		if (tradeSetupTO != null) {
+			tradeSetupTO.setStockSymbol(marketMoverData.getStSymbolName());
+			tradeSetupTO.setFetchTime(prop.getEndTime());
+			tradeSetupTO.setStockDate(prop.getStockDate());
+			tradeSetupTO.setOiChgPer(oiChg);
+			tradeSetupTO.setLtpChgPer(ltpChg);
+			tradeSetupTO.setType(value);
+		}
 	}
 
 	private void threadSleep(int millis) {

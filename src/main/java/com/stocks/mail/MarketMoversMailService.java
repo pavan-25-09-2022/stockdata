@@ -36,7 +36,7 @@ public class MarketMoversMailService {
 		for (TradeSetupTO trade : trades) {
 			sb.append("<tr>")
 					.append("<td>").append(trade.getStockSymbol()).append("</td>")
-					.append("<td>").append(trade.getDate()).append("</td>")
+					.append("<td>").append(trade.getStockDate()).append("</td>")
 					.append("<td>").append(trade.getFetchTime()).append("</td>")
 					.append("<td>").append(trade.getEntry1() != null ? String.format("%.2f", trade.getEntry1()) : "").append("</td>")
 					.append("<td>").append(trade.getEntry2() != null ? String.format("%.2f", trade.getEntry2()) : "").append("</td>")

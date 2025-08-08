@@ -39,6 +39,8 @@ public class Scheduler {
 	private MarketMoversMailService marketMoversMailService;
 	@Autowired
 	private ApiController apiController;
+	@Autowired
+	private FutureEodAnalyzerService futureEodAnalyzerService;
 
 	//    @Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
 	public void callApi() {
@@ -129,6 +131,18 @@ public class Scheduler {
 		properties.setStockDate("2025-06-19");
 		futureAnalysisService.getTrendLinesForNiftyAndBankNifty(properties);
 		System.gc();
+	}
+
+	@Scheduled(cron = "50 0/5 9-15 * * ?")
+	public void marketMavesAndOptionChain() {
+		log.info("Scheduler started Market Movers and Option Chain");
+		logTime();
+		Properties properties = new Properties();
+		properties.setInterval(5);
+		properties.setStockDate(LocalDate.now().toString());
+		futureEodAnalyzerService.createOptionChainImages(properties);
+		System.gc();
+		log.info("Scheduler finished Market Movers and Option Chain ");
 	}
 
 	@Scheduled(cron = "20 0/5 9-15 * * ?")

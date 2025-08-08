@@ -18,7 +18,7 @@ public class TradeSetupEntity {
 	private Long id;
 
 	private String stockSymbol;
-	private String Date;
+	private String stockDate;
 	private String fetchTime;
 	private Double oiChgPer;
 	private Double ltpChgPer;

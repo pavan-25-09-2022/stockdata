@@ -29,10 +29,29 @@ public class TradeSetupManager {
 		}
 	}
 
+	@Transactional(readOnly = true)
+	public TradeSetupEntity findTradeSetupByStockAndStrategyAndDate(String stockSymbol, String strategy, String stockDate) {
+		String hql = "FROM TradeSetupEntity WHERE stockSymbol = :stockSymbol AND strategy = :strategy AND stockDate = :stockDate";
+		return entityManager.createQuery(hql, TradeSetupEntity.class)
+				.setParameter("stockSymbol", stockSymbol)
+				.setParameter("strategy", strategy)
+				.setParameter("stockDate", stockDate)
+				.getResultStream().findFirst().orElse(null);
+	}
+
+	@Transactional(readOnly = true)
+	public List<TradeSetupEntity> findAllTradeSetups() {
+		String hql = "FROM TradeSetupEntity";
+		return entityManager.createQuery(hql, TradeSetupEntity.class)
+				.getResultList()
+				.stream()
+				.toList();
+	}
+
 	private TradeSetupEntity mapTradeSetup(TradeSetupTO tradeSetupTO) {
 		TradeSetupEntity entity = new TradeSetupEntity();
 		entity.setStockSymbol(tradeSetupTO.getStockSymbol());
-		entity.setDate(tradeSetupTO.getDate());
+		entity.setStockDate(tradeSetupTO.getStockDate());
 		entity.setFetchTime(tradeSetupTO.getFetchTime());
 		entity.setOiChgPer(tradeSetupTO.getOiChgPer());
 		entity.setLtpChgPer(tradeSetupTO.getLtpChgPer());

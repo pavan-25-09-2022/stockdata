@@ -9,7 +9,7 @@ import java.util.Map;
 @NoArgsConstructor
 public class TradeSetupTO {
 	private String stockSymbol;
-	private String Date;
+	private String stockDate;
 	private String fetchTime;
 	private Double oiChgPer;
 	private Double ltpChgPer;
