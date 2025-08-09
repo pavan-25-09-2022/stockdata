@@ -64,7 +64,7 @@ public class MarketMovers {
 					? (ltpChg > 0 ? "LBU" : "SBU")
 					: (ltpChg > 0 ? "SC" : "LU");
 			String value = null;
-			if ("G".equals(type) && oiChg > 1) {
+			if ("G".equals(type) && (oiChg > 2 || oiChg < -2)  && lptChgPer > 1) {
 				value = "positive";
 			} else if ("L".equals(type) && oiChg < -1) {
 				value = "negative";

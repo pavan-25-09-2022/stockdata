@@ -1,6 +1,7 @@
 package com.stocks.repository;
 
 import com.stocks.dto.TradeSetupTO;
+import com.stocks.entity.StrikeSetupEntity;
 import com.stocks.entity.TradeSetupEntity;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +26,18 @@ public class TradeSetupManager {
 			return;
 		}
 		for (TradeSetupTO tradeSetupTO : tradeSetupTOList) {
-			entityManager.persist(mapTradeSetup(tradeSetupTO));
+			TradeSetupEntity tradeSetupEntity = mapTradeSetup(tradeSetupTO);
+			List<StrikeSetupEntity> strikes = mapStrikes(tradeSetupTO);
+			saveTradeWithStrikes(tradeSetupEntity, strikes);
 		}
+	}
+
+	public void saveTradeWithStrikes(TradeSetupEntity tradeSetup, List<StrikeSetupEntity> strikes) {
+		for (StrikeSetupEntity strike : strikes) {
+			strike.setTradeSetup(tradeSetup);
+		}
+		tradeSetup.setStrikeSetups(strikes);
+		entityManager.persist(tradeSetup);
 	}
 
 	@Transactional(readOnly = true)
@@ -48,6 +59,14 @@ public class TradeSetupManager {
 				.toList();
 	}
 
+	@Transactional(readOnly = true)
+	public List<TradeSetupEntity> findAllByStockDate(String stockDate) {
+		String hql = "FROM TradeSetupEntity WHERE stockDate = :stockDate";
+		return entityManager.createQuery(hql, TradeSetupEntity.class)
+				.setParameter("stockDate", stockDate)
+				.getResultList();
+	}
+
 	private TradeSetupEntity mapTradeSetup(TradeSetupTO tradeSetupTO) {
 		TradeSetupEntity entity = new TradeSetupEntity();
 		entity.setStockSymbol(tradeSetupTO.getStockSymbol());
@@ -66,5 +85,31 @@ public class TradeSetupManager {
 		entity.setStrategy(tradeSetupTO.getStrategy());
 		entity.setType(tradeSetupTO.getType());
 		return entity;
+	}
+
+	private List<StrikeSetupEntity> mapStrikes(TradeSetupTO tradeSetupTO) {
+		return tradeSetupTO.getStrikes().entrySet().stream()
+				.filter(e -> e.getKey() >= -3 && e.getKey() <= 3)
+				.map(e -> {
+					var strike = e.getValue();
+					StrikeSetupEntity entity = new StrikeSetupEntity();
+					entity.setCurPrice(strike.getCurPrice());
+					entity.setStrikePrice(strike.getStrikePrice());
+					entity.setCeOi(strike.getCeOi());
+					entity.setCeOiChg(strike.getCeOiChg());
+					entity.setCeLtpChg(strike.getCeLtpChg());
+					entity.setCeOiInt(strike.getCeOiInt());
+					entity.setCeVolume(strike.getCeVolume());
+					entity.setCeIv(strike.getCeIv());
+					entity.setCeIvChg(strike.getCeIvChg());
+					entity.setPeOi(strike.getPeOi());
+					entity.setPeOiChg(strike.getPeOiChg());
+					entity.setPeOiInt(strike.getPeOiInt());
+					entity.setPeVolume(strike.getPeVolume());
+					entity.setPeIv(strike.getPeIv());
+					entity.setPeIvChg(strike.getPeIvChg());
+					return entity;
+				})
+				.toList();
 	}
 }

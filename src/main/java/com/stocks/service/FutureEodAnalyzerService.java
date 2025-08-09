@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -557,14 +558,14 @@ public class FutureEodAnalyzerService {
 					: (ltpChange > 0 ? "SC" : "LU");
 			System.out.println("Stock: " + stock + ", OI Change: " + percentageChange +
 					", LTP Change: " + percentageChangeInLTP + ", Interpretation: " + oiInterpretation);
-			if ((percentageChange > 3 || percentageChange < -3) && (percentageChangeInLTP > 2 || percentageChangeInLTP < -2)) {
+			if ((percentageChange > 1 || percentageChange < -1) && (percentageChangeInLTP > 1 || percentageChangeInLTP < -1)) {
 				System.out.println("Stock " + stock + " with OI Change " + percentageChange);
 				properties.setStartTime("09:15:00");
-				//properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-				properties.setEndTime(FormatUtil.getTime(properties.getStartTime(), properties.getInterval()).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-				properties.setExpiryDate("250626");
+				properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+				//properties.setEndTime(FormatUtil.getTime(properties.getStartTime(), properties.getInterval()).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+				properties.setExpiryDate("250828");
 				System.out.println("Stock " + stock);
-				while (FormatUtil.getTimeHHmmss(properties.getEndTime()).isBefore(FormatUtil.getTimeHHmmss("14:00:00"))) {
+				//while (FormatUtil.getTimeHHmmss(properties.getEndTime()).isBefore(FormatUtil.getTimeHHmmss("14:00:00"))) {
 
 					try {
 						Thread.sleep(100);
@@ -573,10 +574,10 @@ public class FutureEodAnalyzerService {
 					}
 
 					if (calculateOptionChain.changeInOI(stock, properties.getStartTime(), properties, false, oiInterpretation)) {
-						break;
+						//break;
 					}
-					properties.setEndTime(FormatUtil.getTime(properties.getEndTime(), properties.getInterval()).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-				}
+					//properties.setEndTime(FormatUtil.getTime(properties.getEndTime(), properties.getInterval()).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+				//}
 			}
 		}
 		return "Option Chain Images created successfully for stocks: " + properties.getStockName();

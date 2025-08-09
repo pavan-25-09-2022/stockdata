@@ -671,12 +671,16 @@ public class CalculateOptionChain {
 				strikeTO.setCeVolume(data.getInTradedVolume());
 				strikeTO.setCeLtpChg(ltpChg);
 				strikeTO.setCeOiInt(getOiInterpretation(oiChg, ltpChg));
+				strikeTO.setCeIv(data.getInNewIv());
+				strikeTO.setCeIvChg(data.getInNewIv() - data.getInOldIv());
 			} else if (data.getStOptionsType().equals("PE")) {
 				strikeTO.setPeOi(data.getInNewOi());
 				strikeTO.setPeOiChg(oiChg);
 				strikeTO.setPeVolume(data.getInTradedVolume());
 				strikeTO.setPeLtpChg(ltpChg);
 				strikeTO.setPeOiInt(getOiInterpretation(oiChg, ltpChg));
+				strikeTO.setPeIv(data.getInNewIv());
+				strikeTO.setPeIvChg(data.getInNewIv() - data.getInOldIv());
 			}
 		}
 	}

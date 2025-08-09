@@ -2,11 +2,8 @@ package com.stocks.entity;
 
 import lombok.Data;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name = "trade_setup")
@@ -16,6 +13,9 @@ public class TradeSetupEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
+
+	@OneToMany(mappedBy = "tradeSetup", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	private List<StrikeSetupEntity> strikeSetups;
 
 	private String stockSymbol;
 	private String stockDate;
@@ -37,4 +37,14 @@ public class TradeSetupEntity {
 	private String stopLoss1Time;
 	private String strategy;
 	private String type;
+
+	@Override
+	public String toString() {
+		return "TradeSetupEntity{" +
+				"id=" + id +
+				", stockSymbol='" + stockSymbol + '\'' +
+				", stockDate='" + stockDate + '\'' +
+				// do not include strikeSetups or include only their IDs/count
+				'}';
+	}
 }

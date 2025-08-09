@@ -6,9 +6,11 @@ import com.stocks.dto.StockData;
 import com.stocks.dto.StockProfitLossResult;
 import com.stocks.dto.StockResponse;
 import com.stocks.dto.TradeSetupTO;
+import com.stocks.entity.TradeSetupEntity;
 import com.stocks.enumaration.QueryInterval;
 import com.stocks.mail.Mail;
 import com.stocks.mail.MarketMoversMailService;
+import com.stocks.repository.TradeSetupManager;
 import com.stocks.service.DayHighLowService;
 import com.stocks.service.FutureAnalysisService;
 import com.stocks.service.FutureEodAnalyzerService;
@@ -72,6 +74,9 @@ public class ApiController {
 
 	@Autowired
 	StockDataManager stockDataManager;
+
+	@Autowired
+	TradeSetupManager tradeSetupManager;
 
 	@Autowired
 	StockResultManager stockResultManager;
@@ -335,6 +340,39 @@ public class ApiController {
 		return stockDataManager.getAllRecord();
 	}
 
+	@GetMapping("/getAllTradeSetupRecord")
+	public String getAllTradeSetupRecord(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate) {
+		List<TradeSetupEntity> allByStockDate = null;
+		if (stockDate != null && !stockDate.isEmpty()) {
+			allByStockDate = tradeSetupManager.findAllByStockDate(stockDate);
+		}else {
+			allByStockDate = tradeSetupManager.findAllTradeSetups();
+		}
+		String data = marketMoversMailService.beautifyTradeSetupResults(allByStockDate);
+		//marketMoversMailService.sendMail(data, properties);
+		return data;
+	}
+
+
+	@GetMapping("/getAllStrikeSetupRecords")
+	public String getAllStrikeSetupRecords(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate) {
+		List<TradeSetupEntity> allByStockDate = null;
+		if (stockDate != null && !stockDate.isEmpty()) {
+			allByStockDate = tradeSetupManager.findAllByStockDate(stockDate);
+		}else {
+			allByStockDate = tradeSetupManager.findAllTradeSetups();
+		}
+		StringBuilder sb = new StringBuilder();
+
+		for(TradeSetupEntity tradeSetup : allByStockDate) {
+			sb.append("Trade Setup for Stock: ").append(tradeSetup.getStockSymbol()).append(", Date: ").append(tradeSetup.getStockDate()).append("\n");
+			if (tradeSetup.getStrikeSetups() != null && !tradeSetup.getStrikeSetups().isEmpty()) {
+				sb.append(marketMoversMailService.beautifyStrikeSetupResults(tradeSetup.getStrikeSetups()));
+			}
+		}
+		//marketMoversMailService.sendMail(data, properties);
+		return sb.toString();
+	}
 
 	@GetMapping("/verifyStockData")
 	public List<String> verifyStockData(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
