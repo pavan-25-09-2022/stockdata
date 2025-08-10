@@ -673,6 +673,7 @@ public class CalculateOptionChain {
 				strikeTO.setCeOiInt(getOiInterpretation(oiChg, ltpChg));
 				strikeTO.setCeIv(data.getInNewIv());
 				strikeTO.setCeIvChg(data.getInNewIv() - data.getInOldIv());
+				strikeTO.setCeOiPerChg(data.getInOldOi() != 0 ? (oiChg / data.getInOldOi()) * 100 : 0);
 			} else if (data.getStOptionsType().equals("PE")) {
 				strikeTO.setPeOi(data.getInNewOi());
 				strikeTO.setPeOiChg(oiChg);
@@ -681,6 +682,7 @@ public class CalculateOptionChain {
 				strikeTO.setPeOiInt(getOiInterpretation(oiChg, ltpChg));
 				strikeTO.setPeIv(data.getInNewIv());
 				strikeTO.setPeIvChg(data.getInNewIv() - data.getInOldIv());
+				strikeTO.setPeOiPerChg(data.getInOldOi() != 0 ? (oiChg / data.getInOldOi()) * 100 : 0);
 			}
 		}
 	}

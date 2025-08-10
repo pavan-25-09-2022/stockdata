@@ -12,12 +12,14 @@ public class StrikeTO {
 	private double ceOiChg;
 	private double ceLtpChg; // Change in last traded price
 	private String ceOiInt;  // Open Interest in integer format
+	private double ceOiPerChg; // Percentage change in Open Interest
 	private int ceVolume;
 	private double ceIv;
 	private double ceIvChg; // Change in Implied Volatility
 	private int peOi; // Open Interest for Put Option
 	private double peOiChg;
 	private String peOiInt; // Open Interest in integer format
+	private double peOiPerChg; // Percentage change in Open Interest
 	private int peVolume;
 	private double peIv;
 	private double peIvChg; // Change in Implied Volatility
