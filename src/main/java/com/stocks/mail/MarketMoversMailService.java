@@ -106,6 +106,8 @@ public class MarketMoversMailService {
 		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
 		sb.append("<tr>")
 				.append("<th>Stock</th>")
+				.append("<th>OI</th>")
+				.append("<th>LTP</th>")
 				.append("<th>Date</th>")
 				.append("<th>Time</th>")
 				.append("<th>Entry1</th>")
@@ -120,6 +122,8 @@ public class MarketMoversMailService {
 		for (TradeSetupTO trade : trades) {
 			sb.append("<tr>")
 					.append("<td>").append(trade.getStockSymbol()).append("</td>")
+					.append("<td>").append(trade.getOiChgPer() != null ? String.format("%.2f", trade.getOiChgPer()) : "").append("</td>")
+					.append("<td>").append(trade.getLtpChgPer() != null ? String.format("%.2f", trade.getLtpChgPer()) : "").append("</td>")
 					.append("<td>").append(trade.getStockDate()).append("</td>")
 					.append("<td>").append(trade.getFetchTime()).append("</td>")
 					.append("<td>").append(trade.getEntry1() != null ? String.format("%.2f", trade.getEntry1()) : "").append("</td>")
@@ -127,6 +131,58 @@ public class MarketMoversMailService {
 					.append("<td>").append(trade.getTarget1() != null ? String.format("%.2f", trade.getTarget1()) : "").append("</td>")
 					.append("<td>").append(trade.getTarget2() != null ? String.format("%.2f", trade.getTarget2()) : "").append("</td>")
 					.append("<td>").append(trade.getStopLoss1() != null ? String.format("%.2f", trade.getStopLoss1()) : "").append("</td>")
+					.append("<td>").append(trade.getTradeNotes() != null ? trade.getTradeNotes() : "").append("</td>")
+					.append("<td>").append(trade.getStrategy() != null ? trade.getStrategy() : "").append("</td>")
+					.append("<td>").append(trade.getType() != null ? trade.getType() : "").append("</td>")
+					.append("</tr>");
+		}
+		sb.append("</table>");
+		return sb.toString();
+	}
+
+	public String beautifyTestResults(List<TradeSetupTO> trades) {
+		if (trades == null || trades.isEmpty()) return "No trades found.";
+		StringBuilder sb = new StringBuilder();
+		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
+		sb.append("<tr>")
+				.append("<th>Stock</th>")
+				.append("<th>OI</th>")
+				.append("<th>LTP</th>")
+				.append("<th>Status</th>")
+				.append("<th>Date</th>")
+				.append("<th>Time</th>")
+				.append("<th>Entry1</th>")
+				.append("<th>Time</th>")
+				.append("<th>Entry2</th>")
+				.append("<th>Time</th>")
+				.append("<th>Target1</th>")
+				.append("<th>Time</th>")
+				.append("<th>Target2</th>")
+				.append("<th>Time</th>")
+				.append("<th>Stop Loss</th>")
+				.append("<th>Time</th>")
+				.append("<th>Notes</th>")
+				.append("<th>Strategy</th>")
+				.append("<th>Type</th>")
+				.append("</tr>");
+		for (TradeSetupTO trade : trades) {
+			sb.append("<tr>")
+					.append("<td>").append(trade.getStockSymbol()).append("</td>")
+					.append("<td>").append(trade.getOiChgPer() != null ? String.format("%.2f", trade.getOiChgPer()) : "").append("</td>")
+					.append("<td>").append(trade.getLtpChgPer() != null ? String.format("%.2f", trade.getLtpChgPer()) : "").append("</td>")
+					.append("<td>").append(trade.getStatus() != null ? trade.getStatus() : "").append("</td>")
+					.append("<td>").append(trade.getStockDate()).append("</td>")
+					.append("<td>").append(trade.getFetchTime()).append("</td>")
+					.append("<td>").append(trade.getEntry1() != null ? String.format("%.2f", trade.getEntry1()) : "").append("</td>")
+					.append("<td>").append(trade.getEntry1Time() != null ? trade.getEntry1Time() : "").append("</td>")
+					.append("<td>").append(trade.getEntry2() != null ? String.format("%.2f", trade.getEntry2()) : "").append("</td>")
+					.append("<td>").append(trade.getEntry2Time() != null ? trade.getEntry2Time() : "").append("</td>")
+					.append("<td>").append(trade.getTarget1() != null ? String.format("%.2f", trade.getTarget1()) : "").append("</td>")
+					.append("<td>").append(trade.getTarget1Time() != null ? trade.getTarget1Time() : "").append("</td>")
+					.append("<td>").append(trade.getTarget2() != null ? String.format("%.2f", trade.getTarget2()) : "").append("</td>")
+					.append("<td>").append(trade.getTarget2Time() != null ? trade.getTarget2Time() : "").append("</td>")
+					.append("<td>").append(trade.getStopLoss1() != null ? String.format("%.2f", trade.getStopLoss1()) : "").append("</td>")
+					.append("<td>").append(trade.getStopLoss1Time() != null ? trade.getStopLoss1Time() : "").append("</td>")
 					.append("<td>").append(trade.getTradeNotes() != null ? trade.getTradeNotes() : "").append("</td>")
 					.append("<td>").append(trade.getStrategy() != null ? trade.getStrategy() : "").append("</td>")
 					.append("<td>").append(trade.getType() != null ? trade.getType() : "").append("</td>")

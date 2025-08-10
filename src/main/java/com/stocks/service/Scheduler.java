@@ -133,7 +133,7 @@ public class Scheduler {
 		System.gc();
 	}
 
-	@Scheduled(cron = "50 0/5 9-15 * * ?")
+	@Scheduled(cron = "50 0/5 9-15 ? * MON-FRI")
 	public void marketMavesAndOptionChain() {
 		log.info("Scheduler started Market Movers and Option Chain");
 		logTime();
@@ -145,7 +145,7 @@ public class Scheduler {
 		log.info("Scheduler finished Market Movers and Option Chain ");
 	}
 
-	@Scheduled(cron = "20 0/5 9-15 * * ?")
+	@Scheduled(cron = "20 0/5 9-15 ? * MON-FRI")
 	public void marketMoverGainers() {
 		log.info("Scheduler started Market Movers Gainers and Option Chain");
 		Properties properties = buildProperties();

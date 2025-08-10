@@ -67,6 +67,37 @@ public class TradeSetupManager {
 				.getResultList();
 	}
 
+	@Transactional(readOnly = true)
+	public List<TradeSetupTO> findTradeSetupByDate(String stockDate) {
+		String hql = "FROM TradeSetupEntity WHERE stockDate = :stockDate";
+		List<TradeSetupTO> list = entityManager.createQuery(hql, TradeSetupEntity.class)
+				.setParameter("stockDate", stockDate)
+				.getResultStream().map(this::mapEntityToTO)
+				.toList();
+		return list;
+	}
+
+	private TradeSetupTO mapEntityToTO(TradeSetupEntity entity) {
+		if (entity == null) return null;
+		TradeSetupTO to = new TradeSetupTO();
+		to.setStockSymbol(entity.getStockSymbol());
+		to.setStockDate(entity.getStockDate());
+		to.setFetchTime(entity.getFetchTime());
+		to.setOiChgPer(entity.getOiChgPer());
+		to.setLtpChgPer(entity.getLtpChgPer());
+		to.setEntry1(entity.getEntry1());
+		to.setEntry2(entity.getEntry2());
+		to.setTarget1(entity.getTarget1());
+		to.setTarget2(entity.getTarget2());
+		to.setStopLoss1(entity.getStopLoss1());
+		to.setStopLoss2(entity.getStopLoss2());
+		to.setStatus(entity.getStatus());
+		to.setTradeNotes(entity.getTradeNotes());
+		to.setStrategy(entity.getStrategy());
+		to.setType(entity.getType());
+		return to;
+	}
+
 	private TradeSetupEntity mapTradeSetup(TradeSetupTO tradeSetupTO) {
 		TradeSetupEntity entity = new TradeSetupEntity();
 		entity.setStockSymbol(tradeSetupTO.getStockSymbol());
