@@ -61,7 +61,7 @@ public class MailService {
             messageHelper.setTo(sendTo);
             messageHelper.setSubject(subject);
             messageHelper.setText(content, true);
-            //javaMailSender.send(mimeMessage);
+            javaMailSender.send(mimeMessage);
         } catch (Exception ex) {
             log.error("send mail error", ex);
         }
