@@ -426,7 +426,7 @@ public class MarketMovers {
 								trade.setStatus("O");
 								isEntry1 = true;
 							}
-							if (!isEntry1 && !isEntry2 && candleLow <= trade.getEntry2()) {
+							if (!isEntry1 && !isEntry2 && trade.getEntry2() != null && candleLow <= trade.getEntry2()) {
 								trade.setEntry2Time(DateUtil.getDateTimeFromCalendar(candle.getDate()));
 								trade.setTradeNotes(trade.getTradeNotes() + "E2 ");
 								trade.setStatus("O");
@@ -479,4 +479,148 @@ public class MarketMovers {
 		}
 		return list;
 	}
+
+	public List<TradeSetupTO> marketMoverDetailsBasedOnVolume(Properties properties, String type) {
+
+		MarketMoversResponse marketMoversResponse = ioPulseService.marketMovers(properties);
+		List<TradeSetupTO> trades = new ArrayList<>();
+		if (marketMoversResponse == null || marketMoversResponse.getData() == null || marketMoversResponse.getData().isEmpty()) {
+			log.error("No Market Movers data found");
+			return trades;
+		}
+
+		for (MarketMoverData marketMoverData : marketMoversResponse.getData()) {
+			String stock = marketMoverData.getStSymbolName();
+			if (marketMoverData.getInOldOi() == null || marketMoverData.getInNewOi() == null ||
+					marketMoverData.getInOldClose() == null || marketMoverData.getInNewClose() == null) {
+				log.error("OI or Close data is missing for stock: {}", stock);
+				continue;
+			}
+			if (sectorList.contains(stock)) {
+				log.info("Skipping sector stock: {}", stock);
+				continue;
+			}
+			double oldOi = Double.parseDouble(marketMoverData.getInOldOi());
+			double newOi = Double.parseDouble(marketMoverData.getInNewOi());
+			double oldClose = Double.parseDouble(marketMoverData.getInOldClose());
+			double newClose = Double.parseDouble(marketMoverData.getInNewClose());
+			double ltpChg = newClose - oldClose;
+			double lptChgPer = (ltpChg / oldClose) * 100;
+			double oiChg = ((newOi - oldOi) / oldOi) * 100;
+			String oiInterpretation = (oiChg > 0)
+					? (ltpChg > 0 ? "LBU" : "SBU")
+					: (ltpChg > 0 ? "SC" : "LU");
+			String value = null;
+			if ("G".equals(type) && (oiChg > 1 || oiChg < -1) && lptChgPer > 0) {
+				value = "positive";
+			} else if ("L".equals(type) && oiChg < -1) {
+				value = "negative";
+			} else {
+				log.info("Stock {} Oi Change Per {} Ltp change per {}", stock, oiChg, lptChgPer);
+				continue;
+			}
+			log.info("Stock {} with OI Change {}", stock, oiChg);
+			String startTime = "09:15:00";
+			int interval = properties.getInterval();
+			//properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+			properties.setStartTime(startTime);
+			properties.setEndTime(FormatUtil.getTime(properties.getStartTime(), interval).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+			properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
+			if (!properties.getStockName().isEmpty() && !stock.equals(properties.getStockName())) {
+				continue;
+			}
+			if ("test".equals(properties.getEnv())) {
+				threadSleep(100);
+				LocalTime endTime1 = FormatUtil.getTimeHHmmss("15:00:00");
+				LocalTime endTime = FormatUtil.getTime(startTime, interval);
+				for (int i = interval; endTime.isBefore(endTime1); i += interval) {
+					endTime = FormatUtil.getTime(startTime, i);
+					if (properties.getStockDate().equals(LocalDate.now().toString()) && endTime.isAfter(LocalTime.now())) {
+						break;
+					}
+					properties.setEndTime(endTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+					Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, marketMoverData.getStSymbolName());
+
+					if (strikes != null && !strikes.isEmpty() && strikes.get(1) != null && strikes.get(-1) != null) {
+						int highCEVolumeAt = getHighVolumeCeStrikeIndex(strikes);
+						int highPEVolumeAt = getHighVolumePeStrikeIndex(strikes);
+						int ceVolume = getTotalCeVolume(strikes);
+						int peVolume = getTotalPeVolume(strikes);
+						StrikeTO highCeVolumeStrike = getLargestCeVolumeStrike(strikes);
+						StrikeTO highPeVolumeStrike = getLargestPeVolumeStrike(strikes);
+						/*if ( ceVolume > (3 * peVolume) ) {
+							System.out.println("Stock " + stock + " time at " + endTime + "CE Volume: " + ceVolume + ", PE Volume: " + peVolume);
+						}*/
+
+						if (ceVolume > (3 * peVolume) && highCeVolumeStrike.getCeVolume() > (2 * highPeVolumeStrike.getPeVolume())) {
+							System.out.println("Stock " + stock + " time at " + endTime + "CE Volume: " + ceVolume + ", PE Volume: " + peVolume + " High CE Strike: " + highCeVolumeStrike.getStrikePrice() + " High PE Strike: " + highPeVolumeStrike.getStrikePrice());
+							TradeSetupTO tradeSetup = new TradeSetupTO();
+							tradeSetup.setStockDate(properties.getStockDate());
+							tradeSetup.setFetchTime(properties.getEndTime());
+							tradeSetup.setStockSymbol(stock);
+							tradeSetup.setEntry1((strikes.get(0).getStrikePrice() + strikes.get(1).getStrikePrice())/2);
+							tradeSetup.setTarget1(strikes.get(2).getStrikePrice());
+							tradeSetup.setTarget2(strikes.get(3).getStrikePrice());
+							double stopLoss = Math.min(highPeVolumeStrike.getStrikePrice() , (strikes.get(-1).getStrikePrice() + strikes.get(-2).getStrikePrice()) / 2);
+							tradeSetup.setStopLoss1(stopLoss);
+							tradeSetup.setStrikes(strikes);
+							trades.add(tradeSetup);
+							break;
+						}
+					}
+				}
+			}
+		}
+		persistTrades(trades);
+		return trades;
+	}
+
+	public int getTotalCeVolume(Map<Integer, StrikeTO> strikes) {
+		int totalCeVolume = 0;
+		for (int i = -3; i <= 3; i++) {
+			StrikeTO strike = strikes.get(i);
+			if (strike != null) {
+				totalCeVolume += strike.getCeVolume();
+			}
+		}
+		return totalCeVolume;
+	}
+
+	public int getTotalPeVolume(Map<Integer, StrikeTO> strikes) {
+		int totalPeVolume = 0;
+		for (int i = -3; i <= 3; i++) {
+			StrikeTO strike = strikes.get(i);
+			if (strike != null) {
+				totalPeVolume += strike.getPeVolume();
+			}
+		}
+		return totalPeVolume;
+	}
+
+	public int getHighVolumeCeStrikeIndex(Map<Integer, StrikeTO> strikes) {
+		int maxVolume = Integer.MIN_VALUE;
+		int maxIndex = 0;
+		for (int i = -3; i <= 3; i++) {
+			StrikeTO strike = strikes.get(i);
+			if (strike != null && strike.getCeVolume() > maxVolume) {
+				maxVolume = strike.getCeVolume();
+				maxIndex = i;
+			}
+		}
+		return maxIndex;
+	}
+
+	public int getHighVolumePeStrikeIndex(Map<Integer, StrikeTO> strikes) {
+		int maxVolume = Integer.MIN_VALUE;
+		int maxIndex = 0;
+		for (int i = -3; i <= 3; i++) {
+			StrikeTO strike = strikes.get(i);
+			if (strike != null && strike.getPeVolume() > maxVolume) {
+				maxVolume = strike.getPeVolume();
+				maxIndex = i;
+			}
+		}
+		return maxIndex;
+	}
+
 }

@@ -122,13 +122,13 @@ public class Scheduler {
 	}
 
 
-	//@Scheduled(cron = "50 0/5 9-15 * * ?")
+	@Scheduled(cron = "50 0/5 9-15 * * ?")
 	public void sector() {
-		log.info("Scheduler started");
+		log.info("Scheduler started for Trend Lines for Nifty and Bank Nifty 5 minutes");
 		logTime();
 		Properties properties = new Properties();
 		properties.setInterval(5);
-		properties.setStockDate("2025-06-19");
+		properties.setStockDate("2025-08-11");
 		futureAnalysisService.getTrendLinesForNiftyAndBankNifty(properties);
 		System.gc();
 	}

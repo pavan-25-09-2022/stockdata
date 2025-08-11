@@ -37,4 +37,26 @@ public class MarketMoverController {
 		marketMoversMailService.sendMail(data, properties);
 		return data;
 	}
+
+	@GetMapping("/market-movers-gainers-based-on-volume")
+	public String marketMoversGainersBasedOnVolume(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+	                                  @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
+	                                  @RequestParam(name = "strategy", required = false, defaultValue = "") String strategy,
+												   @RequestParam(name = "env", required = false, defaultValue = "") String env,
+	                                  @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName) {
+		Properties properties = new Properties();
+		properties.setStockDate(stockDate);
+		properties.setInterval(interval);
+		properties.setStockName(stockName);
+		properties.setStrategy(strategy);
+		properties.setEnv(env);
+		List<TradeSetupTO> trades = marketMovers.marketMoverDetailsBasedOnVolume(properties, "G");
+		if (trades == null || trades.isEmpty()) {
+			return "No records found";
+		}
+		String data = marketMoversMailService.beautifyTestResults(trades);
+		marketMoversMailService.sendMail(data, properties);
+		return data;
+	}
+
 }
