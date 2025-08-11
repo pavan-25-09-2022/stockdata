@@ -59,7 +59,7 @@ public class CalendarUtil {
 	 * @param addDays The number of days to add to the date.
 	 * @return A Calendar object set to the specified date and time, with the added days.
 	 */
-	public static Calendar buildCalendar(String date, String time, int addDays) {
+	public static Calendar buildCalendar(String date, String time, int addDays, int addMins) {
 		String[] splitTime = time.split(":");
 		String[] splitDate = date.split("-");
 
@@ -73,6 +73,9 @@ public class CalendarUtil {
 		from.set(Calendar.MILLISECOND, 0);
 		if (addDays != 0) {
 			from.add(Calendar.DAY_OF_MONTH, addDays);
+		}
+		if (addMins > 0) {
+			from.add(Calendar.MINUTE, addMins);
 		}
 		return from;
 	}
