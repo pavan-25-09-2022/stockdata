@@ -392,6 +392,9 @@ public class MarketMovers {
 						candles = candles.subList(0, candles.size() - 1);
 						for (int j = 0; j < candles.size(); j++) {
 							HistoricalQuote candle = candles.get(j);
+							if (candle.getHigh() == null || candle.getLow() == null || candle.getHigh().intValue() == 0 || candle.getLow().intValue() == 0) {
+								continue; // Skip quotes with null values
+							}
 							isEntry1 = StringUtils.hasLength(trade.getEntry1Time());
 							isEntry2 = StringUtils.hasLength(trade.getEntry2Time());
 							isTarget1 = StringUtils.hasLength(trade.getTarget1Time());
@@ -543,6 +546,7 @@ public class MarketMovers {
 							tradeSetup.setEntry1((strikes.get(0).getStrikePrice() + strikes.get(1).getStrikePrice())/2);
 							tradeSetup.setTarget1(strikes.get(2).getStrikePrice());
 							tradeSetup.setTarget2(strikes.get(3).getStrikePrice());
+							tradeSetup.setStrategy("VolumeBased");
 							double stopLoss = Math.min(highPeVolumeStrike.getStrikePrice() , (strikes.get(-1).getStrikePrice() + strikes.get(-2).getStrikePrice()) / 2);
 							tradeSetup.setStopLoss1(stopLoss);
 							tradeSetup.setStrikes(strikes);
