@@ -285,16 +285,18 @@ public class ApiController {
 	@GetMapping("/market-movers-gainers")
 	public String marketMoversGainers(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
 	                                  @RequestParam(name = "env", required = false, defaultValue = "") String env,
+	                                  @RequestParam(name = "crit", required = false, defaultValue = "") String crit,
 	                                  @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
 	                                  @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName) {
 		Properties properties = new Properties();
 		properties.setStockDate(stockDate);
 		properties.setInterval(interval);
 		properties.setStockName(stockName);
+		properties.setStrategy(crit);
 		properties.setEnv(env);
 		List<TradeSetupTO> trades = marketMovers.marketMoverDetails(properties, "G");
 		String data = marketMoversMailService.beautifyResults(trades);
-		marketMoversMailService.sendMail(data, properties);
+//		marketMoversMailService.sendMail(data, properties, "Market Movers Report");
 		return data;
 	}
 
@@ -310,7 +312,7 @@ public class ApiController {
 		properties.setEnv(env);
 		List<TradeSetupTO> trades = marketMovers.marketMoverDetails(properties, "L");
 		String data = marketMoversMailService.beautifyResults(trades);
-		marketMoversMailService.sendMail(data, properties);
+		marketMoversMailService.sendMail(data, properties, "Market Movers Report");
 		return data;
 	}
 
@@ -345,7 +347,7 @@ public class ApiController {
 		List<TradeSetupEntity> allByStockDate = null;
 		if (stockDate != null && !stockDate.isEmpty()) {
 			allByStockDate = tradeSetupManager.findAllByStockDate(stockDate);
-		}else {
+		} else {
 			allByStockDate = tradeSetupManager.findAllTradeSetups();
 		}
 		String data = marketMoversMailService.beautifyTradeSetupResults(allByStockDate);
@@ -359,12 +361,12 @@ public class ApiController {
 		List<TradeSetupEntity> allByStockDate = null;
 		if (stockDate != null && !stockDate.isEmpty()) {
 			allByStockDate = tradeSetupManager.findAllByStockDate(stockDate);
-		}else {
+		} else {
 			allByStockDate = tradeSetupManager.findAllTradeSetups();
 		}
 		StringBuilder sb = new StringBuilder();
 
-		for(TradeSetupEntity tradeSetup : allByStockDate) {
+		for (TradeSetupEntity tradeSetup : allByStockDate) {
 			sb.append("Trade Setup for Stock: ").append(tradeSetup.getStockSymbol()).append(", Date: ").append(tradeSetup.getStockDate()).append("\n");
 			if (tradeSetup.getStrikeSetups() != null && !tradeSetup.getStrikeSetups().isEmpty()) {
 				sb.append(marketMoversMailService.beautifyStrikeSetupResults(tradeSetup.getStrikeSetups()));

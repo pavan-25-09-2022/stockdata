@@ -22,5 +22,4 @@ public class Properties {
 	private boolean checkRecentCandle;
 	private boolean withVolume;
 	private String strategy;
-
 }

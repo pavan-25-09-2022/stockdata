@@ -5,6 +5,7 @@ import com.stocks.dto.TradeSetupTO;
 import com.stocks.entity.StrikeSetupEntity;
 import com.stocks.entity.TradeSetupEntity;
 import com.stocks.service.MailService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+@Slf4j
 @Component
 public class MarketMoversMailService {
 
@@ -192,7 +194,7 @@ public class MarketMoversMailService {
 		return sb.toString();
 	}
 
-	public void sendMail(String data, Properties properties) {
+	public void sendMail(String data, Properties properties, String subject) {
 		// Send email
 		LocalDate currentDate = LocalDate.now();
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
@@ -202,12 +204,12 @@ public class MarketMoversMailService {
 		String formattedDate = currentDate.format(formatter);
 		String sub;
 		if ("test".equalsIgnoreCase(properties.getEnv())) {
-			sub = "Market Movers Report " + formattedDate;
+			sub = subject + " TEST " + formattedDate;
 			if (properties.getExitMins() > 0) {
 				sub = sub + " - " + properties.getExitMins() + " Exit Mins";
 			}
 		} else {
-			sub = "Market Movers Report " + formattedDate;
+			sub = subject + formattedDate;
 		}
 		mailService.sendMail(sub, data);
 

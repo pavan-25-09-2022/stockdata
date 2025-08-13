@@ -654,6 +654,7 @@ public class CalculateOptionChain {
 			}
 			strikeTO.setStrikePrice(strikeKeys.get(i));
 			strikeTO.setCurPrice(underLyingAssetData.getInLtp());
+			strikeTO.setOpenPrice(underLyingAssetData.getInDayOpen());
 			// ...map other fields from OptionChainData to StrikeTO as needed...
 			strikes.put(relIndex, strikeTO);
 		}

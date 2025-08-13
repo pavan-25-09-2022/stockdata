@@ -133,7 +133,7 @@ public class Scheduler {
 		System.gc();
 	}
 
-	@Scheduled(cron = "50 0/5 9-15 ? * MON-FRI")
+	//	@Scheduled(cron = "50 0/5 9-15 ? * MON-FRI")
 	public void marketMavesAndOptionChain() {
 		log.info("Scheduler started Market Movers and Option Chain");
 		logTime();
@@ -152,7 +152,7 @@ public class Scheduler {
 		List<TradeSetupTO> trades = marketMovers.marketMoverDetails(properties, "G");
 		if (!trades.isEmpty()) {
 			String data = marketMoversMailService.beautifyResults(trades);
-			marketMoversMailService.sendMail(data, properties);
+			marketMoversMailService.sendMail(data, properties, "Market Movers Report");
 		}
 		log.info("Scheduler finished Market Movers Gainers and Option Chain ");
 		System.gc();
@@ -167,6 +167,18 @@ public class Scheduler {
 		log.info("Scheduler finished Market Movers Losers and Option Chain ");
 	}
 
+	@Scheduled(cron = "20 0/15 9-15 ? * MON-FRI")
+	public void optionData() {
+		log.info("Scheduler started Option Chain");
+		Properties properties = buildProperties();
+		List<TradeSetupTO> trades = marketMovers.optionChainData(properties);
+		if (!trades.isEmpty()) {
+			String data = marketMoversMailService.beautifyResults(trades);
+			marketMoversMailService.sendMail(data, properties, "Market Movers Report");
+		}
+		log.info("Scheduler finished Option Chain ");
+		System.gc();
+	}
 
 	//	@Scheduled(cron = "50 0/5 9-15 * * ?")
 	public void verifyStockData() {

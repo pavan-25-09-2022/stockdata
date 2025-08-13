@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class StrikeTO {
 	private double curPrice;
+	private double openPrice;
 	private double strikePrice;
 	private int ceOi; // Open Interest for Call Option
 	private double ceOiChg;

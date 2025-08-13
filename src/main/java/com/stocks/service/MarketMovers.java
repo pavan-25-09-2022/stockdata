@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Log4j2
@@ -107,7 +108,7 @@ public class MarketMovers {
 					Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, marketMoverData.getStSymbolName());
 					if (strikes != null && !strikes.isEmpty()) {
 						if (!isCriteria1Met) {
-							TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria1");
+							TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c1");
 							buildTradeSetupTO(tradeSetup1, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
 							if (isTradeProcessed(tradeSetup1)) {
 								tradeSetup1.setStrikes(strikes);
@@ -117,7 +118,7 @@ public class MarketMovers {
 							}
 						}
 						if (!isCriteria2Met) {
-							TradeSetupTO tradeSetup2 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria2");
+							TradeSetupTO tradeSetup2 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c2");
 							buildTradeSetupTO(tradeSetup2, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
 							if (isTradeProcessed(tradeSetup2)) {
 								tradeSetup2.setStrikes(strikes);
@@ -127,7 +128,7 @@ public class MarketMovers {
 							}
 						}
 						if (!isCriteria3Met) {
-							TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria3");
+							TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c3");
 							buildTradeSetupTO(tradeSetup3, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
 							if (isTradeProcessed(tradeSetup3)) {
 								tradeSetup3.setStrikes(strikes);
@@ -137,7 +138,7 @@ public class MarketMovers {
 							}
 						}
 						if (!isCriteria4Met) {
-							TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria4");
+							TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c4");
 							buildTradeSetupTO(tradeSetup3, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
 							if (isTradeProcessed(tradeSetup3)) {
 								tradeSetup3.setStrikes(strikes);
@@ -156,19 +157,19 @@ public class MarketMovers {
 				properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
 				Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, marketMoverData.getStSymbolName());
 				if (strikes != null && !strikes.isEmpty()) {
-					TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria1");
+					TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c1");
 					buildTradeSetupTO(tradeSetup1, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
 					if (isTradeProcessed(tradeSetup1)) {
 						tradeSetup1.setStrikes(strikes);
 						trades.add(tradeSetup1);
 					}
-					TradeSetupTO tradeSetup2 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria2");
+					TradeSetupTO tradeSetup2 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c2");
 					buildTradeSetupTO(tradeSetup2, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
 					if (isTradeProcessed(tradeSetup2)) {
 						tradeSetup2.setStrikes(strikes);
 						trades.add(tradeSetup2);
 					}
-					TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "criteria3");
+					TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c3");
 					buildTradeSetupTO(tradeSetup3, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
 					if (isTradeProcessed(tradeSetup3)) {
 						tradeSetup3.setStrikes(strikes);
@@ -178,6 +179,15 @@ public class MarketMovers {
 			}
 		}
 		persistTrades(trades);
+		if (properties.getStrategy() != null) {
+			return trades.stream()
+					.filter(tradeSetupTO -> {
+						if (tradeSetupTO.getStrategy() == null) {
+							return false;
+						}
+						return tradeSetupTO.getStrategy().equals(properties.getStrategy());
+					}).collect(Collectors.toList());
+		}
 		return trades;
 	}
 
@@ -194,6 +204,7 @@ public class MarketMovers {
 			log.error("No strikes found for stock: {}", stock);
 			return null;
 		}
+
 		StrikeTO strikeUp3 = strikes.getOrDefault(-3, null);
 		StrikeTO strikeUp2 = strikes.getOrDefault(-2, null);
 		StrikeTO strikeUp1 = strikes.getOrDefault(-1, null);
@@ -210,25 +221,36 @@ public class MarketMovers {
 		boolean allValid = isValidStrike(strikeUp3) && isValidStrike(strikeUp2) && isValidStrike(strikeUp1) &&
 				isValidStrike(strikeDown1) && isValidStrike(strikeDown2) && isValidStrike(strikeDown3);
 		TradeSetupTO tradeSetup = new TradeSetupTO();
-		if ("criteria3".equals(criteria) && allValid && (strike0.getPeOiChg() > ((strike0.getCeOiChg()) * 0.7)) &&
-				strikeUp2.getCeOiChg() < 0 && strikeUp3.getCeOiChg() < 0 &&
-				(strikeDown1.getPeOiChg() + strikeDown2.getPeOiChg() + strikeDown3.getPeOiChg()) > 0) {
-			tradeSetup.setStrategy(criteria);
-			double val = (strike0.getStrikePrice() + strike0.getCurPrice()) / 2;
-			if (val > strike0.getCurPrice()) {
-				tradeSetup.setEntry1(strike0.getCurPrice());
-				tradeSetup.setEntry2(val);
-			} else {
-				tradeSetup.setEntry1(val);
-				tradeSetup.setEntry2(strike0.getStrikePrice());
+		if (("c3".equals(criteria) || "c5".equals(criteria))) {
+			allValid = isValidStrike(strikeUp2, true) && isValidStrike(strikeUp1, true) &&
+					isValidStrike(strikeDown1, false) && isValidStrike(strikeDown2, false) && isValidStrike(strikeDown3, false);
+			if ((allValid && (strike0.getPeOiChg() > ((strike0.getCeOiChg()) * 0.7)) &&
+					(("c3".equals(criteria) && (strikeUp1.getCeOiChg() < 0 && strikeUp2.getCeOiChg() < 0)) ||
+							("c5".equals(criteria) && (strikeUp1.getCeOiChg() <= 0 && strikeUp2.getCeOiChg() < 0))) &&
+					(strikeDown1.getPeOiChg() + strikeDown2.getPeOiChg() + strikeDown3.getPeOiChg()) > 0)) {
+				tradeSetup.setStrategy(criteria);
+				double val = (strike0.getStrikePrice() + strike0.getCurPrice()) / 2;
+				if (strike0.getCurPrice() < 500) {
+					tradeSetup.setEntry1(strike0.getStrikePrice());
+					tradeSetup.setEntry2((strike0.getStrikePrice() + strikeUp1.getStrikePrice()) / 2);
+				} else {
+					if (val > strike0.getCurPrice()) {
+						tradeSetup.setEntry1(strike0.getCurPrice());
+						tradeSetup.setEntry2(val);
+					} else {
+						tradeSetup.setEntry1(val);
+						tradeSetup.setEntry2(strike0.getStrikePrice());
+					}
+				}
+				setTargetPrices(tradeSetup, strikes);
+				tradeSetup.setStopLoss1(strikeUp2.getStrikePrice());
+
+				if (tradeSetup.getTarget1() <= strikes.get(0).getStrikePrice() || peVolumeStrike.getStrikePrice() < strikes.get(-1).getStrikePrice()) {
+					return null;
+				}
+				return tradeSetup;
 			}
-			setTargetPrices(tradeSetup, strikes);
-			tradeSetup.setStopLoss1(strikeUp2.getStrikePrice());
-			if (tradeSetup.getTarget1() <= strikes.get(0).getStrikePrice()) {
-				return null;
-			}
-			return tradeSetup;
-		} else if (criteria.equals("criteria2") && isValidStrike(strike0) && allValid && (strike0.getPeOiChg() > ((strike0.getCeOiChg()) * 0.7)) &&
+		} else if ((criteria.equals("c2") || "c6".equals(criteria)) && isValidStrike(strike0) && allValid && (strike0.getPeOiChg() > ((strike0.getCeOiChg()) * 0.7)) &&
 				strikeUp1.getCeOiChg() < 0 && strikeUp2.getCeOiChg() < 0 &&
 				strikeDown1.getPeOiChg() > 0 && strikeDown2.getPeOiChg() > 0) {
 			tradeSetup.setEntry1((strike0.getStrikePrice() + strikeDown1.getStrikePrice()) / 2);
@@ -238,7 +260,7 @@ public class MarketMovers {
 			tradeSetup.setStopLoss1(strikeUp2.getStrikePrice());
 			tradeSetup.setStrategy(criteria);
 			return tradeSetup;
-		} else if (criteria.equals("criteria1") && isValidStrike(strike0) && allValid &&
+		} else if (criteria.equals("c1") && isValidStrike(strike0) && allValid &&
 				strikeUp1.getCeOiChg() < 0 && strikeUp2.getCeOiChg() < 0 && strikeUp3.getCeOiChg() < 0 &&
 				strikeDown1.getPeOiChg() > 0 && strikeDown2.getPeOiChg() > 0 && strikeDown3.getPeOiChg() > 0) {
 			tradeSetup.setEntry1((strike0.getStrikePrice() + strikeDown1.getStrikePrice()) / 2);
@@ -248,7 +270,7 @@ public class MarketMovers {
 			tradeSetup.setStopLoss1(strikeUp2.getStrikePrice());
 			tradeSetup.setStrategy(criteria);
 			return tradeSetup;
-		} else if (criteria.equals("criteria4") && isValidStrike(strike0) && allValid &&
+		} else if (criteria.equals("c4") && isValidStrike(strike0) && allValid &&
 				strikeUp1.getCeOiChg() < 0 && strikeUp2.getCeOiChg() < 0 &&
 				strikeDown1.getPeOiChg() > 0 && strikeDown2.getPeOiChg() > 0 &&
 				peVolumeStrike.getStrikePrice() <= strike0.getStrikePrice()
@@ -283,20 +305,50 @@ public class MarketMovers {
 
 	private void setTargetPrices(TradeSetupTO tradeSetupTO, Map<Integer, StrikeTO> strikes) {
 		StrikeTO ceVolumeStrike = getLargestCeVolumeStrike(strikes);
-		tradeSetupTO.setTarget1(ceVolumeStrike.getStrikePrice());
 		Double target2Price = null;
 		if (strikes.get(1) != null && strikes.get(1).getPeOiChg() < 0) {
-			target2Price = strikes.get(1).getStrikePrice();
+			target2Price = strikes.get(0) != null ? strikes.get(0).getStrikePrice() : null;
 		} else if (strikes.get(2) != null && strikes.get(2).getPeOiChg() < 0) {
-			target2Price = strikes.get(2).getStrikePrice();
+			target2Price = strikes.get(1) != null ? strikes.get(1).getStrikePrice() : null;
 		} else if (strikes.get(3) != null && strikes.get(3).getPeOiChg() < 0) {
-			target2Price = strikes.get(3).getStrikePrice();
+			target2Price = strikes.get(2) != null ? strikes.get(2).getStrikePrice() : null;
 		} else if (strikes.get(4) != null && strikes.get(4).getPeOiChg() < 0) {
-			target2Price = strikes.get(4).getStrikePrice();
+			target2Price = strikes.get(3) != null ? strikes.get(3).getStrikePrice() : null;
 		} else {
-			target2Price = strikes.get(5).getStrikePrice();
+			target2Price = strikes.get(4) != null ? strikes.get(4).getStrikePrice() : null;
 		}
-		tradeSetupTO.setTarget2(target2Price);
+		double target1Price = ceVolumeStrike.getStrikePrice();
+		if (target2Price != null) {
+			if (target2Price < target1Price) {
+				if (target2Price < 500) {
+					tradeSetupTO.setTarget1(target2Price - 2);
+				} else {
+					tradeSetupTO.setTarget1(target2Price);
+				}
+				if (target2Price < 500) {
+					tradeSetupTO.setTarget2(target1Price - 2);
+				} else {
+					tradeSetupTO.setTarget2(target1Price);
+				}
+			} else {
+				if (target2Price < 500) {
+					tradeSetupTO.setTarget2(target2Price - 2);
+				} else {
+					tradeSetupTO.setTarget2(target2Price);
+				}
+				if (target1Price < 500) {
+					tradeSetupTO.setTarget1(target1Price - 2);
+				} else {
+					tradeSetupTO.setTarget1(target1Price);
+				}
+			}
+		} else {
+			if (target1Price < 500) {
+				tradeSetupTO.setTarget1(target1Price - 2);
+			} else {
+				tradeSetupTO.setTarget1(target1Price);
+			}
+		}
 	}
 
 	private boolean isValidStrike(StrikeTO strike) {
@@ -307,6 +359,19 @@ public class MarketMovers {
 		String peOiInt = strike.getPeOiInt();
 		return ("SC".equals(ceOiInt) || "LBU".equals(ceOiInt)) &&
 				("LU".equals(peOiInt) || "SBU".equals(peOiInt));
+	}
+
+	private boolean isValidStrike(StrikeTO strike, boolean up) {
+		if (strike == null) {
+			return false;
+		}
+		String ceOiInt = strike.getCeOiInt();
+		String peOiInt = strike.getPeOiInt();
+		if (up) {
+			return ("SC".equals(ceOiInt) || "LBU".equals(ceOiInt));
+		} else {
+			return ("LU".equals(peOiInt) || "SBU".equals(peOiInt));
+		}
 	}
 
 	private void buildTradeSetupTO(TradeSetupTO tradeSetupTO, MarketMoverData marketMoverData, Properties prop, double oiChg, double ltpChg, String oiInterpretation, String value) {
@@ -358,14 +423,17 @@ public class MarketMovers {
 	public List<TradeSetupTO> testPositiveMarketMovers(Properties properties) {
 		List<TradeSetupTO> list = tradeSetupManager.findTradeSetupByDate(properties.getStockDate());
 		for (TradeSetupTO trade : list) {
+			if (properties.getStrategy() != null && !properties.getStrategy().isEmpty() && !trade.getStrategy().equals(properties.getStrategy())) {
+				continue;
+			}
 			if (StringUtils.hasLength(properties.getStockName()) && !trade.getStockSymbol().equals(properties.getStockName())) {
 				continue;
 			}
 			try {
 				String date = trade.getStockDate();
 				String time = trade.getFetchTime();
-				int noOfDays = 7;
-				int entryDays = 1;
+				int noOfDays = 20;
+				int entryDays = 0;
 				boolean isEntry1 = StringUtils.hasLength(trade.getEntry1Time());
 				boolean isEntry2 = StringUtils.hasLength(trade.getEntry2Time());
 				boolean isTarget1 = StringUtils.hasLength(trade.getTarget1Time());
@@ -431,13 +499,15 @@ public class MarketMovers {
 							}
 							if ((isEntry1 || isEntry2) && (!isTarget1 || !isTarget2) && candleLow <= trade.getStopLoss1()) {
 								trade.setStopLoss1Time(DateUtil.getDateTimeFromCalendar(candle.getDate()));
-								trade.setTradeNotes(trade.getTradeNotes() + "SL ");
+								if (!trade.getTradeNotes().contains("SL ")) {
+									trade.setTradeNotes(trade.getTradeNotes() + "SL ");
+								}
 								if (isTarget1) {
 									trade.setStatus("P");
 								} else {
 									trade.setStatus("L");
 								}
-								isStopLoss1 = true;
+//								isStopLoss1 = true;
 							}
 						}
 					}
@@ -543,11 +613,11 @@ public class MarketMovers {
 							tradeSetup.setStockDate(properties.getStockDate());
 							tradeSetup.setFetchTime(properties.getEndTime());
 							tradeSetup.setStockSymbol(stock);
-							tradeSetup.setEntry1((strikes.get(0).getStrikePrice() + strikes.get(1).getStrikePrice())/2);
+							tradeSetup.setEntry1((strikes.get(0).getStrikePrice() + strikes.get(1).getStrikePrice()) / 2);
 							tradeSetup.setTarget1(strikes.get(2).getStrikePrice());
 							tradeSetup.setTarget2(strikes.get(3).getStrikePrice());
 							tradeSetup.setStrategy("VolumeBased");
-							double stopLoss = Math.min(highPeVolumeStrike.getStrikePrice() , (strikes.get(-1).getStrikePrice() + strikes.get(-2).getStrikePrice()) / 2);
+							double stopLoss = Math.min(highPeVolumeStrike.getStrikePrice(), (strikes.get(-1).getStrikePrice() + strikes.get(-2).getStrikePrice()) / 2);
 							tradeSetup.setStopLoss1(stopLoss);
 							tradeSetup.setStrikes(strikes);
 							trades.add(tradeSetup);
@@ -609,4 +679,129 @@ public class MarketMovers {
 		return maxIndex;
 	}
 
+
+	public List<TradeSetupTO> optionChainData(Properties properties) {
+
+		MarketMoversResponse marketMoversResponse = ioPulseService.marketMovers(properties);
+		List<TradeSetupTO> trades = new ArrayList<>();
+		if (marketMoversResponse == null || marketMoversResponse.getData() == null || marketMoversResponse.getData().isEmpty()) {
+			log.error("No Market Movers data found");
+			return trades;
+		}
+
+		for (MarketMoverData marketMoverData : marketMoversResponse.getData()) {
+			String stock = marketMoverData.getStSymbolName();
+			if (marketMoverData.getInOldOi() == null || marketMoverData.getInNewOi() == null ||
+					marketMoverData.getInOldClose() == null || marketMoverData.getInNewClose() == null) {
+				log.error("OI or Close data is missing for stock: {}", stock);
+				continue;
+			}
+			if (marketMoverData.getInNewDayHigh() < 150) {
+				continue;
+			}
+			if (sectorList.contains(stock) || stock.contains("NIFTY")) {
+				log.info("Skipping sector stock: {}", stock);
+				continue;
+			}
+
+			log.info("Stock {} ", stock);
+			String startTime = "09:15:00";
+			int interval = properties.getInterval();
+			//properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+			properties.setStartTime(startTime);
+			properties.setEndTime(FormatUtil.getTime(properties.getStartTime(), interval).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+			properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
+			if (!properties.getStockName().isEmpty() && !stock.equals(properties.getStockName())) {
+				continue;
+			}
+			if ("test".equals(properties.getEnv())) {
+				threadSleep(500);
+				LocalTime endTime1 = FormatUtil.getTimeHHmmss("13:00:00");
+				LocalTime endTime = FormatUtil.getTime(startTime, interval);
+				boolean isCriteria5Met = false;
+				for (int i = interval; endTime.isBefore(endTime1); i += interval) {
+					endTime = FormatUtil.getTime(startTime, i);
+					if (properties.getStockDate().equals(LocalDate.now().toString()) && endTime.isAfter(LocalTime.now())) {
+						break;
+					}
+					properties.setEndTime(endTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+					Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, marketMoverData.getStSymbolName());
+					if (strikes != null && !strikes.isEmpty()) {
+						double curPrice = strikes.get(0).getCurPrice();
+						double openPrice = strikes.get(0).getOpenPrice();
+						double ltpChgPer = (curPrice - openPrice) / openPrice * 100;
+						if (ltpChgPer <= 0) {
+							continue;
+						}
+						if (!isCriteria5Met) {
+							TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c5");
+							buildTradeSetupTO(tradeSetup1, marketMoverData, properties, 0.0, ltpChgPer, null, "positive");
+							if (isTradeProcessed(tradeSetup1)) {
+								boolean isTargetReached = isTargetReached(tradeSetup1);
+								if (isTargetReached) {
+									log.info("stock {} target already reached", marketMoverData.getStSymbolName());
+								} else {
+									tradeSetup1.setStrikes(strikes);
+									trades.add(tradeSetup1);
+									log.info("stock {} criteria5 met", marketMoverData.getStSymbolName());
+									isCriteria5Met = true;
+								}
+							}
+						}
+						if (isCriteria5Met) {
+							break;
+						}
+					}
+				}
+			} else {
+				threadSleep(100);
+				properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+				Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, marketMoverData.getStSymbolName());
+				if (strikes != null && !strikes.isEmpty()) {
+					double curPrice = strikes.get(0).getCurPrice();
+					double openPrice = strikes.get(0).getOpenPrice();
+					double ltpChgPer = (curPrice - openPrice) / openPrice * 100;
+					TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c5");
+					buildTradeSetupTO(tradeSetup1, marketMoverData, properties, 0.0, ltpChgPer, null, "positive");
+					if (ltpChgPer > 0 && isTradeProcessed(tradeSetup1)) {
+						tradeSetup1.setStrikes(strikes);
+						trades.add(tradeSetup1);
+					}
+				}
+			}
+		}
+		persistTrades(trades);
+		if (properties.getStrategy() != null && !properties.getStrategy().isEmpty()) {
+			return trades.stream()
+					.filter(tradeSetupTO -> {
+						if (tradeSetupTO.getStrategy() == null) {
+							return false;
+						}
+						return tradeSetupTO.getStrategy().equals(properties.getStrategy());
+					}).collect(Collectors.toList());
+		}
+		return trades;
+	}
+
+	private boolean isTargetReached(TradeSetupTO trade) {
+		try {
+			String date = trade.getStockDate();
+			String time = trade.getFetchTime();
+			Calendar from = CalendarUtil.buildCalendar(date, "09:15", 0, 0);
+			Calendar to = CalendarUtil.buildCalendar(date, time, 0, 0);
+			List<HistoricalQuote> candles = yahooFinanceService.getHistoricalQuote(trade.getStockSymbol(), from, to, 2 + "");
+			for (HistoricalQuote hq : candles) {
+				if (hq.getHigh() != null && trade.getTarget1() != null) {
+					double high = hq.getHigh().doubleValue();
+					double target = trade.getTarget1();
+					if (high >= target * 0.998) {
+						return true;
+					}
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return false;
+	}
 }
