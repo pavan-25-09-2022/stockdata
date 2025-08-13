@@ -3,6 +3,7 @@ package com.stocks.controller;
 import com.stocks.dto.Properties;
 import com.stocks.dto.TradeSetupTO;
 import com.stocks.mail.MarketMoversMailService;
+import com.stocks.repository.TradeSetupManager;
 import com.stocks.service.MarketMovers;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,9 @@ public class MarketMoverController {
 	MarketMovers marketMovers;
 	@Autowired
 	MarketMoversMailService marketMoversMailService;
+	@Autowired
+	TradeSetupManager tradeSetupManager;
+
 
 	@GetMapping("/test-market-movers-gainers")
 	public String marketMoversGainers(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
@@ -117,6 +121,14 @@ public class MarketMoverController {
 				writer.append(safe(trade.getType())).append("\n");
 			}
 		}
+	}
+
+	@GetMapping("/getTradeSetups")
+	public String getTradeSetups(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate) {
+		List<TradeSetupTO> tradeSetupByDate = tradeSetupManager.findTradeSetupByDate(stockDate);
+		String data = marketMoversMailService.beautifyTestResults(tradeSetupByDate);
+//		marketMoversMailService.sendMail(data, properties, "Market Movers Report");
+		return data;
 	}
 
 	private String format(Number n) {

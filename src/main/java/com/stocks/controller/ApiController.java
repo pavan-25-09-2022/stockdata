@@ -296,7 +296,7 @@ public class ApiController {
 		properties.setEnv(env);
 		List<TradeSetupTO> trades = marketMovers.marketMoverDetails(properties, "G");
 		String data = marketMoversMailService.beautifyResults(trades);
-//		marketMoversMailService.sendMail(data, properties, "Market Movers Report");
+		marketMoversMailService.sendMail(data, properties, "Market Movers Report");
 		return data;
 	}
 

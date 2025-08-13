@@ -93,7 +93,7 @@ public class MarketMovers {
 			}
 			if ("test".equals(properties.getEnv())) {
 				threadSleep(333);
-				LocalTime endTime1 = FormatUtil.getTimeHHmmss("15:00:00");
+				LocalTime endTime1 = FormatUtil.getTimeHHmmss("10:00:00");
 				LocalTime endTime = FormatUtil.getTime(startTime, interval);
 				boolean isCriteria1Met = false;
 				boolean isCriteria2Met = false;
