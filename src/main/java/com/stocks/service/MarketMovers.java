@@ -175,6 +175,12 @@ public class MarketMovers {
 						tradeSetup3.setStrikes(strikes);
 						trades.add(tradeSetup3);
 					}
+					TradeSetupTO tradeSetup4 = validateAndSetDetailsBasedOnVolume(strikes, marketMoverData.getStSymbolName(), "volume");
+					buildTradeSetupTO(tradeSetup4, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
+					if (isTradeProcessed(tradeSetup4)) {
+						tradeSetup4.setStrikes(strikes);
+						trades.add(tradeSetup4);
+					}
 				}
 			}
 		}
@@ -284,6 +290,36 @@ public class MarketMovers {
 			return tradeSetup;
 		}
 		return null;
+	}
+
+	private TradeSetupTO validateAndSetDetailsBasedOnVolume(Map<Integer, StrikeTO> strikes, String stock, String criteria) {
+		if (strikes == null || strikes.isEmpty()) {
+			log.error("No strikes found for stock: {}", stock);
+			return null;
+		}
+
+		if (strikes != null && !strikes.isEmpty() && strikes.get(1) != null && strikes.get(-1) != null) {
+			int highCEVolumeAt = getHighVolumeCeStrikeIndex(strikes);
+			int highPEVolumeAt = getHighVolumePeStrikeIndex(strikes);
+			int ceVolume = getTotalCeVolume(strikes);
+			int peVolume = getTotalPeVolume(strikes);
+			StrikeTO highCeVolumeStrike = getLargestCeVolumeStrike(strikes);
+			StrikeTO highPeVolumeStrike = getLargestPeVolumeStrike(strikes);
+
+			if (ceVolume > (3 * peVolume) && highCeVolumeStrike.getCeVolume() > (2 * highPeVolumeStrike.getPeVolume())) {
+				TradeSetupTO tradeSetup = new TradeSetupTO();
+				tradeSetup.setStockSymbol(stock);
+				tradeSetup.setEntry1((strikes.get(0).getStrikePrice() + strikes.get(1).getStrikePrice()) / 2);
+				tradeSetup.setTarget1(strikes.get(2).getStrikePrice());
+				tradeSetup.setTarget2(strikes.get(3).getStrikePrice());
+				tradeSetup.setStrategy(criteria);
+				double stopLoss = Math.min(highPeVolumeStrike.getStrikePrice(), (strikes.get(-1).getStrikePrice() + strikes.get(-2).getStrikePrice()) / 2);
+				tradeSetup.setStopLoss1(stopLoss);
+				tradeSetup.setStrikes(strikes);
+				return tradeSetup;
+			}
+		}
+		return  null;
 	}
 
 	private void buildStopLoss(TradeSetupTO tradeSetupTO, StrikeTO strikeUp1, StrikeTO strikeUp2, StrikeTO strikeUp3) {
@@ -625,6 +661,35 @@ public class MarketMovers {
 						}
 					}
 				}
+			} else {
+				threadSleep(100);
+				properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+				Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, marketMoverData.getStSymbolName());
+				if (strikes != null && !strikes.isEmpty() && strikes.get(1) != null && strikes.get(-1) != null) {
+					int highCEVolumeAt = getHighVolumeCeStrikeIndex(strikes);
+					int highPEVolumeAt = getHighVolumePeStrikeIndex(strikes);
+					int ceVolume = getTotalCeVolume(strikes);
+					int peVolume = getTotalPeVolume(strikes);
+					StrikeTO highCeVolumeStrike = getLargestCeVolumeStrike(strikes);
+					StrikeTO highPeVolumeStrike = getLargestPeVolumeStrike(strikes);
+
+					if (ceVolume > (3 * peVolume) && highCeVolumeStrike.getCeVolume() > (2 * highPeVolumeStrike.getPeVolume())) {
+						TradeSetupTO tradeSetup = new TradeSetupTO();
+						tradeSetup.setStockDate(properties.getStockDate());
+						tradeSetup.setFetchTime(properties.getEndTime());
+						tradeSetup.setStockSymbol(stock);
+						tradeSetup.setEntry1((strikes.get(0).getStrikePrice() + strikes.get(1).getStrikePrice()) / 2);
+						tradeSetup.setTarget1(strikes.get(2).getStrikePrice());
+						tradeSetup.setTarget2(strikes.get(3).getStrikePrice());
+						tradeSetup.setStrategy("VolumeBased");
+						double stopLoss = Math.min(highPeVolumeStrike.getStrikePrice(), (strikes.get(-1).getStrikePrice() + strikes.get(-2).getStrikePrice()) / 2);
+						tradeSetup.setStopLoss1(stopLoss);
+						tradeSetup.setStrikes(strikes);
+						trades.add(tradeSetup);
+						break;
+					}
+				}
+
 			}
 		}
 		persistTrades(trades);
