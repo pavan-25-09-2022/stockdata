@@ -586,4 +586,20 @@ public class ApiController {
 		}
 	}
 
+
+	@GetMapping("/getTrendLinesBasedOnOiChange")
+	public List<String> getTrendLinesBasedOnOiChange(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+								 @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
+								 @RequestParam(name = "startTime", required = false, defaultValue = "") String startTime,
+								 @RequestParam(name = "expiryDate", required = false, defaultValue = "") String expiryDate,
+								 @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName) {
+		Properties properties = new Properties();
+		properties.setStockDate(stockDate);
+		properties.setInterval(interval);
+		properties.setStockName(stockName);
+		properties.setStartTime(startTime);
+		properties.setExpiryDate(expiryDate);
+		return futureEodAnalyzerService.getStocksBasedOnHighChangeInOpenInterest(properties);
+	}
+
 }

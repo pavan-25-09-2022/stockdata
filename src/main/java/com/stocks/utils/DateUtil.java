@@ -2,8 +2,10 @@ package com.stocks.utils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 public class DateUtil {
 
@@ -22,5 +24,41 @@ public class DateUtil {
 		if (calendar == null) return null;
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 		return sdf.format(calendar.getTime());
+	}
+
+	public static List<String> getDatesOfTheMonth(int month) {
+
+		SimpleDateFormat simpleDateFormat = new SimpleDateFormat("YYYY-MM-dd");
+
+		Calendar from = Calendar.getInstance();
+		from.set(Calendar.YEAR, 2025);
+		from.set(Calendar.MONTH, month);
+		from.set(Calendar.DATE, 1);
+		from.set(Calendar.HOUR, 9);
+		from.set(Calendar.MINUTE, 30);
+		from.set(Calendar.SECOND, 0);
+
+		Calendar currentDate = Calendar.getInstance();
+		currentDate.set(Calendar.HOUR, 1);
+		List<String> dates = new ArrayList<>();
+		while (from.toInstant().isBefore(currentDate.toInstant())) {
+
+			if (isWeekDay(from)) {
+				dates.add(simpleDateFormat.format(from.getTime()));
+			}
+			from.set(Calendar.DATE, from.get(Calendar.DATE) + 1);
+
+		}
+
+		return dates;
+
+	}
+
+	public static boolean isWeekDay(Calendar from) {
+		if (from.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY ||
+				from.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) {
+			return false;
+		}
+		return true;
 	}
 }

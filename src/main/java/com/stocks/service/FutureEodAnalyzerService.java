@@ -6,6 +6,7 @@ import com.stocks.dto.MarketMoverData;
 import com.stocks.dto.MarketMoversResponse;
 import com.stocks.dto.Properties;
 import com.stocks.dto.StockEODResponse;
+import com.stocks.utils.DateUtil;
 import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -338,7 +339,7 @@ public class FutureEodAnalyzerService {
 		List<FutureAnalysis> positive = new ArrayList<>();
 		List<FutureAnalysis> negative = new ArrayList<>();
 		for (FutureAnalysis futureAnalysis : result) {
-			if (futureAnalysis.getPercentageChange() > 1 && futureAnalysis.getInterpretation().equals("LBU") || futureAnalysis.getInterpretation().equals("SC")) {
+			if (futureAnalysis.getOiPercentageChange() > 1 && futureAnalysis.getInterpretation().equals("LBU") || futureAnalysis.getInterpretation().equals("SC")) {
 				positive.add(futureAnalysis);
 			}
 			if (futureAnalysis.getInterpretation().equals("SBU") || futureAnalysis.getInterpretation().equals("LU")) {
@@ -642,6 +643,56 @@ public class FutureEodAnalyzerService {
 
 
 		return positiveStocks;
+	}
+
+
+	public List<String> getStocksBasedOnHighChangeInOpenInterest(Properties properties) {
+
+		// Path to the file containing the stock list
+		String filePath = "src/main/resources/stocksList.txt";
+
+		// Read all lines from the file into a List
+		List<String> stockList = new ArrayList<>();
+		if (properties.getStockName() != null && !properties.getStockName().isEmpty()) {
+			stockList = Arrays.asList(properties.getStockName().split(","));
+		} else {
+			try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
+				stockList = lines.collect(Collectors.toList());
+				properties.setStockName(String.join(",", stockList));
+			} catch (IOException e) {
+				log.error("Error reading file: " + e.getMessage());
+			}
+		}
+
+		// Read all lines from the file into a List
+
+		List<String> datesOfTheMonth = DateUtil.getDatesOfTheMonth(7);
+		System.out.println(datesOfTheMonth);
+		List<String> strings = new ArrayList<>();
+		for(String stock : stockList){
+			properties.setStockName(stock);
+			System.out.println("Stock " +stock);
+            for(String date : datesOfTheMonth) {
+			properties.setStockDate(date);
+			Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
+
+			for (Map.Entry<String, Map<String, FutureAnalysis>> stringMapEntry : stringMapMap.entrySet()) {
+				Map<String, FutureAnalysis> futureAnalysisMap = stringMapEntry.getValue();
+				for (Map.Entry<String, FutureAnalysis> futureAnalysisEntry : futureAnalysisMap.entrySet()) {
+					String key = futureAnalysisEntry.getKey();
+					FutureAnalysis value = futureAnalysisEntry.getValue();
+					if (value.getOiPercentageChange() > 0.5) {
+						strings.add("Stock " + stock + " , date " + date + " at " + key);
+					}
+				}
+			}
+		}
+
+
+
+		}
+		return strings;
+
 	}
 
 
