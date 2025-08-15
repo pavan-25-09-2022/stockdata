@@ -37,7 +37,7 @@ public class FutureAnalysis {
 
     double strength;
 
-    Double percentageChange;
+    Double oiPercentageChange;
 
     private HistoricalQuote historicalQuote;
 
@@ -79,7 +79,7 @@ public class FutureAnalysis {
         this.volume = volume;
         this.highVolume = highVolume;
         this.strength = strength;
-        this.percentageChange = percentageChange;
+        this.oiPercentageChange = percentageChange;
     }
 
     public String getInterpretation() {
@@ -218,12 +218,12 @@ public class FutureAnalysis {
         this.historicalQuote = historicalQuote;
     }
 
-    public Double getPercentageChange() {
-        return percentageChange;
+    public Double getOiPercentageChange() {
+        return oiPercentageChange;
     }
 
-    public void setPercentageChange(Double percentageChange) {
-        this.percentageChange = percentageChange;
+    public void setOiPercentageChange(Double oiPercentageChange) {
+        this.oiPercentageChange = oiPercentageChange;
     }
 
     public String getSymbol() {
@@ -254,7 +254,7 @@ public class FutureAnalysis {
                 ", volume=" + volume +
                 ", highVolume=" + highVolume +
                 ", strength=" + strength +
-                ", percentageChange=" + percentageChange +
+                ", percentageChange=" + oiPercentageChange +
                 ", historicalQuote=" + historicalQuote +
                 '}';
     }
