@@ -1,5 +1,6 @@
 package com.stocks.mail;
 
+import com.stocks.dto.FutureAnalysis;
 import com.stocks.dto.Properties;
 import com.stocks.dto.TradeSetupTO;
 import com.stocks.entity.StrikeSetupEntity;
@@ -193,6 +194,60 @@ public class MarketMoversMailService {
 		sb.append("</table>");
 		return sb.toString();
 	}
+
+    public String beautifyFutureAnalysisResults(List<FutureAnalysis> futureAnalysisList) {
+        if (futureAnalysisList == null || futureAnalysisList.isEmpty()) return "No future analysis data found.";
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
+        sb.append("<tr>")
+            .append("<th>ID</th>")
+            .append("<th>Symbol</th>")
+            .append("<th>Duration</th>")
+            .append("<th>Total OI</th>")
+            .append("<th>Total Chg OI</th>")
+            .append("<th>Day High</th>")
+            .append("<th>Day Low</th>")
+            .append("<th>Close</th>")
+            .append("<th>High</th>")
+            .append("<th>Low</th>")
+            .append("<th>Open</th>")
+            .append("<th>OI Change</th>")
+            .append("<th>Interpretation</th>")
+            .append("<th>Level Break</th>")
+            .append("<th>LTP Change</th>")
+            .append("<th>Volume</th>")
+            .append("<th>High Volume</th>")
+            .append("<th>Strength</th>")
+            .append("<th>OI % Change</th>")
+            .append("<th>LTP % Change</th>")
+            .append("</tr>");
+        for (FutureAnalysis fa : futureAnalysisList) {
+            sb.append("<tr>")
+                .append("<td>").append(fa.getId()).append("</td>")
+                .append("<td>").append(fa.getSymbol()).append("</td>")
+                .append("<td>").append(fa.getDuration()).append("</td>")
+                .append("<td>").append(fa.getTotalOI()).append("</td>")
+                .append("<td>").append(fa.getTotalChangeInOI()).append("</td>")
+                .append("<td>").append(fa.getDayHigh()).append("</td>")
+                .append("<td>").append(fa.getDayLow()).append("</td>")
+                .append("<td>").append(fa.getClose()).append("</td>")
+                .append("<td>").append(fa.getHigh()).append("</td>")
+                .append("<td>").append(fa.getLow()).append("</td>")
+                .append("<td>").append(fa.getOpen()).append("</td>")
+                .append("<td>").append(fa.getOiChange()).append("</td>")
+                .append("<td>").append(fa.getInterpretation()).append("</td>")
+                .append("<td>").append(fa.getLevelBreak()).append("</td>")
+                .append("<td>").append(fa.getLtpChange()).append("</td>")
+                .append("<td>").append(fa.getVolume()).append("</td>")
+                .append("<td>").append(fa.isHighVolume()).append("</td>")
+                .append("<td>").append(fa.getStrength()).append("</td>")
+                .append("<td>").append(fa.getOiPercentageChange()).append("</td>")
+                .append("<td>").append(fa.getLtpPercentageChange()).append("</td>")
+                .append("</tr>");
+        }
+        sb.append("</table>");
+        return sb.toString();
+    }
 
 	public void sendMail(String data, Properties properties, String subject) {
 		// Send email

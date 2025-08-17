@@ -61,4 +61,22 @@ public class DateUtil {
 		}
 		return true;
 	}
+
+	public static List<String> getWorkingDaysOfMonth(int year, int month) {
+		SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		Calendar calendar = Calendar.getInstance();
+		calendar.set(Calendar.YEAR, year);
+		calendar.set(Calendar.MONTH, month - 1); // Java months are 0-based
+		calendar.set(Calendar.DATE, 1);
+		List<String> workingDays = new ArrayList<>();
+		int maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
+		for (int day = 1; day <= maxDay; day++) {
+			calendar.set(Calendar.DATE, day);
+			int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+			if (dayOfWeek != Calendar.SATURDAY && dayOfWeek != Calendar.SUNDAY) {
+				workingDays.add(simpleDateFormat.format(calendar.getTime()));
+			}
+		}
+		return workingDays;
+	}
 }

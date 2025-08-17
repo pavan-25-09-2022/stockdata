@@ -162,21 +162,24 @@ public class TrendLineService {
         for (int i = 1; i < entries.size(); i++) {
             Map.Entry<String, FutureAnalysis> stringFutureAnalysisEntry = entries.get(i);
             FutureAnalysis futureAnalysis = stringFutureAnalysisEntry.getValue();
-            if (futureAnalysis.getOiChange() > 50000 && futureAnalysis.getVolume().compareTo(futureAnalysis.getOiChange()) > 0) {
-                for (int j = i + 1; j < entries.size() - 1; j++) {
+            if (futureAnalysis.getOiPercentageChange() > 1 ) {
+                boolean isShortCover =false;
+                boolean isLongUnwinding = false;
+                int min = Math.min(i + 5, entries.size() - 1);
+                for (int j = i + 1; j < min; j++) {
                     System.out.println("Comparing " + futureAnalysis.getDuration() + " with " + entries.get(j).getKey());
                     Map.Entry<String, FutureAnalysis> stringFutureAnalysisEntry1 = entries.get(j);
                     FutureAnalysis compareWithFutureAnalysis = stringFutureAnalysisEntry1.getValue();
                     if (compareWithFutureAnalysis.getInterpretation().equals("SC")
-                            && compareWithFutureAnalysis.getVolume() > futureAnalysis.getVolume()
+                            //&& compareWithFutureAnalysis.getVolume() > futureAnalysis.getVolume()
                             && compareWithFutureAnalysis.getClose() > futureAnalysis.getHigh()) {
                         String startTime = futureAnalysis.getDuration().split("-")[0]+":00";
                         String endTime = compareWithFutureAnalysis.getDuration().split("-")[1]+":00";
                         properties.setStartTime(startTime);
                         properties.setEndTime(endTime);
-                         message.append(stock +" positive from " + startTime + " to " + endTime);
+                         message.append(stock +" positive on " +properties.getStockDate()+ " from " + startTime + " to " + endTime);
                         checkOptionChain(stock, properties, message);
-                        return;
+                        isShortCover = true;
                     }
                     if (compareWithFutureAnalysis.getInterpretation().equals("LU")
                             //&& compareWithFutureAnalysis.getVolume() > futureAnalysis.getVolume()
@@ -185,9 +188,13 @@ public class TrendLineService {
                         String endTime = compareWithFutureAnalysis.getDuration().split("-")[1]+":00";
                         properties.setStartTime(startTime);
                         properties.setEndTime(endTime);
-                        message.append(stock+" negative from " + startTime + " to " + endTime);
+                        message.append(stock+" negative on " +properties.getStockDate()+ " from " + startTime + " to " + endTime);
                         checkOptionChain(stock, properties, message);
-                        return;
+                        isLongUnwinding = true;
+                    }
+
+                    if (isShortCover || isLongUnwinding) {
+                        break;
                     }
                 }
             }
@@ -198,6 +205,7 @@ public class TrendLineService {
         for (int i = 0; i < 5; i++) {
             if (calculateOptionChain.changeInOI(stock, properties.getStartTime(), properties, message.toString().contains("positive"), null)) {
                 if( i > 0) {
+                    System.out.println("Option chain found for " + stock + " at " + properties.getStartTime());
                     message.append("  And Option short covered from ").append(properties.getStartTime()).append(" to  ").append(properties.getEndTime());
                 }
             }

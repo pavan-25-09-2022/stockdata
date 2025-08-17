@@ -542,6 +542,7 @@ public class CalculateOptionChain {
 
         return isPositive ? totalCEOIBelowStricks < 0 && totalPEOIAboveStricks > 0 : totalCEOIBelowStricks > 0 && totalPEOIAboveStricks < 0;*/
 
+
 		if (allSticksEitherLBUOrSC && allNegativeCEBelowCount == 3 && allPositivePEAboveCount == 3) {
 			System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is positive");
 			StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
@@ -559,7 +560,7 @@ public class CalculateOptionChain {
 					}
 				}
 			}
-
+			return true;
 		} else if (allSticksEitherSBUOrLU && allPositiveCEBelowCount == 3 && allNegativePEAboveCount == 3) {
 			System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
 			StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria1");
@@ -577,6 +578,7 @@ public class CalculateOptionChain {
 					}
 				}
 			}
+			return true;
 		}
 
 		if (allSticksEitherLBUOrSC && allNegativeCEBelowCount >= 2 && allPositivePEAboveCount >= 2 && peOiChange > ceOiChange) {
@@ -596,6 +598,7 @@ public class CalculateOptionChain {
 					}
 				}
 			}
+			return true;
 		} else if (allSticksEitherSBUOrLU && allPositiveCEBelowCount >= 2 && allNegativePEAboveCount >= 2 && peOiChange < ceOiChange) {
 			System.out.println("Stock " + stock + " from " + properties.getStartTime() + " to " + properties.getEndTime() + " is negative");
 			StockData recentStockData = stockDataManager.getRecordBasedOnCriteria(stock, properties.getStockDate(), "criteria2");
@@ -613,6 +616,7 @@ public class CalculateOptionChain {
 					}
 				}
 			}
+			return true;
 		}
 		return false;
 	}
