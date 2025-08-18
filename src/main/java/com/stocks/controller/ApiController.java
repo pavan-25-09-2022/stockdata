@@ -1,27 +1,12 @@
 package com.stocks.controller;
 
-import com.stocks.dto.HistoricalQuote;
-import com.stocks.dto.Properties;
-import com.stocks.dto.StockData;
-import com.stocks.dto.StockProfitLossResult;
-import com.stocks.dto.StockResponse;
-import com.stocks.dto.TradeSetupTO;
+import com.stocks.dto.*;
 import com.stocks.entity.TradeSetupEntity;
 import com.stocks.enumaration.QueryInterval;
 import com.stocks.mail.Mail;
 import com.stocks.mail.MarketMoversMailService;
 import com.stocks.repository.TradeSetupManager;
-import com.stocks.service.DayHighLowService;
-import com.stocks.service.FutureAnalysisService;
-import com.stocks.service.FutureEodAnalyzerService;
-import com.stocks.service.MarketDataService;
-import com.stocks.service.MarketMovers;
-import com.stocks.service.OpenHighLowService;
-import com.stocks.service.OptionChainService;
-import com.stocks.service.RangeBreakoutStrategy;
-import com.stocks.service.StockDataManager;
-import com.stocks.service.StockResultManager;
-import com.stocks.service.TodayFirstCandleTrendLine;
+import com.stocks.service.*;
 import com.stocks.yahoo.HistQuotesQuery2V8RequestImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +46,9 @@ public class ApiController {
 
 	@Autowired
 	private FutureEodAnalyzerService futureEodAnalyzerService;
+
+	@Autowired
+	FutureAnalysisManager futureAnalysisManager;
 
 	@Autowired
 	OpenHighLowService openHighLowService;
@@ -600,6 +588,23 @@ public class ApiController {
 		properties.setStartTime(startTime);
 		properties.setExpiryDate(expiryDate);
 		return futureEodAnalyzerService.getStocksBasedOnHighChangeInOpenInterest(properties);
+	}
+
+	@GetMapping("/getFutureAnalysisRecords")
+	public String getFutureAnalysisRecords(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+													 @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
+													 @RequestParam(name = "startTime", required = false, defaultValue = "") String startTime,
+													 @RequestParam(name = "expiryDate", required = false, defaultValue = "") String expiryDate,
+													 @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName) {
+		Properties properties = new Properties();
+		properties.setStockDate(stockDate);
+		properties.setInterval(interval);
+		properties.setStockName(stockName);
+		properties.setStartTime(startTime);
+		properties.setExpiryDate(expiryDate);
+		List<FutureAnalysis> allRecords = futureAnalysisManager.getAllRecords();
+		String string = marketMoversMailService.beautifyFutureAnalysisResults(allRecords);
+	    return  string;
 	}
 
 }

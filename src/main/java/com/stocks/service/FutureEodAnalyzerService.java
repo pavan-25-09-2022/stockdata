@@ -52,6 +52,9 @@ public class FutureEodAnalyzerService {
 	@Autowired
 	private CalculateOptionChain calculateOptionChain;
 
+	@Autowired
+	private FutureAnalysisManager futureAnalysisManager;
+
 	@Value("${calculateEodValue}")
 	private int calculateEodValue;
 
@@ -490,16 +493,23 @@ public class FutureEodAnalyzerService {
 				return "No Records";
 			}
 		}
-
-		Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
 		StringBuilder emailContent = new StringBuilder();
-		for (Map.Entry<String, Map<String, FutureAnalysis>> stringMapEntry : stringMapMap.entrySet()) {
-			String stock = stringMapEntry.getKey();
-			StringBuilder message = new StringBuilder();
-			properties.setExpiryDate("250731");
-			trendLineService.findTrend(stringMapMap.get(stock), stock, properties, message);
-			if (message.length() > 50) {
-				emailContent.append(message).append("\n");
+		List<String> datesOfTheMonth = DateUtil.getDatesOfTheMonth(7);
+		for (String date : datesOfTheMonth) {
+			if(date.contains("01")){
+				continue;
+			}
+			properties.setStockDate(date);
+			properties.setExpiryDate(FormatUtil.getMonthExpiry(date));
+			log.info("Processing date: {}", date);
+			Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
+			for (Map.Entry<String, Map<String, FutureAnalysis>> stringMapEntry : stringMapMap.entrySet()) {
+				String stock = stringMapEntry.getKey();
+				StringBuilder message = new StringBuilder();
+				trendLineService.findTrend(stringMapMap.get(stock), stock, properties, message);
+				if (message.length() > 10 && message.toString().contains("short covered")) {
+					emailContent.append(message).append("\n");
+				}
 			}
 		}
 		if (emailContent.length() < 10) {
@@ -666,23 +676,31 @@ public class FutureEodAnalyzerService {
 
 		// Read all lines from the file into a List
 
-		List<String> datesOfTheMonth = DateUtil.getDatesOfTheMonth(7);
+		List<String> datesOfTheMonth = DateUtil.getWorkingDaysOfMonth(2025, 7);
 		System.out.println(datesOfTheMonth);
 		List<String> strings = new ArrayList<>();
 		for(String stock : stockList){
 			properties.setStockName(stock);
 			System.out.println("Stock " +stock);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             for(String date : datesOfTheMonth) {
 			properties.setStockDate(date);
 			Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
-
 			for (Map.Entry<String, Map<String, FutureAnalysis>> stringMapEntry : stringMapMap.entrySet()) {
 				Map<String, FutureAnalysis> futureAnalysisMap = stringMapEntry.getValue();
 				for (Map.Entry<String, FutureAnalysis> futureAnalysisEntry : futureAnalysisMap.entrySet()) {
 					String key = futureAnalysisEntry.getKey();
 					FutureAnalysis value = futureAnalysisEntry.getValue();
-					if (value.getOiPercentageChange() > 0.5) {
-						strings.add("Stock " + stock + " , date " + date + " at " + key);
+					if (value.getOiPercentageChange() > 0.75) {
+						strings.add("Stock " + stock + " , date " + date + " at " + key + " with OI Percentage Change " + value.getOiPercentageChange() +
+								" and Interpretation " + value.getInterpretation() + " with Ltp change " + value.getLtpPercentageChange());
+						if(futureAnalysisManager.getRecordBySymbolDateAndTime(stock, date, key) == null){
+							futureAnalysisManager.saveFutureAnalysis(value);
+						}
 					}
 				}
 			}
