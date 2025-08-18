@@ -228,10 +228,8 @@ public class MarketMovers {
 				isValidStrike(strikeDown1) && isValidStrike(strikeDown2) && isValidStrike(strikeDown3);
 		TradeSetupTO tradeSetup = new TradeSetupTO();
 		if (("c3".equals(criteria) || "c5".equals(criteria))) {
-			allValid = isValidStrike(strikeUp2, true) && isValidStrike(strikeUp1, true) &&
-					isValidStrike(strikeDown1, false) && isValidStrike(strikeDown2, false) && isValidStrike(strikeDown3, false);
-			if ((allValid && (strike0.getPeOiChg() > ((strike0.getCeOiChg()) * 0.7)) &&
-					(("c3".equals(criteria) && (strikeUp1.getCeOiChg() < 0 && strikeUp2.getCeOiChg() < 0)) ||
+			if (((strike0.getPeOiChg() > ((strike0.getCeOiChg()) * 0.7)) &&
+					(("c3".equals(criteria) && allValid && (strikeUp1.getCeOiChg() < 0 && strikeUp2.getCeOiChg() < 0)) ||
 							("c5".equals(criteria) && (strikeUp1.getCeOiChg() <= 0 && strikeUp2.getCeOiChg() < 0))) &&
 					(strikeDown1.getPeOiChg() + strikeDown2.getPeOiChg() + strikeDown3.getPeOiChg()) > 0)) {
 				tradeSetup.setStrategy(criteria);
@@ -319,7 +317,7 @@ public class MarketMovers {
 				return tradeSetup;
 			}
 		}
-		return  null;
+		return null;
 	}
 
 	private void buildStopLoss(TradeSetupTO tradeSetupTO, StrikeTO strikeUp1, StrikeTO strikeUp2, StrikeTO strikeUp3) {
