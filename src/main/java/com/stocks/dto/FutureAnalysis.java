@@ -56,6 +56,9 @@ public class FutureAnalysis {
     @Transient
     private HistoricalQuote historicalQuote;
 
+    public FutureAnalysis() {
+    }
+
     public FutureAnalysis(String symbol, String duration, Double totalOI, Double totalChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength) {
        this.symbol = symbol;
         this.duration = duration;
