@@ -607,4 +607,15 @@ public class ApiController {
 	    return  string;
 	}
 
+	@GetMapping("/getStocksDetails")
+	public List<String> getStocksDetails(@RequestParam(name = "startDate", required = false, defaultValue = "") String startDate,
+										 @RequestParam(name = "endDate", required = false, defaultValue = "") String endDate,
+										 @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval) {
+		Properties properties = new Properties();
+		properties.setInterval(interval);
+		properties.setStartDate(startDate);
+		properties.setEndDate(endDate);
+		return futureEodAnalyzerService.testStocks(properties);
+	}
+
 }

@@ -1,13 +1,11 @@
 package com.stocks.service;
 
-import com.stocks.dto.FutureAnalysis;
-import com.stocks.dto.FutureEodAnalyzer;
-import com.stocks.dto.MarketMoverData;
-import com.stocks.dto.MarketMoversResponse;
+import com.stocks.dto.*;
 import com.stocks.dto.Properties;
-import com.stocks.dto.StockEODResponse;
+import com.stocks.enumaration.QueryInterval;
 import com.stocks.utils.DateUtil;
 import com.stocks.utils.FormatUtil;
+import com.stocks.yahoo.HistQuotesQuery2V8RequestImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +18,7 @@ import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -676,17 +670,14 @@ public class FutureEodAnalyzerService {
 
 		// Read all lines from the file into a List
 
-		List<String> datesOfTheMonth = DateUtil.getWorkingDaysOfMonth(2025, 7);
-		System.out.println(datesOfTheMonth);
+		//List<String> datesOfTheMonth = DateUtil.getWorkingDaysOfMonth(2025, 7);
+		List<String> datesOfTheMonth = new ArrayList<>();
+		datesOfTheMonth.add(properties.getStockDate());
+				System.out.println(datesOfTheMonth);
 		List<String> strings = new ArrayList<>();
 		for(String stock : stockList){
 			properties.setStockName(stock);
 			System.out.println("Stock " +stock);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
             for(String date : datesOfTheMonth) {
 			properties.setStockDate(date);
 			Map<String, Map<String, FutureAnalysis>> stringMapMap = futureAnalysisService.futureAnalysis(properties);
@@ -710,6 +701,99 @@ public class FutureEodAnalyzerService {
 
 		}
 		return strings;
+
+	}
+
+
+	public List<String> testStocks(Properties properties) {
+
+		List<FutureAnalysis> recordsByDateRange = futureAnalysisManager.getRecordsByDateRange(properties.getStartDate(), properties.getEndDate());
+
+		List<String> stocksDetails = new ArrayList<>();
+		for(FutureAnalysis futureAnalysis : recordsByDateRange) {
+
+			if(futureAnalysis.getDate() == null || futureAnalysis.getDuration() == null) {
+				log.error("Date or Time is null for FutureAnalysis: {}", futureAnalysis);
+				continue;
+			}
+			String durationEndTime = futureAnalysis.getDuration().split("-")[0];
+			String[] splitTime = durationEndTime.split(":");
+			String[] splitDate = futureAnalysis.getDate().split("-");
+
+			Calendar from = Calendar.getInstance();
+			from.set(Calendar.YEAR, Integer.parseInt(splitDate[0]));
+			from.set(Calendar.MONTH, Integer.parseInt(splitDate[1]) - 1); // Month is 0-based
+			from.set(Calendar.DAY_OF_MONTH, Integer.parseInt(splitDate[2]));
+			from.set(Calendar.HOUR_OF_DAY, Integer.parseInt(splitTime[0]));
+			from.set(Calendar.MINUTE, Integer.parseInt(splitTime[1]));
+			from.set(Calendar.SECOND, 0);
+			from.set(Calendar.MILLISECOND, 0);
+
+			Calendar to = Calendar.getInstance();
+			to.set(Calendar.HOUR_OF_DAY, 15);
+			to.set(Calendar.MINUTE, 30);
+			to.set(Calendar.SECOND, 0);
+			to.set(Calendar.MILLISECOND, 0);
+
+			String symbol = futureAnalysis.getSymbol() + ".NS"; // For NSE stocks
+			QueryInterval queryInterval = QueryInterval.getInstance(properties.getInterval() + "m");
+			HistQuotesQuery2V8RequestImpl impl1 = new HistQuotesQuery2V8RequestImpl(symbol, from, to, queryInterval);
+            try {
+				boolean isRejected = false;
+				boolean isPositive = false;
+				boolean isNegative = false;
+                List<HistoricalQuote> completeResult = impl1.getCompleteResult();
+
+				if (completeResult == null || completeResult.isEmpty()) {
+					continue;
+				}
+
+				HistoricalQuote firstQuote = null;
+
+				for (HistoricalQuote quote : completeResult) {
+
+					if(firstQuote == null) {
+						firstQuote = quote;
+						continue;
+					}
+
+					if (quote.getHigh() == null || quote.getLow() == null || quote.getHigh().intValue() == 0 || quote.getLow().intValue() == 0) {
+						continue; // Skip quotes with null values
+					}
+
+					if(isPositive && quote.getClose().doubleValue() < firstQuote.getLow().doubleValue()) {
+						break;
+					} else if(isNegative && quote.getClose().doubleValue() > firstQuote.getHigh().doubleValue()) {
+						break;
+					}
+					if (!isPositive && !isNegative) {
+						if (quote.getClose().doubleValue() > firstQuote.getHigh().doubleValue()) {
+							isPositive = true;
+						} else if (quote.getClose().doubleValue() < firstQuote.getLow().doubleValue()) {
+							isNegative = true;
+						}
+					} else {
+						if (isPositive && quote.getLow().doubleValue() <= firstQuote.getLow().doubleValue()
+								&& quote.getClose().doubleValue() > firstQuote.getLow().doubleValue()) {
+							isRejected = true;
+						} else if (isNegative && quote.getHigh().doubleValue() >= firstQuote.getHigh().doubleValue() &&
+								quote.getClose().doubleValue() < firstQuote.getHigh().doubleValue()) {
+							isRejected = true;
+						}
+					}
+					if(isRejected){
+						String trend = isPositive ? "Positive" : "Negative";
+						stocksDetails.add(trend +" Stock " + futureAnalysis.getSymbol() + " with Oi change on Date " +firstQuote.getDate().getTime()
+								+ " ,   rejected at " +quote.getDate().getTime() );
+						break;
+					}
+				}
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+		return stocksDetails;
 
 	}
 

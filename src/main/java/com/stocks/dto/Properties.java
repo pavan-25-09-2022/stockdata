@@ -11,6 +11,8 @@ public class Properties {
 	private int amtInvested;
 	private String stockName = "";
 	private String fileName;
+	private String startDate;
+	private String endDate;
 	private String startTime;
 	private String endTime;
 	private String expiryDate;
