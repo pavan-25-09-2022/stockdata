@@ -4,12 +4,10 @@ package com.stocks.service;
 import com.stocks.dto.ApiResponse;
 import com.stocks.dto.FutureAnalysis;
 import com.stocks.dto.Properties;
-import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -177,7 +175,8 @@ public class FutureAnalysisService {
         String firstCandleDuration = MARKET_START_TIME+"-"+MARKET_START_TIME.plusMinutes(properties.getInterval());
         double firstCandlePercentageChange = ((double) firstCandleOiChange /Long.parseLong(previousEodChunk.getOpenInterest()))*100;
         double firstCandleLtpChangePercentage = (firstCandleLtpChange / previousEodChunk.getClose()) * 100;
-        FutureAnalysis firstCandleFutureAnalysis = new FutureAnalysis(stock, properties.getStockDate(), firstCandleDuration, (double) firstCandleTotalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), previousData.getClose(), firstCandleHigh, firstCandleLow, firstCandleOfADay.getOpen(), firstCandleOiChange, firstCandleOiInterpretation, "", firstCandleLtpChange, highVolume, false,firstCandleStrength, firstCandlePercentageChange, firstCandleLtpChangePercentage);
+        long firstCandleTotalDayChangeInOI = firstCandleOiChange - Long.parseLong(previousEodChunk.getOpenInterest());
+        FutureAnalysis firstCandleFutureAnalysis = new FutureAnalysis(stock, properties.getStockDate(), firstCandleDuration, (double) firstCandleTotalOiChange, firstCandleTotalDayChangeInOI, previousData.getDayHigh(), previousData.getDayLow(), previousData.getClose(), firstCandleHigh, firstCandleLow, firstCandleOfADay.getOpen(), firstCandleOiChange, firstCandleOiInterpretation, "", firstCandleLtpChange, highVolume, false,firstCandleStrength, firstCandlePercentageChange, firstCandleLtpChangePercentage);
         futureAnalysisMap.put(firstCandleDuration, firstCandleFutureAnalysis);
         for (int i = 2; i < chunks.size() - 1; i++) {
             List<ApiResponse.Data> chunk = chunks.get(i);
@@ -282,7 +281,9 @@ public class FutureAnalysisService {
 
             double ltpPercentageChange = (ltpChange / previousData.getClose()) * 100;
 
-            FutureAnalysis futureAnalysis = new FutureAnalysis(stock, properties.getStockDate(), duration, (double) totalOiChange, 0.0, previousData.getDayHigh(), previousData.getDayLow(), recentData.getClose(), curHigh, curLow, firstCandle.getOpen(), oiChange, oiInterpretation, isLevelBreak, ltpChange, totalVolume, isHigher,strength, oiPercentageChange, ltpPercentageChange);
+            long totalDayChangeInOI = totalOiChange - Long.parseLong(previousEodChunk.getOpenInterest());
+
+            FutureAnalysis futureAnalysis = new FutureAnalysis(stock, properties.getStockDate(), duration, (double) totalOiChange, totalDayChangeInOI, previousData.getDayHigh(), previousData.getDayLow(), recentData.getClose(), curHigh, curLow, firstCandle.getOpen(), oiChange, oiInterpretation, isLevelBreak, ltpChange, totalVolume, isHigher,strength, oiPercentageChange, ltpPercentageChange);
             futureAnalysisMap.put(duration, futureAnalysis);
 
         }

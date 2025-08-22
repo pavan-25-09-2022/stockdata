@@ -79,4 +79,24 @@ public class DateUtil {
 		}
 		return workingDays;
 	}
+
+	public static Calendar start() {
+
+		Calendar cal = Calendar.getInstance();
+		cal.set(Calendar.HOUR_OF_DAY, 9);
+		cal.set(Calendar.MINUTE, 15);
+		cal.set(Calendar.SECOND, 0);
+
+		return cal;
+	}
+
+	public static Calendar end() {
+
+		Calendar cal = Calendar.getInstance();
+		cal.set(Calendar.HOUR_OF_DAY, 15);
+		cal.set(Calendar.MINUTE, 29);
+		cal.set(Calendar.SECOND, 59);
+
+		return cal;
+	}
 }

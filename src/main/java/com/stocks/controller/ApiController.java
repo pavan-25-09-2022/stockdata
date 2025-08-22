@@ -576,7 +576,7 @@ public class ApiController {
 
 
 	@GetMapping("/getTrendLinesBasedOnOiChange")
-	public List<String> getTrendLinesBasedOnOiChange(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+	public String getTrendLinesBasedOnOiChange(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
 								 @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
 								 @RequestParam(name = "startTime", required = false, defaultValue = "") String startTime,
 								 @RequestParam(name = "expiryDate", required = false, defaultValue = "") String expiryDate,
@@ -587,7 +587,15 @@ public class ApiController {
 		properties.setStockName(stockName);
 		properties.setStartTime(startTime);
 		properties.setExpiryDate(expiryDate);
-		return futureEodAnalyzerService.getStocksBasedOnHighChangeInOpenInterest(properties);
+		List<FutureAnalysis> stocksBasedOnHighChangeInOpenInterest = futureEodAnalyzerService.getStocksBasedOnHighChangeInOpenInterest(properties);
+		String data = "";
+		if(stocksBasedOnHighChangeInOpenInterest != null || !stocksBasedOnHighChangeInOpenInterest.isEmpty()) {
+			List<FutureAnalysis> recordsByDate = futureAnalysisManager.getRecordsByDate(stockDate);
+			data = marketMoversMailService.beautifyFutureAnalysisResults(recordsByDate);
+			marketMoversMailService.sendMail(data, properties, "Trend Lines Based on OI Change Report");
+		}
+
+		return data;
 	}
 
 	@GetMapping("/getFutureAnalysisRecords")
@@ -602,7 +610,7 @@ public class ApiController {
 		properties.setStockName(stockName);
 		properties.setStartTime(startTime);
 		properties.setExpiryDate(expiryDate);
-		List<FutureAnalysis> allRecords = futureAnalysisManager.getAllRecords();
+		List<FutureAnalysis> allRecords = futureAnalysisManager.getRecordsByDate(stockDate);
 		String string = marketMoversMailService.beautifyFutureAnalysisResults(allRecords);
 	    return  string;
 	}

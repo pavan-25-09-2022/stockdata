@@ -650,7 +650,7 @@ public class FutureEodAnalyzerService {
 	}
 
 
-	public List<String> getStocksBasedOnHighChangeInOpenInterest(Properties properties) {
+	public List<FutureAnalysis> getStocksBasedOnHighChangeInOpenInterest(Properties properties) {
 
 		// Path to the file containing the stock list
 		String filePath = "src/main/resources/stocksList.txt";
@@ -674,7 +674,7 @@ public class FutureEodAnalyzerService {
 		List<String> datesOfTheMonth = new ArrayList<>();
 		datesOfTheMonth.add(properties.getStockDate());
 				System.out.println(datesOfTheMonth);
-		List<String> strings = new ArrayList<>();
+		List<FutureAnalysis> futureAnalysisList = new ArrayList<>();
 		for(String stock : stockList){
 			properties.setStockName(stock);
 			System.out.println("Stock " +stock);
@@ -686,10 +686,9 @@ public class FutureEodAnalyzerService {
 				for (Map.Entry<String, FutureAnalysis> futureAnalysisEntry : futureAnalysisMap.entrySet()) {
 					String key = futureAnalysisEntry.getKey();
 					FutureAnalysis value = futureAnalysisEntry.getValue();
-					if (value.getOiPercentageChange() > 0.75) {
-						strings.add("Stock " + stock + " , date " + date + " at " + key + " with OI Percentage Change " + value.getOiPercentageChange() +
-								" and Interpretation " + value.getInterpretation() + " with Ltp change " + value.getLtpPercentageChange());
+					if (value.getOiPercentageChange() > 1 && value.getLtpPercentageChange() < 0.5) {
 						if(futureAnalysisManager.getRecordBySymbolDateAndTime(stock, date, key) == null){
+							futureAnalysisList.add(value);
 							futureAnalysisManager.saveFutureAnalysis(value);
 						}
 					}
@@ -700,7 +699,7 @@ public class FutureEodAnalyzerService {
 
 
 		}
-		return strings;
+		return futureAnalysisList;
 
 	}
 
@@ -766,6 +765,7 @@ public class FutureEodAnalyzerService {
 					} else if(isNegative && quote.getClose().doubleValue() > firstQuote.getHigh().doubleValue()) {
 						break;
 					}
+
 					if (!isPositive && !isNegative) {
 						if (quote.getClose().doubleValue() > firstQuote.getHigh().doubleValue()) {
 							isPositive = true;

@@ -41,6 +41,8 @@ public class Scheduler {
 	private ApiController apiController;
 	@Autowired
 	private FutureEodAnalyzerService futureEodAnalyzerService;
+	@Autowired
+	private DayHighLowBreakService dayHighLowBreakService;
 
 	//    @Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
 	public void callApi() {
@@ -122,7 +124,7 @@ public class Scheduler {
 	}
 
 
-	@Scheduled(cron = "50 0/5 9-15 * * ?")
+	//@Scheduled(cron = "50 0/5 9-15 * * ?")
 	public void sector() {
 		log.info("Scheduler started for Trend Lines for Nifty and Bank Nifty 5 minutes");
 		logTime();
@@ -196,5 +198,35 @@ public class Scheduler {
 		return properties;
 	}
 
+	@Scheduled(cron = "40 0/5 9-15 ? * MON-FRI")
+	private void getStocksBasedOnHighChangeInOpenInterest(){
+		log.info("Scheduler started getStocksBasedOnHighChangeInOpenInterest");
+		Properties properties = buildProperties();
+		futureEodAnalyzerService.getStocksBasedOnHighChangeInOpenInterest(properties);
+		log.info("Scheduler finished getStocksBasedOnHighChangeInOpenInterest ");
 
+	}
+
+	//@Scheduled(cron = "30 20-59/5,0-59/5 9,10,11,12,13,14,15 * * MON-FRI")
+	private  void testStockData() {
+		log.info("Scheduler started testStockData");
+		Properties properties = new Properties();
+		properties.setInterval(5);
+		properties.setStartDate(LocalDate.now().toString());
+		properties.setEndDate(LocalDate.now().toString());
+		List<String> strings = futureEodAnalyzerService.testStocks(properties);
+		if(strings != null && !strings.isEmpty()) {
+			marketMoversMailService.sendMail(strings.toString(), properties, "Test Stock Data Report");
+		}
+		System.gc();
+		log.info("Scheduler finished testStockData ");
+	}
+
+	@Scheduled(cron = "0 20-59,0-59 9,10,11,12,13,14 * * MON-FRI")
+	private void dayHighLowBreak(){
+		log.info("Scheduler started Day High Low");
+		dayHighLowBreakService.testDayHighLow();
+		log.info("Scheduler finished Day High Low");
+		System.gc();
+	}
 }

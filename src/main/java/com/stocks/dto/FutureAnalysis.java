@@ -21,7 +21,7 @@ public class FutureAnalysis {
 
     Double totalOI;
 
-    Double totalChangeInOI;
+    Long totalDayChangeInOI;
 
     Double dayHigh;
 
@@ -59,11 +59,11 @@ public class FutureAnalysis {
     public FutureAnalysis() {
     }
 
-    public FutureAnalysis(String symbol, String duration, Double totalOI, Double totalChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength) {
+    public FutureAnalysis(String symbol, String duration, Double totalOI, Long totalDayChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength) {
        this.symbol = symbol;
         this.duration = duration;
         this.totalOI = totalOI;
-        this.totalChangeInOI = totalChangeInOI;
+        this.totalDayChangeInOI = totalDayChangeInOI;
         this.dayHigh = dayHigh;
         this.dayLow = dayLow;
         this.close = close;
@@ -79,12 +79,12 @@ public class FutureAnalysis {
         this.strength = strength;
     }
 
-    public FutureAnalysis(String symbol,String date, String duration, Double totalOI, Double totalChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength, double percentageChange, double ltpPercentageChange) {
+    public FutureAnalysis(String symbol,String date, String duration, Double totalOI, Long totalDayChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength, double percentageChange, double ltpPercentageChange) {
         this.symbol=symbol;
         this.date = date;
         this.duration = duration;
         this.totalOI = totalOI;
-        this.totalChangeInOI = totalChangeInOI;
+        this.totalDayChangeInOI = totalDayChangeInOI;
         this.dayHigh = dayHigh;
         this.dayLow = dayLow;
         this.close = close;
@@ -108,7 +108,7 @@ public class FutureAnalysis {
                 "symbol='" + symbol + '\'' +
                 ", duration='" + duration + '\'' +
                 ", totalOI=" + totalOI +
-                ", totalChangeInOI=" + totalChangeInOI +
+                ", totalDayChangeInOI=" + totalDayChangeInOI +
                 ", dayHigh=" + dayHigh +
                 ", dayLow=" + dayLow +
                 ", close=" + close +

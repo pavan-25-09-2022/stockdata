@@ -93,7 +93,7 @@ public class MarketMovers {
 			}
 			if ("test".equals(properties.getEnv())) {
 				threadSleep(333);
-				LocalTime endTime1 = FormatUtil.getTimeHHmmss("10:00:00");
+				LocalTime endTime1 = FormatUtil.getTimeHHmmss("12:00:00");
 				LocalTime endTime = FormatUtil.getTime(startTime, interval);
 				boolean isCriteria1Met = false;
 				boolean isCriteria2Met = false;
@@ -254,13 +254,17 @@ public class MarketMovers {
 				}
 				return tradeSetup;
 			}
-		} else if ((criteria.equals("c2") || "c6".equals(criteria)) && isValidStrike(strike0) && allValid && (strike0.getPeOiChg() > ((strike0.getCeOiChg()) * 0.7)) &&
+		} else if ((criteria.equals("c2") || "c6".equals(criteria)) && isValidStrike(strike0) && allValid
+				&& strike0.getCeOiChg()  < 0 && strike0.getPeOiChg() > 0 &&
 				strikeUp1.getCeOiChg() < 0 && strikeUp2.getCeOiChg() < 0 &&
-				strikeDown1.getPeOiChg() > 0 && strikeDown2.getPeOiChg() > 0) {
+				strikeDown1.getPeOiChg() > 0 && strikeDown2.getPeOiChg() > 0 &&
+				(ceVolumeStrike.getCeVolume() > (2 * peVolumeStrike.getPeVolume()))) {
+
+			System.out.println(" Volume  Ce volume" +ceVolumeStrike.getCeVolume() + "  Pe volume " + peVolumeStrike.getPeVolume() + "  is greater" +(ceVolumeStrike.getCeVolume() > (2 * peVolumeStrike.getPeVolume())));
 			tradeSetup.setEntry1((strike0.getStrikePrice() + strikeDown1.getStrikePrice()) / 2);
 			tradeSetup.setEntry2(strike0.getStrikePrice());
-			tradeSetup.setTarget1((strikeDown2.getStrikePrice() + strikeDown3.getStrikePrice()) / 2);
-			tradeSetup.setTarget2(strikeDown3.getStrikePrice());
+			tradeSetup.setTarget2((strikeDown2.getStrikePrice() + strikeDown3.getStrikePrice()) / 2);
+			tradeSetup.setTarget1(strikeDown2.getStrikePrice());
 			tradeSetup.setStopLoss1(strikeUp2.getStrikePrice());
 			tradeSetup.setStrategy(criteria);
 			return tradeSetup;
