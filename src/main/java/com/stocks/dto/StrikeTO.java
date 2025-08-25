@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class StrikeTO {
+	private int index;
 	private double curPrice;
 	private double openPrice;
 	private double strikePrice;

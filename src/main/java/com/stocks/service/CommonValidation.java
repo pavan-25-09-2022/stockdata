@@ -2,16 +2,22 @@ package com.stocks.service;
 
 import com.stocks.dto.ApiResponse;
 import com.stocks.dto.Candle;
+import com.stocks.dto.CandleDataResponse;
 import com.stocks.dto.Properties;
 import com.stocks.dto.StockProfitResult;
 import com.stocks.dto.StockResponse;
+import com.stocks.utils.DateUtil;
 import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,6 +42,8 @@ public class CommonValidation {
 		prop.setStockDate(FormatUtil.addDays(properties.getStockDate(), -2));
 		prop.setStockName(properties.getStockName());
 		List<Candle> ystCandles = getCandles(prop, stock);
+		// ignore yest EOD candle
+		ystCandles = ystCandles.subList(1, candles.size());
 //        Properties prop1 = new Properties();
 //        prop1.setStockDate(FormatUtil.getYesterdayDate(properties.getStockDate(), 3));
 //        prop1.setStockName(properties.getStockName());
@@ -182,7 +190,9 @@ public class CommonValidation {
 	public boolean isPositive(List<Candle> candles, Candle firstCandle, Candle curCandle, String oiInterpretation) {
 		double topWick = curCandle.getHigh() - Math.max(curCandle.getOpen(), curCandle.getClose());
 		double bodySize = Math.abs(curCandle.getOpen() - curCandle.getClose());
-		return (topWick < bodySize && curCandle.getClose() > firstCandle.getOpen() && curCandle.getClose() > firstCandle.getClose() && IsLBUorSC(candles) && curCandle.getOpen() < curCandle.getClose() && oiInterpretation.equals("LBU"));
+		return (
+				curCandle.getClose() > firstCandle.getClose() && curCandle.getOpen() > firstCandle.getOpen() &&
+						oiInterpretation.equals("LBU"));
 //        return curCandle.getClose() > firstCandle.getHigh() && highToOpenChge < 0.4 && curCandle.getLow() < firstCandle.getHigh() && (oiInterpretation.equals("LBU"))
 	}
 
@@ -195,6 +205,11 @@ public class CommonValidation {
 	}
 
 
+	@Deprecated
+	/**
+	 * This method is deprecated and should not be used in new code.
+	 * use getCandles(Properties properties, String from, String to) instead.
+	 */
 	public List<Candle> getCandles(Properties properties, String stock) {
 		List<Candle> candles = new ArrayList<>();
 		// Make POST request
@@ -220,6 +235,15 @@ public class CommonValidation {
 			return candles;
 		}
 		ApiResponse.Data previousEodChunk = chunks.get(0).get(0);
+
+		if (previousEodChunk != null) {
+			Candle previousEodCandle = new Candle();
+			previousEodCandle.setOpen(previousEodChunk.getOpen());
+			previousEodCandle.setHigh(previousEodChunk.getHigh());
+			previousEodCandle.setLow(previousEodChunk.getLow());
+			previousEodCandle.setClose(previousEodChunk.getClose());
+			candles.add(previousEodCandle);
+		}
 
 		List<ApiResponse.Data> firstCandleChunk = chunks.get(1);
 //        if(firstCandleChunk.size() < 3){
@@ -253,7 +277,6 @@ public class CommonValidation {
 		firstCandleStick.setCount(firstCandleChunk.size());
 		double oiPert = ((double) firstCandleStick.getOiChange() / (firstCandleStick.getOpenInterest() - firstCandleStick.getOiChange())) * 100;
 		firstCandleStick.setCurOiPer(Double.valueOf(String.format("%.2f", oiPert)));
-		firstCandleStick.setTotalOiPer(firstCandleStick.getCurOiPer());
 		firstCandleStick.setStartTime(FormatUtil.getTimeHHmm("09:15"));
 		LocalTime endTime = FormatUtil.getTime("09:15:00", Math.min(properties.getInterval(), 15));
 		firstCandleStick.setEndTime(endTime);
@@ -331,12 +354,64 @@ public class CommonValidation {
 			candle.setOiInt(oiInterpretation);
 			double curPer = ((double) candle.getOiChange() / (candle.getOpenInterest() - candle.getOiChange())) * 100;
 			candle.setCurOiPer(Double.valueOf(String.format("%.2f", curPer)));
-			candle.setTotalOiPer(prevCandle.getTotalOiPer() + candle.getCurOiPer());
 			candle.setLtpChange(Double.valueOf(String.format("%.2f", (candle.getClose() - prevCandle.getClose()))));
 			candles.add(candle);
 			candle.setPatternType(candlePattern.evaluate(candles));
-			log.info("Candle: {}-{} : {} - {} - {} - {} - {} - {} - {} - {} - {}", stock, properties.getStockDate(), candle.getStartTime(), candle.getEndTime(), candle.getOpen(), candle.getHigh(), candle.getLow(), candle.getClose(), candle.getVolume(), candle.getOiInt(), candle.getPatternType());
+//			log.info("Candle: {}-{} : {} - {} - {} - {} - {} - {} - {} - {} - {}", stock, properties.getStockDate(), candle.getStartTime(), candle.getEndTime(), candle.getOpen(), candle.getHigh(), candle.getLow(), candle.getClose(), candle.getVolume(), candle.getOiInt(), candle.getPatternType());
 			prevCandle = candle;
+		}
+		return candles;
+	}
+
+	public List<Candle> getCandles(Properties properties, String from, String to) {
+		long fromEpoch = DateUtil.getEpochTimeFromString(from);
+		long toEpoch = DateUtil.getEpochTimeFromString(to);
+
+		CandleDataResponse candleDataResponse = ioPulseService.getCandleData(properties, fromEpoch, toEpoch);
+		if (candleDataResponse == null) {
+			log.error("Candle data response is null for stock: {} from: {} to: {}", properties.getStockName(), from, to);
+			return Collections.emptyList();
+		}
+		List<Candle> candles = new ArrayList<>();
+		for (int i = 0; i < candleDataResponse.getData().size(); i++) {
+			CandleDataResponse.Data candleData = candleDataResponse.getData().get(i);
+//			CandleDataResponse.Data beforeCandle = candleDataResponse.getData().get(i - 1);
+			Candle candle = new Candle();
+			candle.setOpen(candleData.getOpen());
+			candle.setHigh(candleData.getHigh());
+			candle.setLow(candleData.getLow());
+			candle.setClose(candleData.getClose());
+			candle.setVolume(candleData.getVolume());
+			if (StringUtils.hasText(candleData.getOi())) {
+				candle.setOpenInterest(Long.parseLong(candleData.getOi()));
+			}
+			long epochSeconds = (long) Double.parseDouble(candleData.getTime());
+			LocalTime startTime = Instant.ofEpochSecond(epochSeconds)
+					.atZone(ZoneId.systemDefault())
+					.toLocalTime();
+			LocalDate date = Instant.ofEpochSecond(epochSeconds)
+					.atZone(ZoneId.systemDefault())
+					.toLocalDate();
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+			candle.setStartTime(FormatUtil.getTimeHHmm(startTime.format(formatter)));
+
+			int interval = properties.getInterval(); // interval in minutes
+			LocalTime endTime = startTime.plusMinutes(interval);
+			candle.setEndTime(FormatUtil.getTimeHHmm(endTime.format(formatter)));
+			DateTimeFormatter formatter1 = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+			candle.setDate(date.format(formatter1));
+//			double ltpChange = candle.getClose() - beforeCandle.getClose();
+//			ltpChange = Double.parseDouble(String.format("%.2f", ltpChange));
+//			long oiChange = candle.getOpenInterest() - Long.parseLong(beforeCandle.getOi());
+//			String oiInterpretation = (oiChange > 0)
+//					? (ltpChange > 0 ? "LBU" : "SBU")
+//					: (ltpChange > 0 ? "SC" : "LU");
+//			candle.setOiChange(oiChange);
+//			candle.setOiInt(oiInterpretation);
+//			double curPer = ((double) candle.getOiChange() / (candle.getOpenInterest() - candle.getOiChange())) * 100;
+//			candle.setCurOiPer(Double.parseDouble(String.format("%.2f", curPer)));
+//			candle.setLtpChange(Double.parseDouble(String.format("%.2f", (candle.getClose() - beforeCandle.getClose()))));
+			candles.add(candle);
 		}
 		return candles;
 	}

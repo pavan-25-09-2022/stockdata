@@ -2,12 +2,17 @@ package com.stocks.utils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
 public class DateUtil {
+
+	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
 	public static Date getDateFromString(String stringDate) {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -98,5 +103,16 @@ public class DateUtil {
 		cal.set(Calendar.SECOND, 59);
 
 		return cal;
+	}
+
+	public static long getEpochTimeFromString(String dateString) {
+		LocalDateTime ldt = LocalDateTime.parse(dateString, DATE_TIME_FORMATTER);
+		return ldt.atZone(ZoneId.systemDefault()).toEpochSecond();
+	}
+
+	public static String getDateFromCalendar(Calendar calendar) {
+		if (calendar == null) return null;
+		LocalDateTime ldt = LocalDateTime.ofInstant(calendar.toInstant(), ZoneId.systemDefault());
+		return DATE_TIME_FORMATTER.format(ldt);
 	}
 }

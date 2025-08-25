@@ -10,14 +10,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-@Component
+//@Component
 public class Scheduler {
 
 	private static final Logger log = LoggerFactory.getLogger(Scheduler.class);
@@ -51,13 +50,14 @@ public class Scheduler {
 		Properties properties = new Properties();
 		properties.setInterval(5);
 		properties.setExpiryDate("250529");
-		List<StockResponse> list = apiService.callApi(properties);
+		properties.setStartTime("09:15");
+		List<TradeSetupTO> list = apiService.callApi(properties);
 		if (list == null || list.isEmpty()) {
 			log.info("No records found");
 			return;
 		}
-		String data = mailService.beautifyResults(list, properties);
-		mailService.sendMail(data, properties);
+		String data = marketMoversMailService.beautifyResults(list);
+		marketMoversMailService.sendMail(data, properties, "API Stocks Report");
 		System.gc();
 		log.info("Scheduler finished " + list.size());
 	}
