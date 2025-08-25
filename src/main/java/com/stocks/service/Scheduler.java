@@ -10,13 +10,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-//@Component
+@Component
 public class Scheduler {
 
 	private static final Logger log = LoggerFactory.getLogger(Scheduler.class);
@@ -43,7 +44,7 @@ public class Scheduler {
 	@Autowired
 	private DayHighLowBreakService dayHighLowBreakService;
 
-	//    @Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
+	@Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
 	public void callApi() {
 		log.info("Scheduler started API stocks");
 		logTime();
@@ -199,7 +200,7 @@ public class Scheduler {
 	}
 
 	@Scheduled(cron = "40 0/5 9-15 ? * MON-FRI")
-	private void getStocksBasedOnHighChangeInOpenInterest(){
+	private void getStocksBasedOnHighChangeInOpenInterest() {
 		log.info("Scheduler started getStocksBasedOnHighChangeInOpenInterest");
 		Properties properties = buildProperties();
 		futureEodAnalyzerService.getStocksBasedOnHighChangeInOpenInterest(properties);
@@ -208,14 +209,14 @@ public class Scheduler {
 	}
 
 	//@Scheduled(cron = "30 20-59/5,0-59/5 9,10,11,12,13,14,15 * * MON-FRI")
-	private  void testStockData() {
+	private void testStockData() {
 		log.info("Scheduler started testStockData");
 		Properties properties = new Properties();
 		properties.setInterval(5);
 		properties.setStartDate(LocalDate.now().toString());
 		properties.setEndDate(LocalDate.now().toString());
 		List<String> strings = futureEodAnalyzerService.testStocks(properties);
-		if(strings != null && !strings.isEmpty()) {
+		if (strings != null && !strings.isEmpty()) {
 			marketMoversMailService.sendMail(strings.toString(), properties, "Test Stock Data Report");
 		}
 		System.gc();
@@ -223,7 +224,7 @@ public class Scheduler {
 	}
 
 	@Scheduled(cron = "0 20-59,0-59 9,10,11,12,13,14 * * MON-FRI")
-	private void dayHighLowBreak(){
+	private void dayHighLowBreak() {
 		log.info("Scheduler started Day High Low");
 		dayHighLowBreakService.testDayHighLow();
 		log.info("Scheduler finished Day High Low");
