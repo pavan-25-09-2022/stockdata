@@ -60,136 +60,12 @@ public class MarketMovers {
 
 		for (MarketMoverData marketMoverData : marketMoversResponse.getData()) {
 			String stock = marketMoverData.getStSymbolName();
-			if (marketMoverData.getInOldOi() == null || marketMoverData.getInNewOi() == null ||
-					marketMoverData.getInOldClose() == null || marketMoverData.getInNewClose() == null) {
-				log.error("OI or Close data is missing for stock: {}", stock);
+			List<String> values = getStockType(marketMoverData, type);
+			if (values == null) {
 				continue;
 			}
-			if (sectorList.contains(stock)) {
-				log.info("Skipping sector stock: {}", stock);
-				continue;
-			}
-			double oldOi = Double.parseDouble(marketMoverData.getInOldOi());
-			double newOi = Double.parseDouble(marketMoverData.getInNewOi());
-			double oldClose = Double.parseDouble(marketMoverData.getInOldClose());
-			double newClose = Double.parseDouble(marketMoverData.getInNewClose());
-			double ltpChg = newClose - oldClose;
-			double lptChgPer = (ltpChg / oldClose) * 100;
-			double oiChg = ((newOi - oldOi) / oldOi) * 100;
-			String oiInterpretation = (oiChg > 0)
-					? (ltpChg > 0 ? "LBU" : "SBU")
-					: (ltpChg > 0 ? "SC" : "LU");
-			String value = null;
-			if ("G".equals(type) && (oiChg > 2 || oiChg < -2) && lptChgPer > 2) {
-				value = "positive";
-			} else if ("L".equals(type) && oiChg < -1) {
-				value = "negative";
-			} else {
-				log.info("Stock {} Oi Change Per {} Ltp change per {}", stock, oiChg, lptChgPer);
-				continue;
-			}
-			log.info("Stock {} with OI Change {}", stock, oiChg);
-			String startTime = "09:15:00";
-			int interval = properties.getInterval();
-			//properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-			properties.setStartTime(startTime);
-			properties.setEndTime(FormatUtil.getTime(properties.getStartTime(), interval).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-			properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
-			if (!properties.getStockName().isEmpty() && !stock.equals(properties.getStockName())) {
-				continue;
-			}
-			if ("test".equals(properties.getEnv())) {
-				threadSleep(50);
-				LocalTime endTime1 = FormatUtil.getTimeHHmmss("12:00:00");
-				LocalTime endTime = FormatUtil.getTime(startTime, interval);
-				boolean isCriteria1Met = StringUtils.hasText(properties.getStrategy()) && !"c1".equals(properties.getStrategy());
-				boolean isCriteria2Met = StringUtils.hasText(properties.getStrategy()) && !"c2".equals(properties.getStrategy());
-				boolean isCriteria3Met = StringUtils.hasText(properties.getStrategy()) && !"c3".equals(properties.getStrategy());
-				boolean isCriteria4Met = StringUtils.hasText(properties.getStrategy()) && !"c4".equals(properties.getStrategy());
-				for (int i = interval; endTime.isBefore(endTime1); i += interval) {
-					endTime = FormatUtil.getTime(startTime, i);
-					if (properties.getStockDate().equals(LocalDate.now().toString()) && endTime.isAfter(LocalTime.now())) {
-						break;
-					}
-					properties.setEndTime(endTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-					Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, marketMoverData.getStSymbolName());
-					if (strikes != null && !strikes.isEmpty()) {
-						if (!isCriteria1Met) {
-							TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c1");
-							buildTradeSetupTO(tradeSetup1, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
-							if (isTradeProcessed(tradeSetup1)) {
-								tradeSetup1.setStrikes(strikes);
-								trades.add(tradeSetup1);
-								log.info("stock {} criteria1 met", marketMoverData.getStSymbolName());
-								isCriteria1Met = true;
-							}
-						}
-						if (!isCriteria2Met) {
-							TradeSetupTO tradeSetup2 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c2");
-							buildTradeSetupTO(tradeSetup2, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
-							if (isTradeProcessed(tradeSetup2)) {
-								tradeSetup2.setStrikes(strikes);
-								trades.add(tradeSetup2);
-								log.info("stock {} criteria2 met", marketMoverData.getStSymbolName());
-								isCriteria2Met = true;
-							}
-						}
-						if (!isCriteria3Met) {
-							TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c3");
-							buildTradeSetupTO(tradeSetup3, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
-							if (isTradeProcessed(tradeSetup3)) {
-								tradeSetup3.setStrikes(strikes);
-								trades.add(tradeSetup3);
-								log.info("stock {} criteria3 met", marketMoverData.getStSymbolName());
-								isCriteria3Met = true;
-							}
-						}
-						if (!isCriteria4Met) {
-							TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c4");
-							buildTradeSetupTO(tradeSetup3, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
-							if (isTradeProcessed(tradeSetup3)) {
-								tradeSetup3.setStrikes(strikes);
-								trades.add(tradeSetup3);
-								log.info("stock {} criteria4 met", marketMoverData.getStSymbolName());
-								isCriteria4Met = true;
-							}
-						}
-						if (isCriteria1Met && isCriteria2Met && isCriteria3Met && isCriteria4Met) {
-							break;
-						}
-					}
-				}
-			} else {
-//				threadSleep(100);
-				properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-				Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, marketMoverData.getStSymbolName());
-				if (strikes != null && !strikes.isEmpty()) {
-					TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c1");
-					buildTradeSetupTO(tradeSetup1, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
-					if (isTradeProcessed(tradeSetup1)) {
-						tradeSetup1.setStrikes(strikes);
-						trades.add(tradeSetup1);
-					}
-					TradeSetupTO tradeSetup2 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c2");
-					buildTradeSetupTO(tradeSetup2, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
-					if (isTradeProcessed(tradeSetup2)) {
-						tradeSetup2.setStrikes(strikes);
-						trades.add(tradeSetup2);
-					}
-					TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c3");
-					buildTradeSetupTO(tradeSetup3, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
-					if (isTradeProcessed(tradeSetup3)) {
-						tradeSetup3.setStrikes(strikes);
-						trades.add(tradeSetup3);
-					}
-					TradeSetupTO tradeSetup4 = validateAndSetDetailsBasedOnVolume(strikes, marketMoverData.getStSymbolName(), "volume");
-					buildTradeSetupTO(tradeSetup4, marketMoverData, properties, oiChg, lptChgPer, oiInterpretation, value);
-					if (isTradeProcessed(tradeSetup4)) {
-						tradeSetup4.setStrikes(strikes);
-						trades.add(tradeSetup4);
-					}
-				}
-			}
+			List<TradeSetupTO> list = processTradeSetup(properties, values, stock);
+			trades.addAll(list);
 		}
 		persistTrades(trades);
 		if (properties.getStrategy() != null) {
@@ -202,6 +78,146 @@ public class MarketMovers {
 					}).collect(Collectors.toList());
 		}
 		return trades;
+	}
+
+	private List<TradeSetupTO> processTradeSetup(Properties properties, List<String> values, String stock) {
+		List<TradeSetupTO> trades = new ArrayList<>();
+		String startTime = "09:15:00";
+		int interval = properties.getInterval();
+		//properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+		properties.setStartTime(startTime);
+		properties.setEndTime(FormatUtil.getTime(properties.getStartTime(), interval).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+		properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
+		if (!properties.getStockName().isEmpty() && !stock.equals(properties.getStockName())) {
+			return trades;
+		}
+		if ("test".equals(properties.getEnv())) {
+			threadSleep(50);
+			LocalTime endTime1 = FormatUtil.getTimeHHmmss("12:00:00");
+			LocalTime endTime = FormatUtil.getTime(startTime, interval);
+			boolean isCriteria1Met = StringUtils.hasText(properties.getStrategy()) && !"c1".equals(properties.getStrategy());
+			boolean isCriteria2Met = StringUtils.hasText(properties.getStrategy()) && !"c2".equals(properties.getStrategy());
+			boolean isCriteria3Met = StringUtils.hasText(properties.getStrategy()) && !"c3".equals(properties.getStrategy());
+			boolean isCriteria4Met = StringUtils.hasText(properties.getStrategy()) && !"c4".equals(properties.getStrategy());
+			for (int i = interval; endTime.isBefore(endTime1); i += interval) {
+				endTime = FormatUtil.getTime(startTime, i);
+				if (properties.getStockDate().equals(LocalDate.now().toString()) && endTime.isAfter(LocalTime.now())) {
+					break;
+				}
+				properties.setEndTime(endTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+				Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, stock);
+				if (strikes != null && !strikes.isEmpty()) {
+					if (!isCriteria1Met) {
+						TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, stock, "c1");
+						buildTradeSetupTO(tradeSetup1, properties, values, stock);
+						if (isTradeProcessed(tradeSetup1)) {
+							tradeSetup1.setStrikes(strikes);
+							trades.add(tradeSetup1);
+							log.info("stock {} criteria1 met", stock);
+							isCriteria1Met = true;
+						}
+					}
+					if (!isCriteria2Met) {
+						TradeSetupTO tradeSetup2 = validateAndSetDetails(strikes, stock, "c2");
+						buildTradeSetupTO(tradeSetup2, properties, values, stock);
+						if (isTradeProcessed(tradeSetup2)) {
+							tradeSetup2.setStrikes(strikes);
+							trades.add(tradeSetup2);
+							log.info("stock {} criteria2 met", stock);
+							isCriteria2Met = true;
+						}
+					}
+					if (!isCriteria3Met) {
+						TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, stock, "c3");
+						buildTradeSetupTO(tradeSetup3, properties, values, stock);
+						if (isTradeProcessed(tradeSetup3)) {
+							tradeSetup3.setStrikes(strikes);
+							trades.add(tradeSetup3);
+							log.info("stock {} criteria3 met", stock);
+							isCriteria3Met = true;
+						}
+					}
+					if (!isCriteria4Met) {
+						TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, stock, "c4");
+						buildTradeSetupTO(tradeSetup3, properties, values, stock);
+						if (isTradeProcessed(tradeSetup3)) {
+							tradeSetup3.setStrikes(strikes);
+							trades.add(tradeSetup3);
+							log.info("stock {} criteria4 met", stock);
+							isCriteria4Met = true;
+						}
+					}
+					if (isCriteria1Met && isCriteria2Met && isCriteria3Met && isCriteria4Met) {
+						break;
+					}
+				}
+			}
+		} else {
+//				threadSleep(100);
+			properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+			Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, stock);
+			if (strikes != null && !strikes.isEmpty()) {
+				TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, stock, "c1");
+				buildTradeSetupTO(tradeSetup1, properties, values, stock);
+				if (isTradeProcessed(tradeSetup1)) {
+					tradeSetup1.setStrikes(strikes);
+					trades.add(tradeSetup1);
+				}
+				TradeSetupTO tradeSetup2 = validateAndSetDetails(strikes, stock, "c2");
+				buildTradeSetupTO(tradeSetup2, properties, values, stock);
+				if (isTradeProcessed(tradeSetup2)) {
+					tradeSetup2.setStrikes(strikes);
+					trades.add(tradeSetup2);
+				}
+				TradeSetupTO tradeSetup3 = validateAndSetDetails(strikes, stock, "c3");
+				buildTradeSetupTO(tradeSetup3, properties, values, stock);
+				if (isTradeProcessed(tradeSetup3)) {
+					tradeSetup3.setStrikes(strikes);
+					trades.add(tradeSetup3);
+				}
+				TradeSetupTO tradeSetup4 = validateAndSetDetailsBasedOnVolume(strikes, stock, "volume");
+				buildTradeSetupTO(tradeSetup4, properties, values, stock);
+				if (isTradeProcessed(tradeSetup4)) {
+					tradeSetup4.setStrikes(strikes);
+					trades.add(tradeSetup4);
+				}
+			}
+		}
+		return trades;
+	}
+
+	private List<String> getStockType(MarketMoverData marketMoverData, String type) {
+		if (marketMoverData.getInOldOi() == null || marketMoverData.getInNewOi() == null ||
+				marketMoverData.getInOldClose() == null || marketMoverData.getInNewClose() == null) {
+			log.error("OI or Close data is missing for stock: {}", marketMoverData.getStSymbolName());
+			return null;
+		}
+		if (sectorList.contains(marketMoverData.getStSymbolName())) {
+			log.info("Skipping sector stock: {}", marketMoverData.getStSymbolName());
+			return null;
+		}
+		double oldOi = Double.parseDouble(marketMoverData.getInOldOi());
+		double newOi = Double.parseDouble(marketMoverData.getInNewOi());
+		double oldClose = Double.parseDouble(marketMoverData.getInOldClose());
+		double newClose = Double.parseDouble(marketMoverData.getInNewClose());
+		double ltpChg = newClose - oldClose;
+		double lptChgPer = (ltpChg / oldClose) * 100;
+		double oiChg = ((newOi - oldOi) / oldOi) * 100;
+		String oiInterpretation = (oiChg > 0)
+				? (ltpChg > 0 ? "LBU" : "SBU")
+				: (ltpChg > 0 ? "SC" : "LU");
+		log.info("Stock {} with OI Change {}", marketMoverData.getStSymbolName(), oiChg);
+		if ("G".equals(type) && (oiChg > 2 || oiChg < -2) && lptChgPer > 2) {
+			Arrays.asList("positive", oiChg + "", lptChgPer + "", oiInterpretation);
+		} else if ("L".equals(type) && oiChg < -1) {
+			Arrays.asList("negative", oiChg + "", lptChgPer + "", oiInterpretation);
+			return null;
+		} else {
+			log.info("Stock {} Oi Change Per {} Ltp change per {}", marketMoverData.getStSymbolName(), oiChg, lptChgPer);
+			return null;
+		}
+		return Arrays.asList("positive", oiChg + "", lptChgPer + "", oiInterpretation);
+
 	}
 
 	private boolean isTradeProcessed(TradeSetupTO tradeSetup) {
@@ -417,14 +433,22 @@ public class MarketMovers {
 		}
 	}
 
-	private void buildTradeSetupTO(TradeSetupTO tradeSetupTO, MarketMoverData marketMoverData, Properties prop, double oiChg, double ltpChg, String oiInterpretation, String value) {
+	private void buildTradeSetupTO(TradeSetupTO tradeSetupTO, Properties prop, List<String> values, String stock) {
 		if (tradeSetupTO != null) {
-			tradeSetupTO.setStockSymbol(marketMoverData.getStSymbolName());
+			tradeSetupTO.setStockSymbol(stock);
 			tradeSetupTO.setFetchTime(FormatUtil.getTimeHHmmss(prop.getEndTime()).format(DateTimeFormatter.ofPattern("HH:mm")));
 			tradeSetupTO.setStockDate(prop.getStockDate());
-			tradeSetupTO.setOiChgPer(oiChg);
-			tradeSetupTO.setLtpChgPer(ltpChg);
-			tradeSetupTO.setType(value);
+			if (values != null) {
+				if (values.size() > 1) {
+					tradeSetupTO.setOiChgPer(Double.valueOf(values.get(1)));
+				}
+				if (values.size() > 2) {
+					tradeSetupTO.setLtpChgPer(Double.valueOf(values.get(2)));
+				}
+				if (values.size() > 1) {
+					tradeSetupTO.setType(values.get(0));
+				}
+			}
 		}
 	}
 
@@ -810,7 +834,8 @@ public class MarketMovers {
 						}
 						if (!isCriteria5Met) {
 							TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c5");
-							buildTradeSetupTO(tradeSetup1, marketMoverData, properties, 0.0, ltpChgPer, null, "P");
+							List<String> values = Arrays.asList("P", null, ltpChgPer + "");
+							buildTradeSetupTO(tradeSetup1, properties, values, marketMoverData.getStSymbolName());
 							if (isTradeProcessed(tradeSetup1)) {
 								boolean isTargetReached = isTargetReached(tradeSetup1);
 								if (isTargetReached) {
@@ -838,7 +863,8 @@ public class MarketMovers {
 					double openPrice = strikes.get(0).getOpenPrice();
 					double ltpChgPer = (curPrice - openPrice) / openPrice * 100;
 					TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, marketMoverData.getStSymbolName(), "c5");
-					buildTradeSetupTO(tradeSetup1, marketMoverData, properties, 0.0, ltpChgPer, null, "P");
+					List<String> values = Arrays.asList("P", null, ltpChgPer + "");
+					buildTradeSetupTO(tradeSetup1, properties, values, marketMoverData.getStSymbolName());
 					if (ltpChgPer > 0 && isTradeProcessed(tradeSetup1)) {
 						tradeSetup1.setStrikes(strikes);
 						trades.add(tradeSetup1);
