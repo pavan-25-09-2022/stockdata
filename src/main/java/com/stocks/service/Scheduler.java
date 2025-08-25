@@ -44,20 +44,21 @@ public class Scheduler {
 	@Autowired
 	private DayHighLowBreakService dayHighLowBreakService;
 
-	//    @Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
+	@Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
 	public void callApi() {
 		log.info("Scheduler started API stocks");
 		logTime();
 		Properties properties = new Properties();
 		properties.setInterval(5);
 		properties.setExpiryDate("250529");
-		List<StockResponse> list = apiService.callApi(properties);
+		properties.setStartTime("09:15");
+		List<TradeSetupTO> list = apiService.callApi(properties);
 		if (list == null || list.isEmpty()) {
 			log.info("No records found");
 			return;
 		}
-		String data = mailService.beautifyResults(list, properties);
-		mailService.sendMail(data, properties);
+		String data = marketMoversMailService.beautifyResults(list);
+		marketMoversMailService.sendMail(data, properties, "API Stocks Report");
 		System.gc();
 		log.info("Scheduler finished " + list.size());
 	}
@@ -199,7 +200,7 @@ public class Scheduler {
 	}
 
 	@Scheduled(cron = "40 0/5 9-15 ? * MON-FRI")
-	private void getStocksBasedOnHighChangeInOpenInterest(){
+	private void getStocksBasedOnHighChangeInOpenInterest() {
 		log.info("Scheduler started getStocksBasedOnHighChangeInOpenInterest");
 		Properties properties = buildProperties();
 		futureEodAnalyzerService.getStocksBasedOnHighChangeInOpenInterest(properties);
@@ -208,14 +209,14 @@ public class Scheduler {
 	}
 
 	//@Scheduled(cron = "30 20-59/5,0-59/5 9,10,11,12,13,14,15 * * MON-FRI")
-	private  void testStockData() {
+	private void testStockData() {
 		log.info("Scheduler started testStockData");
 		Properties properties = new Properties();
 		properties.setInterval(5);
 		properties.setStartDate(LocalDate.now().toString());
 		properties.setEndDate(LocalDate.now().toString());
 		List<String> strings = futureEodAnalyzerService.testStocks(properties);
-		if(strings != null && !strings.isEmpty()) {
+		if (strings != null && !strings.isEmpty()) {
 			marketMoversMailService.sendMail(strings.toString(), properties, "Test Stock Data Report");
 		}
 		System.gc();
@@ -223,7 +224,7 @@ public class Scheduler {
 	}
 
 	@Scheduled(cron = "0 20-59,0-59 9,10,11,12,13,14 * * MON-FRI")
-	private void dayHighLowBreak(){
+	private void dayHighLowBreak() {
 		log.info("Scheduler started Day High Low");
 		dayHighLowBreakService.testDayHighLow();
 		log.info("Scheduler finished Day High Low");

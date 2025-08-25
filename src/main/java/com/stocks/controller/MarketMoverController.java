@@ -96,7 +96,7 @@ public class MarketMoverController {
 	public void saveTradesToCsv(List<TradeSetupTO> trades, String filePath) throws IOException, IOException {
 		if (trades == null || trades.isEmpty()) return;
 		// Create or overwrite the file
-		try (java.io.FileWriter writer = new java.io.FileWriter(filePath)) {
+		try (java.io.FileWriter writer = new java.io.FileWriter(filePath, true)) {
 			// Write header
 //			writer.append("Stock,OI,LTP,Status,Date,Time,Entry1,Entry1Time,Entry2,Entry2Time,Target1,Target1Time,Target2,Target2Time,StopLoss,StopLossTime,Notes,Strategy,Type\n");
 			for (TradeSetupTO trade : trades) {

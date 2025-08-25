@@ -13,7 +13,11 @@ public class FormatUtil {
 	private static final Logger log = LoggerFactory.getLogger(FormatUtil.class);
 
 	public static LocalTime getTime(String input, int minutes) {
-		return LocalTime.parse(input, DateTimeFormatter.ofPattern("HH:mm:ss")).plusMinutes(minutes);
+		try {
+			return LocalTime.parse(input, DateTimeFormatter.ofPattern("HH:mm:ss")).plusMinutes(minutes);
+		} catch (Exception e) {
+			return LocalTime.parse(input, DateTimeFormatter.ofPattern("HH:mm")).plusMinutes(minutes);
+		}
 	}
 
 	public static LocalTime getTimeHHmm(String input) {

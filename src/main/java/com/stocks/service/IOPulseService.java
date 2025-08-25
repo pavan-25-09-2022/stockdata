@@ -54,6 +54,39 @@ public class IOPulseService {
 	@Value("${endTime}")
 	private String endTime;
 
+	public Set<String> getAvailableStocks() {
+		try {
+			String url = "https://api.oipulse.com/api/options/getavailableoptionsdata";
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization", authToken);
+			headers.set("Content-Type", "application/json");
+			Map<String, String> payload = new HashMap<>();
+			payload.put("stSelectedModeOfData", "live");
+			HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(payload, headers);
+
+
+			ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+			if (response.getBody() != null) {
+				ObjectMapper objectMapper = new ObjectMapper();
+				FandOStocksTO apiResponse = objectMapper.readValue(response.getBody(), FandOStocksTO.class);
+				// Now use apiResponse as needed
+				if (apiResponse != null) {
+					Set<String> availableStocks = new HashSet<>();
+					for (OptionData data : apiResponse.getData()) {
+						if (data.getType().equals("FUTSTK")) {
+							availableStocks.add(data.getText());
+						}
+					}
+					return availableStocks;
+				}
+			}
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			return new HashSet<>();
+		}
+		return new HashSet<>();
+	}
+
 	ApiResponse sendRequest(Properties properties, String stock) {
 		try {
 			// Create payload
@@ -187,6 +220,42 @@ public class IOPulseService {
 			log.error("Error in market movers ", e);
 			return null;
 		}
+	}
+
+	public CandleDataResponse getCandleData(Properties properties, Long fromTs, Long toTs) {
+		try {
+			String url = "https://api.oipulse.com/api/trading-view/getcandledata";
+			// Create payload
+			Map<String, String> payload = new HashMap<>();
+			payload.put("ex", "NSE");
+			payload.put("symbol", properties.getStockName());
+			payload.put("limit", "1500");
+			payload.put("type", "stocks");
+			payload.put("countBack", "50");
+			payload.put("resolution", properties.getInterval() + "");
+			payload.put("fromTs", fromTs.toString());
+			payload.put("toTs", toTs.toString());
+
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization", authToken);
+			headers.set("Content-Type", "application/json");
+
+			// Create request entity
+			HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(payload, headers);
+
+			// Make POST request
+			ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+			if (response.getBody() != null) {
+				ObjectMapper objectMapper = new ObjectMapper();
+				CandleDataResponse apiResponse = objectMapper.readValue(response.getBody(), CandleDataResponse.class);
+				// Now use apiResponse as needed
+				return apiResponse;
+			}
+
+		} catch (Exception e) {
+			log.error("Error in stock Request", e);
+		}
+		return null;
 	}
 
 	private List<Double> getStrikes(Properties properties, String stock, String time) {
