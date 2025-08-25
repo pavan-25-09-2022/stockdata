@@ -1,10 +1,6 @@
 package com.stocks.service;
 
-import com.stocks.dto.ApiResponse;
-import com.stocks.dto.Candle;
-import com.stocks.dto.Properties;
-import com.stocks.dto.StockProfitResult;
-import com.stocks.dto.StockResponse;
+import com.stocks.dto.*;
 import com.stocks.utils.FormatUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -375,6 +371,44 @@ public class CommonValidation {
 						LinkedHashMap::new, // Maintain order
 						Collectors.toList()
 				));
+		return new ArrayList<>(groupedData.values());
+	}
+
+
+	public List<List<TrendingOiData>> chunkByMinutesForTrendingOI(List<TrendingOiData> dataList, int minutes) {
+		if (dataList == null || dataList.isEmpty()) {
+			log.warn("Data list is null or empty, returning an empty list.");
+			return Collections.emptyList();
+		}
+
+		int finalMinutes = minutes != 0 ? minutes : MINS;
+
+		DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+		// Group data by intervals
+		Map<LocalTime, List<TrendingOiData>> groupedData = dataList.stream()
+				.collect(Collectors.groupingBy(
+						data -> {
+							LocalTime time = LocalTime.parse(data.getStTime(), timeFormatter);
+							if (finalMinutes > 15) {
+								LocalTime firstGroupEnd = START_TIME.plusMinutes(14);
+								if (!time.isAfter(firstGroupEnd)) {
+									return START_TIME.plusSeconds(0);
+								} else {
+									int minutesSince930 = (int) java.time.Duration.between(LocalTime.of(9, 31), time).toMinutes();
+									int minuteBucket = (minutesSince930 / finalMinutes) * finalMinutes;
+									return LocalTime.of(9, 31).plusMinutes(minuteBucket).withSecond(0);
+								}
+							} else {
+								int minutesSinceStart = (int) java.time.Duration.between(START_TIME, time).toMinutes();
+								int minuteBucket = (minutesSinceStart / finalMinutes) * finalMinutes;
+								return START_TIME.plusMinutes(minuteBucket).withSecond(0);
+							}
+						},
+						LinkedHashMap::new, // Maintain order
+						Collectors.toList()
+				));
+
 		return new ArrayList<>(groupedData.values());
 	}
 }

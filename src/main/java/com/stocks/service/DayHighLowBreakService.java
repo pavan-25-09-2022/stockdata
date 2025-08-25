@@ -111,7 +111,7 @@ class DayHighLowBreakService {
         }
 
         if (isDayLow) {
-            mailService.sendMail("Day Low Breaks", String.join("\n", breakHighStocks));
+            mailService.sendMail("Day Low Breaks", String.join("\n", breakLowStocks));
         }
 
     }

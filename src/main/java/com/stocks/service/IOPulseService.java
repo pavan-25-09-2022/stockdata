@@ -1,11 +1,8 @@
 package com.stocks.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stocks.dto.ApiResponse;
-import com.stocks.dto.MarketMoversResponse;
-import com.stocks.dto.OptionChainResponse;
+import com.stocks.dto.*;
 import com.stocks.dto.Properties;
-import com.stocks.dto.StockEODResponse;
 import com.stocks.utils.FormatUtil;
 import com.stocks.utils.MarketHolidayUtils;
 import org.slf4j.Logger;
@@ -22,8 +19,8 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class IOPulseService {
@@ -41,6 +38,9 @@ public class IOPulseService {
 
 	@Value("${api.option.chain.url}")
 	private String apiOptionChainUrl;
+
+	@Value("${api.trending.oi.url}")
+	private String apiTrendingOiUrl;
 
 	@Value("${api.market.movers}")
 	private String apiMarketMoversUrl;
@@ -188,4 +188,76 @@ public class IOPulseService {
 			return null;
 		}
 	}
+
+	private List<Double> getStrikes(Properties properties, String stock, String time) {
+		LocalTime startTime = FormatUtil.getTime(time, 0);
+		OptionChainResponse response = getOptionChain(properties, stock, startTime);
+		if (response == null || response.getData() == null) {
+			return null;
+		}
+
+		UnderLyingAssetData underLyingAssetData = response.getData().getUnderLyingAssetData();
+		List<OptionChainData> list = response.getData().getData();
+
+		TreeMap<Double, List<OptionChainData>> groupedData = list.stream()
+				.collect(Collectors.groupingBy(
+						OptionChainData::getInStrikePrice,
+						TreeMap::new,
+						Collectors.toList()
+				));
+
+		Double focusKey = groupedData.floorKey((double) underLyingAssetData.getInLtp());
+		if (focusKey == null) {
+			return null;
+		}
+
+		List<Double> keys = new ArrayList<>(groupedData.keySet());
+		int focusIndex = keys.indexOf(focusKey);
+		if (focusIndex == -1) {
+			return null;
+		}
+
+		int from = Math.max(0, focusIndex - properties.getTrendOiStrikes());
+		int to = Math.min(keys.size(), focusIndex + properties.getTrendOiStrikes() + 1);
+		return keys.subList(from, to);
+	}
+
+	public TrendingOiResponse getTrendingOI(Properties properties) {
+		try {
+			// Create payload
+			Map<String, Object> payload = new HashMap<>();
+			properties.setStartTime("09:15:00");
+			properties.setEndTime("15:30:00");
+			List<Double> strikes = getStrikes(properties, properties.getStockName(), properties.getStartTime());
+			System.out.println("Strike prices for " + properties.getStockName() + ": " + strikes);
+			payload.put("selectedStrikePrices", strikes);
+			payload.put("stSelectedAsset", properties.getStockName());
+			String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : LocalDate.now().toString();
+			payload.put("stSelectedAvailableDate", selectedDate);
+			payload.put("stSelectedAvailableExpiryDate", properties.getExpiryDate());
+			LocalDate selected = LocalDate.parse(selectedDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+			LocalDate today = LocalDate.now();
+			if (selected.isBefore(today)) {
+				payload.put("stSelectedModeOfData", "historical");
+			} else {
+				payload.put("stSelectedModeOfData", "live");
+			}
+
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization", authToken);
+			headers.set("Content-Type", "application/json");
+
+			// Create request entity
+			HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(payload, headers);
+
+			// Make POST request
+			ResponseEntity<TrendingOiResponse> response = restTemplate.exchange(apiTrendingOiUrl, HttpMethod.POST, requestEntity, TrendingOiResponse.class);
+			return response.getBody();
+		} catch (Exception e) {
+			log.error("Error in trending OI ", e);
+			return null;
+		}
+	}
+
+
 }

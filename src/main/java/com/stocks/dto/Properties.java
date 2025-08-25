@@ -24,4 +24,5 @@ public class Properties {
 	private boolean checkRecentCandle;
 	private boolean withVolume;
 	private String strategy;
+	private int trendOiStrikes = 6;
 }
