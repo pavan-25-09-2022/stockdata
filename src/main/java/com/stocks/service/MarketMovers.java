@@ -228,7 +228,7 @@ public class MarketMovers {
 		tradeSetupManager.saveTradeSetups(trades);
 	}
 
-	private TradeSetupTO validateAndSetDetails(Map<Integer, StrikeTO> strikes, String stock, String criteria) {
+	public TradeSetupTO validateAndSetDetails(Map<Integer, StrikeTO> strikes, String stock, String criteria) {
 		if (strikes == null || strikes.isEmpty()) {
 			log.error("No strikes found for stock: {}", stock);
 			return null;
@@ -481,7 +481,7 @@ public class MarketMovers {
 				boolean isTarget1 = StringUtils.hasLength(trade.getTarget1Time());
 				boolean isTarget2 = StringUtils.hasLength(trade.getTarget2Time()) || trade.getTarget2() == null;
 				boolean isStopLoss1 = StringUtils.hasLength(trade.getStopLoss1Time());
-				for (int i = 1; i < noOfDays; i++) {
+				for (int i = 0; i < noOfDays; i++) {
 					if (!isEntry1 && !isEntry2 && processedDays >= entryDays) {
 						trade.setTradeNotes("N-E (2D)");
 						trade.setStatus("N-E");

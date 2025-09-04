@@ -192,7 +192,7 @@ public class CommonValidation {
 		double bodySize = Math.abs(curCandle.getOpen() - curCandle.getClose());
 		return (
 				curCandle.getClose() > firstCandle.getClose() && curCandle.getOpen() > firstCandle.getOpen() &&
-						oiInterpretation.equals("LBU"));
+						oiInterpretation.equals("LBU") || oiInterpretation.equals("SC"));
 //        return curCandle.getClose() > firstCandle.getHigh() && highToOpenChge < 0.4 && curCandle.getLow() < firstCandle.getHigh() && (oiInterpretation.equals("LBU"))
 	}
 
