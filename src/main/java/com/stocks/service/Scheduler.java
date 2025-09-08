@@ -44,7 +44,7 @@ public class Scheduler {
 	@Autowired
 	private DayHighLowBreakService dayHighLowBreakService;
 
-	@Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
+	@Scheduled(cron = "10 */5 9-13 * * *") // Runs every 5 minutes from 9:15 to 13:35
 	public void callApi() {
 		log.info("Scheduler started API stocks");
 		logTime();

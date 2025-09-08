@@ -1,5 +1,6 @@
 package com.stocks.repository;
 
+import com.stocks.dto.StrikeTO;
 import com.stocks.dto.TradeSetupTO;
 import com.stocks.entity.StrikeSetupEntity;
 import com.stocks.entity.TradeSetupEntity;
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Repository
 public class TradeSetupManager {
@@ -17,7 +19,14 @@ public class TradeSetupManager {
 
 	@Transactional
 	public void saveTradeSetup(TradeSetupTO tradeSetupTO) {
-		entityManager.persist(mapTradeSetup(tradeSetupTO));
+		if (tradeSetupTO != null) {
+			TradeSetupTO tradeSetupTO1 = getStockByDateAndTime(tradeSetupTO.getStockSymbol(), tradeSetupTO.getStockDate(), tradeSetupTO.getFetchTime());
+			if (tradeSetupTO1 != null) {
+				return;
+			}
+			entityManager.persist(mapTradeSetup(tradeSetupTO));
+		}
+
 	}
 
 	@Transactional
@@ -26,6 +35,10 @@ public class TradeSetupManager {
 			return;
 		}
 		for (TradeSetupTO tradeSetupTO : tradeSetupTOList) {
+			TradeSetupTO tradeSetupTO1 = getStockByDateAndTime(tradeSetupTO.getStockSymbol(), tradeSetupTO.getStockDate(), tradeSetupTO.getFetchTime());
+			if (tradeSetupTO1 != null) {
+				return;
+			}
 			TradeSetupEntity tradeSetupEntity = mapTradeSetup(tradeSetupTO);
 			List<StrikeSetupEntity> strikes = mapStrikes(tradeSetupTO);
 			saveTradeWithStrikes(tradeSetupEntity, strikes);
@@ -56,7 +69,7 @@ public class TradeSetupManager {
 		return entityManager.createQuery(hql, TradeSetupEntity.class)
 				.getResultList()
 				.stream()
-				.toList();
+				.collect(Collectors.toList());
 	}
 
 	@Transactional(readOnly = true)
@@ -73,8 +86,18 @@ public class TradeSetupManager {
 		List<TradeSetupTO> list = entityManager.createQuery(hql, TradeSetupEntity.class)
 				.setParameter("stockDate", stockDate)
 				.getResultStream().map(this::mapEntityToTO)
-				.toList();
+				.collect(Collectors.toList());
 		return list;
+	}
+
+	@Transactional(readOnly = true)
+	public TradeSetupTO getStockByDateAndTime(String stock, String stockDate, String startTime) {
+		String hql = "FROM TradeSetupEntity WHERE stockSymbol = :stock AND stockDate = :stockDate AND fetchTime = :startTime";
+		return entityManager.createQuery(hql, TradeSetupEntity.class)
+				.setParameter("stock", stock)
+				.setParameter("stockDate", stockDate)
+				.setParameter("startTime", startTime)
+				.getResultStream().map(this::mapEntityToTO).findFirst().orElse(null);
 	}
 
 	private TradeSetupTO mapEntityToTO(TradeSetupEntity entity) {
@@ -90,6 +113,7 @@ public class TradeSetupManager {
 		to.setTarget1(entity.getTarget1());
 		to.setTarget2(entity.getTarget2());
 		to.setStopLoss1(entity.getStopLoss1());
+		
 		to.setStopLoss2(entity.getStopLoss2());
 		to.setStatus(entity.getStatus());
 		to.setTradeNotes(entity.getTradeNotes());
@@ -122,7 +146,7 @@ public class TradeSetupManager {
 		return tradeSetupTO.getStrikes().entrySet().stream()
 				.filter(e -> e.getKey() >= -3 && e.getKey() <= 3)
 				.map(e -> {
-					var strike = e.getValue();
+					StrikeTO strike = e.getValue();
 					StrikeSetupEntity entity = new StrikeSetupEntity();
 					entity.setCurPrice(strike.getCurPrice());
 					entity.setStrikePrice(strike.getStrikePrice());
@@ -141,6 +165,6 @@ public class TradeSetupManager {
 					entity.setPeIvChg(strike.getPeIvChg());
 					return entity;
 				})
-				.toList();
+				.collect(Collectors.toList());
 	}
 }

@@ -148,8 +148,9 @@ public class YahooFinanceService {
 			List<HistoricalQuote> completeResult = impl1.getCompleteResult();
 
 			for (HistoricalQuote quote : completeResult) {
-				String duration = LocalTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()) +
-						"-" + LocalTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault()).plusMinutes(properties.getInterval());
+				LocalDateTime dateTime = LocalDateTime.ofInstant(quote.getDate().toInstant(), ZoneId.systemDefault());
+				LocalTime startTime = dateTime.toLocalTime();
+				String duration = startTime + "-" + startTime.plusMinutes(properties.getInterval());
 				FutureAnalysis futureAnalysis = futureAnalysisMap.get(duration);
 				if (futureAnalysis != null) {
 					futureAnalysis.setHistoricalQuote(quote);

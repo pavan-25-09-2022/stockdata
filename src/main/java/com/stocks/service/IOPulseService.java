@@ -34,6 +34,41 @@ import java.util.Set;
 public class IOPulseService {
 
 	private static final Logger log = LoggerFactory.getLogger(IOPulseService.class);
+	
+	/**
+	 * Get the next authentication token in rotation
+	 * Alternates between token1 and token2 for load balancing
+	 */
+	private String getNextAuthToken() {
+		tokenCounter++;
+		boolean useToken1 = (tokenCounter % 2 == 1); // Start with token1 for odd numbers
+		String selectedToken = useToken1 ? authToken1 : authToken2;
+		String tokenName = useToken1 ? "1" : "2";
+		
+		log.debug("Using auth token {} for request #{}", tokenName, tokenCounter);
+		
+		// Validate token is not null or empty
+		if (selectedToken == null || selectedToken.trim().isEmpty()) {
+			log.warn("Auth token {} is null or empty, falling back to other token", tokenName);
+			selectedToken = useToken1 ? authToken2 : authToken1;
+			if (selectedToken == null || selectedToken.trim().isEmpty()) {
+				log.error("Both auth tokens are null or empty!");
+				throw new IllegalStateException("No valid authentication tokens available");
+			}
+		}
+		
+		return selectedToken;
+	}
+	
+	/**
+	 * Get token usage statistics for monitoring
+	 */
+	public String getTokenUsageStats() {
+		int token1Usage = (tokenCounter + 1) / 2; // Odd requests use token1
+		int token2Usage = tokenCounter / 2;       // Even requests use token2
+		return String.format("Token usage - Token1: %d requests, Token2: %d requests, Total: %d", 
+				token1Usage, token2Usage, tokenCounter);
+	}
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -50,8 +85,14 @@ public class IOPulseService {
 	@Value("${api.market.movers}")
 	private String apiMarketMoversUrl;
 
-	@Value("${api.auth.token}")
-	private String authToken;
+	@Value("${api.auth.token1}")
+	private String authToken1;
+	
+	@Value("${api.auth.token2}")
+	private String authToken2;
+	
+	// Token rotation counter
+	private volatile int tokenCounter = 0;
 
 	@Value(("${exitTime}"))
 	private String exitTime;
@@ -63,18 +104,18 @@ public class IOPulseService {
 		try {
 			String url = "https://api.oipulse.com/api/options/getavailableoptionsdata";
 			HttpHeaders headers = new HttpHeaders();
-			headers.set("Authorization", authToken);
+			headers.set("Authorization", getNextAuthToken());
 			headers.set("Content-Type", "application/json");
 			Map<String, String> payload = new HashMap<>();
 			payload.put("stSelectedModeOfData", "live");
 			HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(payload, headers);
 
-
 			ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+			
 			if (response.getBody() != null) {
 				ObjectMapper objectMapper = new ObjectMapper();
 				FandOStocksTO apiResponse = objectMapper.readValue(response.getBody(), FandOStocksTO.class);
-				// Now use apiResponse as needed
+				
 				if (apiResponse != null) {
 					Set<String> availableStocks = new HashSet<>();
 					for (OptionData data : apiResponse.getData()) {
@@ -86,22 +127,22 @@ public class IOPulseService {
 				}
 			}
 		} catch (Exception e) {
-			log.error(e.getMessage(), e);
-			return new HashSet<>();
+			log.error("Error fetching available stocks from API", e);
 		}
 		return new HashSet<>();
 	}
 
 	ApiResponse sendRequest(Properties properties, String stock) {
 		try {
-			// Create payload
-
-			String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) ? properties.getStockDate() : LocalDate.now().toString();
+			String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) 
+					? properties.getStockDate() : LocalDate.now().toString();
 			String workingDay = MarketHolidayUtils.getWorkingDay(selectedDate);
+			
 			Map<String, String> payload = new HashMap<>();
 			payload.put("stSelectedFutures", stock);
 			payload.put("stSelectedExpiry", "I");
 			payload.put("stSelectedAvailableDate", selectedDate);
+			
 			// Determine if the selected date is in the past
 			LocalDate selected = LocalDate.parse(selectedDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 			LocalDate today = LocalDate.now();
@@ -111,24 +152,23 @@ public class IOPulseService {
 				payload.put("stSelectedModeOfData", "live");
 			}
 
-			HttpHeaders headers = new HttpHeaders();
-			headers.set("Authorization", authToken);
-			headers.set("Content-Type", "application/json");
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", getNextAuthToken());
+		headers.set("Content-Type", "application/json");
 
-			// Create request entity
-			HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(payload, headers);
+		// Create request entity
+		HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(payload, headers);
 
-			// Make POST request
-			ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, requestEntity, String.class);
+		// Make POST request
+		ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, requestEntity, String.class);
+			
 			if (response.getBody() != null) {
 				ObjectMapper objectMapper = new ObjectMapper();
-				ApiResponse apiResponse = objectMapper.readValue(response.getBody(), ApiResponse.class);
-				// Now use apiResponse as needed
-				return apiResponse;
+				return objectMapper.readValue(response.getBody(), ApiResponse.class);
 			}
 
 		} catch (Exception e) {
-			log.error("Error in sendRequest", e);
+			log.error("Error in sendRequest for stock: {}", stock, e);
 		}
 		return null;
 	}
@@ -140,7 +180,7 @@ public class IOPulseService {
 		payload.put("stSelectedExpiry", "I");
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", authToken);
+		headers.set("Authorization", getNextAuthToken());
 		headers.set("Content-Type", "application/json");
 
 		// Create request entity
@@ -177,7 +217,7 @@ public class IOPulseService {
 
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", authToken);
+		headers.set("Authorization", getNextAuthToken());
 		headers.set("Content-Type", "application/json");
 
 		// Create request entity
@@ -212,7 +252,7 @@ public class IOPulseService {
 			}
 
 			HttpHeaders headers = new HttpHeaders();
-			headers.set("Authorization", authToken);
+			headers.set("Authorization", getNextAuthToken());
 			headers.set("Content-Type", "application/json");
 
 			// Create request entity
@@ -242,7 +282,7 @@ public class IOPulseService {
 			payload.put("toTs", toTs.toString());
 
 			HttpHeaders headers = new HttpHeaders();
-			headers.set("Authorization", authToken);
+			headers.set("Authorization", getNextAuthToken());
 			headers.set("Content-Type", "application/json");
 
 			// Create request entity

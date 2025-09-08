@@ -2,6 +2,8 @@ package com.stocks.service;
 
 import com.stocks.dto.Candle;
 import com.stocks.dto.FutureEodAnalyzer;
+import com.stocks.dto.MarketMoverData;
+import com.stocks.dto.MarketMoversResponse;
 import com.stocks.dto.Properties;
 import com.stocks.dto.StockEODResponse;
 import com.stocks.dto.StockResponse;
@@ -22,12 +24,10 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 @Service
@@ -57,59 +57,141 @@ public class MarketDataService {
 	@Value("${api.url}")
 	private String apiUrl;
 
-	@Value("${api.Month.url")
-	private String apiMonthUrl;
-
-	@Value("${api.auth.token}")
+	@Value("${api.auth.token1}")
 	private String authToken;
 
-	private String endTime = "12:30";
+	@Value("${market.end.time:12:30}")
+	private String endTime;
 
 	@Value("${eodValue}")
 	private int eodValue;
 
+	@Value("${api.request.delay.ms:100}")
+	private long apiRequestDelayMs;
+
 	private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
+	private static final int RSI_PERIOD = 14;
+	private static final double MIN_STOCK_PRICE_THRESHOLD = 145.0;
+	private static final String POSITIVE_STOCK_TYPE = "P";
+	private static final String TEST_ENV = "test";
+	private static final String STRATEGY_DH = "DH";
+
 	@Autowired
 	private CommonValidation commonValidation;
 
 
 	public List<TradeSetupTO> callApi(Properties properties) {
-
-		// Path to the file containing the stock list
-		String filePath = "src/main/resources/stocksList.txt";
-
-		String stockDate = properties.getStockDate();
-		LocalDate date = LocalDate.parse(stockDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-		boolean isWeekend = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY;
-		if (isWeekend) {
-			log.info("The provided date {} is a weekend. Exiting the process.", stockDate);
+		if (properties == null) {
+			log.error("Properties cannot be null");
 			return new ArrayList<>();
 		}
-		// Read all lines from the file into a List
-		Set<String> stockList;
-		if (properties.getStockName() != null && !properties.getStockName().isEmpty()) {
-			stockList = Arrays.stream(properties.getStockName().split(","))
+
+		if (properties.getStockDate() == null || properties.getStockDate().trim().isEmpty()) {
+			log.error("Stock date cannot be null or empty");
+			return new ArrayList<>();
+		}
+
+		if (!isValidTradingDay(properties.getStockDate())) {
+			return new ArrayList<>();
+		}
+
+		Set<String> stockList = getStockList(properties);
+		if (stockList.isEmpty()) {
+			log.warn("No stocks to process");
+			return new ArrayList<>();
+		}
+
+		return processStocksSequentially(stockList, properties);
+	}
+
+	private boolean isValidTradingDay(String stockDate) {
+		try {
+			LocalDate date = LocalDate.parse(stockDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+			boolean isWeekend = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY;
+			if (isWeekend) {
+				log.info("The provided date {} is a weekend. Exiting the process.", stockDate);
+				return false;
+			}
+			return true;
+		} catch (Exception e) {
+			log.error("Invalid date format: {}. Expected format: yyyy-MM-dd", stockDate, e);
+			return false;
+		}
+	}
+
+	private Set<String> getStockList(Properties properties) {
+		if (properties.getStockName() != null && !properties.getStockName().trim().isEmpty()) {
+			return Arrays.stream(properties.getStockName().split(","))
 					.map(String::trim)
+					.filter(stock -> !stock.isEmpty())
 					.collect(Collectors.toSet());
 		} else {
-			stockList = ioPulseService.getAvailableStocks();
+			try {
+				Set<String> availableStocks = ioPulseService.getAvailableStocks();
+				return availableStocks != null ? availableStocks : new HashSet<>();
+			} catch (Exception e) {
+				log.error("Error fetching available stocks", e);
+				return new HashSet<>();
+			}
+		}
+	}
+
+	private List<TradeSetupTO> processStocksSequentially(Set<String> stockList, Properties properties) {
+		List<TradeSetupTO> results = new ArrayList<>();
+		int totalStocks = stockList.size();
+		int processedCount = 0;
+
+		log.info("Starting sequential processing of {} stocks with {}ms delay between requests", totalStocks, apiRequestDelayMs);
+		MarketMoversResponse marketMoversResponse = ioPulseService.marketMovers(properties);
+		for (String stock : stockList) {
+			try {
+				MarketMoverData moverData = marketMoversResponse.getData().stream()
+						.filter(data -> stock.equals(data.getStSymbolName()))
+						.findFirst()
+						.orElse(null);
+				processedCount++;
+				log.debug("Processing stock {}/{}: {}", processedCount, totalStocks, stock);
+
+				TradeSetupTO result = processStock(stock, properties);
+
+				if (result != null) {
+					double oldOi = Double.parseDouble(moverData.getInOldOi());
+					double newOi = Double.parseDouble(moverData.getInNewOi());
+					double oldClose = Double.parseDouble(moverData.getInOldClose());
+					double newClose = Double.parseDouble(moverData.getInNewClose());
+					double ltpChg = newClose - oldClose;
+					double lptChgPer = (ltpChg / oldClose) * 100;
+					double oiChg = ((newOi - oldOi) / oldOi) * 100;
+					String oiInterpretation = (oiChg > 0)
+							? (ltpChg > 0 ? "LBU" : "SBU")
+							: (ltpChg > 0 ? "SC" : "LU");
+					result.setOiChgPer(oiChg);
+					result.setLtpChgPer(lptChgPer);
+					result.setTradeNotes(oiInterpretation);
+					tradeSetupManager.saveTradeSetup(result);
+					results.add(result);
+					log.debug("Successfully processed stock: {}", stock);
+				}
+
+				// Add configurable delay to avoid overwhelming the external API
+				// Reduce delay for test environment
+				//long actualDelay = TEST_ENV.equals(properties.getEnv()) ? Math.min(apiRequestDelayMs, 200) : apiRequestDelayMs;
+				//if (processedCount < totalStocks && actualDelay > 0) {
+				Thread.sleep(1000);
+				//}
+
+			} catch (InterruptedException e) {
+				log.warn("Processing interrupted for stock: {} after processing {}/{} stocks", stock, processedCount, totalStocks);
+				Thread.currentThread().interrupt();
+				break;
+			} catch (Exception e) {
+				log.error("Error processing stock: {} ({}/{})", stock, processedCount, totalStocks, e);
+				// Continue with next stock instead of failing completely
+			}
 		}
 
-		ForkJoinPool customThreadPool = new ForkJoinPool(10);
-		try {
-			return customThreadPool.submit(() ->
-					stockList.stream()
-							.map(stock -> processStock(stock, properties))
-							.filter(Objects::nonNull)
-							.distinct()
-							.collect(Collectors.toList())
-			).get();
-		} catch (Exception e) {
-			log.error("Error in parallel processing: {}", e.getMessage(), e);
-			return new ArrayList<>();
-		} finally {
-			customThreadPool.shutdown();
-		}
+		log.info("Completed processing {} stocks. Found {} valid trade setups", processedCount, results.size());
+		return results.stream().distinct().collect(Collectors.toList());
 	}
 
 	private TradeSetupTO processStock(String stock, Properties properties) {
@@ -119,69 +201,51 @@ public class MarketDataService {
 			if (candles == null || candles.isEmpty()) {
 				return null;
 			}
-			log.info("Processing stock {}", stock);
+			log.debug("Processing stock {}", stock);
 			Candle ystEodCandle = candles.get(0);
 			candles = candles.subList(1, candles.size());
-			Properties prop = new Properties();
-			prop.setStockDate(FormatUtil.addDays(properties.getStockDate(), -1));
-			prop.setStockName(properties.getStockName());
-			List<Candle> list = new ArrayList<>();
-			StockResponse sr1 = null;
-			Candle luCandle = null;
-			Candle sbuCandle = null;
-			Candle lbuCandle = null;
+			List<Candle> processedCandles = new ArrayList<>();
 			List<Long> volumes = new ArrayList<>();
 			for (Candle curCandle : candles) {
-				list.add(curCandle);
+				processedCandles.add(curCandle);
 				if (curCandle.getEndTime().isAfter(LocalTime.parse(endTime))) {
 					continue; // Skip candles after the specified end time
 				}
 				volumes.add(curCandle.getVolume());
 
-//				StockResponse res = processCandleSticks.getStockResponse(stock, properties, list, new ArrayList<>());
 
 				List<Double> rsiList = new ArrayList<>();
 				Candle firstCandle = candles.get(0);
 				rsiList.add(firstCandle.getClose());
 
-				Map<Long, Double> map = new HashMap<>();
-				double prevChgeInPer = 0.0;
-				StockResponse res1 = null;
 				Candle prevCandle = firstCandle;
 				double dayHigh = firstCandle.getHigh();
 				rsiList.add(curCandle.getClose());
-				if (rsiList.size() > 14) {
-					rsiList.remove(0); // Remove the oldest element
-				}
-				LocalTime localTime = curCandle.getStartTime();
-				double ltpChange = curCandle.getClose() - prevCandle.getClose();
-				ltpChange = Double.parseDouble(String.format("%.2f", ltpChange));
+//				if (rsiList.size() > RSI_PERIOD) {
+//					rsiList.remove(0); // Remove the oldest element
+//				}
+				double ltpChange = Math.round((curCandle.getClose() - prevCandle.getClose()) * 100.0) / 100.0;
 				long oiChange = curCandle.getOpenInterest() - prevCandle.getOpenInterest();
 				String oiInterpretation = (oiChange > 0)
 						? (ltpChange > 0 ? "LBU" : "SBU")
 						: (ltpChange > 0 ? "SC" : "LU");
-				double val1 = ((curCandle.getHigh() - curCandle.getLow()) / curCandle.getLow()) * 100;
-				double firstCandleChgeInPer = (((firstCandle.getClose() - firstCandle.getOpen()) / firstCandle.getOpen()) * 100);
-				double highToOpenChge = (((curCandle.getHigh() - curCandle.getOpen()) / curCandle.getOpen()) * 100);
-				double lowToCloseChge = (((curCandle.getClose() - curCandle.getLow()) / curCandle.getLow()) * 100);
-
-//            double value = rsiCalculator.calculateRSI(rsiList, 14);
+				TradeSetupTO tradeSetupTO1 = tradeSetupManager.getStockByDateAndTime(stock, properties.getStockDate(), endTime);
+				if (tradeSetupTO1 != null) {
+					return tradeSetupTO1;
+				}
 				StockResponse res = new StockResponse();
 				res.setStock(stock);
 				res.setOiInterpretation(oiInterpretation);
-//            res.setRsi(value);
 				res.setCurCandle(curCandle);
 				res.setFirstCandle(firstCandle);
-//				if (curCandle.isHighVolume()) {
 				if (commonValidation.isPositive(candles, firstCandle, curCandle, curCandle.getOiInt()) && curCandle.getHigh() > dayHigh) {
-					res.setStockType("P");
+					res.setStockType(POSITIVE_STOCK_TYPE);
 					res.setValidCandle(curCandle);
 				}
-//				}
 				dayHigh = Math.max(dayHigh, curCandle.getHigh());
 				prevCandle = curCandle;
-				if (res.getValidCandle() != null && res.getValidCandle().getHigh() > 145) {
-					if ("test".equals(properties.getEnv()) || list.size() == candles.size()) {
+				if (res.getValidCandle() != null && res.getValidCandle().getHigh() > MIN_STOCK_PRICE_THRESHOLD) {
+					if (TEST_ENV.equals(properties.getEnv()) || processedCandles.size() == candles.size()) {
 						properties.setEndTime(res.getValidCandle().getEndTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
 						properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
 						Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, properties.getStockName());
@@ -190,65 +254,19 @@ public class MarketDataService {
 							continue;
 						}
 						populateTradeSetup(tradeSetupTO, res, strikes, properties);
+						if (ystEodCandle.getHigh() < res.getValidCandle().getHigh()) {
+							tradeSetupTO.setTradeNotes("Y");
+						} else {
+							tradeSetupTO.setTradeNotes("N");
+						}
 						tradeSetupTO.setStopLoss1(ystEodCandle.getLow());
-
-//					if ("1".equals(processEodResponse(tradeSetupTO.getStockSymbol(), "P", res.getValidCandle().getOiInt(), res.getCurHigh(), properties.getStockDate()))) {
-						tradeSetupManager.saveTradeSetup(tradeSetupTO);
+						tradeSetupTO.setTradeNotes(res.getValidCandle().getOiInt());
+						processEodResponse(tradeSetupTO);
 						return tradeSetupTO;
-//					}
-					} else {
-
 					}
 				}
 
 			}
-//			if (sr1 != null && sr1.getStock().contains("*")) {
-//				if ("test1".equalsIgnoreCase(properties.getEnv()) && sr1.getStockProfitResult() == null) {
-//					log.info("{} first candle {}", sr1.getStock(), sr1.getFirstCandle());
-//					log.info("{} current candle {}", sr1.getStock(), sr1.getCurCandle());
-//					log.info("{} valid candle {}", sr1.getStock(), sr1.getValidCandle());
-//					int i = 1;
-//					boolean calculateForward = true;
-//					int maxDays = 5;
-//					String curDate = FormatUtil.addDays(LocalDate.now().toString(), 1);
-//					Candle prevCandle = null;
-//					while (calculateForward) {
-//						Thread.sleep(2000);
-//						Properties prop1 = new Properties();
-//						prop1.setStockDate(FormatUtil.addDays(properties.getStockDate(), i));
-//						prop1.setStockName(properties.getStockName());
-//						if (prop1.getStockDate().equals(curDate)) {
-//							calculateForward = false;
-//						}
-//						try {
-//							List<Candle> plus1Candles = commonValidation.getCandles(prop1, stock);
-//							log.info("Date {} candles {} curDate {}", prop1.getStockDate(), plus1Candles.size(), curDate);
-//							for (Candle c : plus1Candles) {
-//								prevCandle = c;
-//								commonValidation.checkExitSignal(sr1, c);
-//								if (sr1.getStockProfitResult() != null) {
-//									String sell = sr1.getStockProfitResult().getSellTime();
-//									sr1.getStockProfitResult().setSellTime(sell + " " + prop1.getStockDate());
-//								}
-//							}
-//						} catch (Exception e) {
-//							calculateForward = false;
-//						}
-//						if (sr1.getStockProfitResult() != null) {
-//							calculateForward = false;
-//						}
-//						if (maxDays == i) {
-//							calculateForward = false;
-//						}
-//						i++;
-//					}
-//
-//				}
-//
-//				return sr1;
-//			} else {
-//				return sr1;
-//			}
 		} catch (Exception e) {
 			log.error("Error processing stock: {}, {}", stock, e.getMessage(), e);
 		}
@@ -266,51 +284,33 @@ public class MarketDataService {
 		tradeSetupTO.setStockDate(properties.getStockDate());
 		tradeSetupTO.setFetchTime(endTime);
 		tradeSetupTO.setType(res.getStockType());
-		tradeSetupTO.setStrategy("DH");
+		tradeSetupTO.setStrategy(STRATEGY_DH);
 		tradeSetupTO.setStrikes(strikes);
 		tradeSetupTO.setEntry1((lastCandle.getLow() + lastCandle.getHigh()) / 2);
-//		tradeSetup.setEntry2(res.getFirstCandle().getClose());
 		tradeSetupTO.setStopLoss1(firstCandle.getLow());
-//		StrikeTO strike = commonUtils.getLargestCeVolumeStrike(strikes);
-//		tradeSetup.setTarget1(strike.getStrikePrice());
-//		if (strike.getIndex() <= 0 || strike.getPeOiChg() <= 0) {
-//			return null;
-//		}
-//		StrikeTO strike = commonUtils.getTarget2Strike(strikes);
-//		if (strike != null) {
-//			tradeSetup.setTarget2(res.getFirstCandle().getClose());
-//		}
-//		return tradeSetupTO;
 	}
 
-	private String processEodResponse(String stock, String stockType, String oiInt, double curHigh, String stockDate) {
+	private void processEodResponse(TradeSetupTO tradeSetupTO) {
 
-		StockEODResponse eod = ioPulseService.getMonthlyData(stock);
+		StockEODResponse eod = ioPulseService.getMonthlyData(tradeSetupTO.getStockSymbol());
 		if (eod == null || eod.getData().size() < 3) {
-			log.info("EOD data is insufficient for stock: {}", stock);
-			return null;
+			log.info("EOD data is insufficient for stock: {}", tradeSetupTO.getStockDate());
+			return;
 		}
 
 		// Extract data for the last three days
 		for (int i = 0; i < eod.getData().size(); i++) {
 			FutureEodAnalyzer futureEodAnalyzer = eod.getData().get(i);
-			if (stockDate.equals(futureEodAnalyzer.getStFetchDate())) {
+			if (tradeSetupTO.getStockDate().equals(futureEodAnalyzer.getStFetchDate())) {
 				FutureEodAnalyzer dayM1 = eod.getData().get(i + 1);
 				FutureEodAnalyzer dayM2 = eod.getData().get(i + 2);
 				FutureEodAnalyzer dayM3 = eod.getData().get(i + 3);
 				String oi1 = calculateOiInterpretation(dayM1, dayM2);
 				String oi2 = calculateOiInterpretation(dayM2, dayM3);
-
-				if ("N".equals(stockType) && "SBU".equals(oiInt)) {
-				} else if ("P".equals(stockType) && "LBU".equals(oiInt)) {
-//					if (curHigh > dayM1.getInDayHigh())
-					{
-						return determinePriority(oi1, "LBU", "SC");
-					}
-				}
+				tradeSetupTO.setTradeNotes(oi1 + "-" + oi2);
+				return;
 			}
 		}
-		return null;
 	}
 
 	private String calculateOiInterpretation(FutureEodAnalyzer current, FutureEodAnalyzer previous) {

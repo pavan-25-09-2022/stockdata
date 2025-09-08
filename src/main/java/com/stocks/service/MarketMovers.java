@@ -487,7 +487,7 @@ public class MarketMovers {
 						trade.setStatus("N-E");
 						break;
 					}
-					if ((isTarget1 && isTarget2) || isStopLoss1) {
+					if ((isTarget1 && isTarget2)) {
 						break;
 					}
 					if (i > 0) {
@@ -500,6 +500,7 @@ public class MarketMovers {
 					if (i == 0) {
 						time = trade.getFetchTime();
 					}
+					log.info("Fetching data for stock {} for date {} from time {}", trade.getStockSymbol(), date, time);
 
 //					List<HistoricalQuote> candles = getHistoricalQuotes(trade.getStockSymbol(), date, time, properties.getInterval(), "oi");
 					List<Candle> candles = getHistoricalQuotes(trade.getStockSymbol(), date, time, properties.getInterval(), "oi");
@@ -518,7 +519,7 @@ public class MarketMovers {
 								isTarget1 = StringUtils.hasLength(trade.getTarget1Time());
 								isTarget2 = StringUtils.hasLength(trade.getTarget2Time());
 								isStopLoss1 = StringUtils.hasLength(trade.getStopLoss1Time());
-								if ((isTarget1 && isTarget2) || isStopLoss1) {
+								if ((isTarget1 && isTarget2)) {
 									break;
 								}
 								double candleLow = candle.getLow();
@@ -526,32 +527,32 @@ public class MarketMovers {
 								String dateTime = candle.getDate() + " " + candle.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm"));
 								if (!isEntry1 && candleLow <= trade.getEntry1()) {
 									trade.setEntry1Time(dateTime);
-									trade.setTradeNotes(trade.getTradeNotes() != null ? (trade.getTradeNotes() + "E1 ") : "E1 ");
+									trade.setTradeNotes("E1 ");
 									trade.setStatus("O");
 									isEntry1 = true;
 								}
 								if (!isEntry1 && !isEntry2 && trade.getEntry2() != null && candleLow <= trade.getEntry2()) {
 									trade.setEntry2Time(dateTime);
-									trade.setTradeNotes(trade.getTradeNotes() + "E2 ");
+									trade.setTradeNotes("E2 ");
 									trade.setStatus("O");
 									isEntry2 = true;
 								}
 								if ((isEntry1 || isEntry2) && !isTarget1 && trade.getTarget1() != null && candleHigh >= trade.getTarget1()) {
 									trade.setTarget1Time(dateTime);
-									trade.setTradeNotes(trade.getTradeNotes() + "T1 ");
+									trade.setTradeNotes("T1 ");
 									trade.setStatus("P");
 									isTarget1 = true;
 								}
 								if ((isEntry1 || isEntry2) && !isTarget2 && trade.getTarget2() != null && candleHigh >= trade.getTarget2()) {
 									trade.setTarget2Time(dateTime);
-									trade.setTradeNotes(trade.getTradeNotes() + "T2 ");
+									trade.setTradeNotes("T2 ");
 									trade.setStatus("P");
 									isTarget2 = true;
 								}
 								if ((isEntry1 || isEntry2) && (!isTarget1 || !isTarget2) && candleLow <= trade.getStopLoss1()) {
 									trade.setStopLoss1Time(dateTime);
 									if (!trade.getTradeNotes().contains("SL ")) {
-										trade.setTradeNotes(trade.getTradeNotes() + "SL ");
+										trade.setTradeNotes("SL ");
 									}
 									if (isTarget1) {
 										trade.setStatus("P");
