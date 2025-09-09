@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class TrendingOIService {
@@ -40,10 +41,57 @@ public class TrendingOIService {
         Map<String, FutureAnalysis> futureAnalysisMap = stringMapMap.get(properties.getStockName());
 
         Map<String, TrendingOiEntity> stringTrendingOiEntityMap = processTrendingOiResponse(apiResponse, properties, properties.getStockName());
-        List<String> shortCoveingDuration = new ArrayList<>();
+
+        List<TrendingOiEntity> ceOrPeCoveringEntities = stringTrendingOiEntityMap.values().stream()
+                .filter(entity -> {
+                    if (entity.isCEShorted() && entity.isPEShorted()) {
+                        return false;
+                    }
+                    if (entity.isPEShorted() && entity.getSentiment().equals("Bearish")) {
+                        return true;
+                    }
+                    if (entity.isCEShorted() && entity.getSentiment().equals("Bullish")) {
+                        return true;
+                    }
+                    return false;
+                })
+                .collect(Collectors.toList());
+
+        ceOrPeCoveringEntities.forEach(entity -> {
+            FutureAnalysis futureAnalysis = futureAnalysisMap.get(entity.getFetchTime());
+            if (futureAnalysis != null && ((futureAnalysis.getInterpretation().equals("LBU") && entity.isCEShorted())
+                    || (futureAnalysis.getInterpretation().equals("SBU") && entity.isPEShorted())) && futureAnalysis.getStrength() > 0.75) {
+                System.out.println("Time " +entity.getFetchTime() +  " is CE short Covering " + entity.isCEShorted() + "--->" + futureAnalysis.getInterpretation());
+            }
+        });
 
 
-        return stringTrendingOiEntityMap.values().stream().toList();
+        List<FutureAnalysis> list = futureAnalysisMap.values().stream().collect(Collectors.toList());
+
+        for(int i =0 ; i < list.size(); i++) {
+        	FutureAnalysis fa = list.get(i);
+        	if(fa.getInterpretation().equals("SC") && fa.getStrength() > 0.75){
+                if(i < list.size() -1){
+                    FutureAnalysis nextFa = list.get(i+1);
+                    String duration = nextFa.getDuration();
+                    if(nextFa.getInterpretation().equals("LBU") && nextFa.getStrength() > 0.75){
+                        System.out.println("Entry on " +properties.getStockDate()+ " at " +nextFa.getClose() +  " SL at  " + fa.getLow() + " duration " + duration);
+                    }
+                }
+            }else if(fa.getInterpretation().equals("LU") && fa.getStrength() > 0.75){
+                if(i < list.size() -1){
+                    FutureAnalysis nextFa = list.get(i+1);
+                    String duration = nextFa.getDuration();
+                    if(nextFa.getInterpretation().equals("SBU") && nextFa.getStrength() > 0.75){
+                        System.out.println("Entry at " +nextFa.getClose() +  " SL at  " + fa.getHigh() +" duration " + duration);
+                    }
+                }
+
+            }
+        }
+
+
+        return stringTrendingOiEntityMap.values().stream().collect(Collectors.toList());
 
 
     }

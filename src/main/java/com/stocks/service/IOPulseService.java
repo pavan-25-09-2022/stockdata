@@ -353,7 +353,7 @@ public class IOPulseService {
 			}
 
 			HttpHeaders headers = new HttpHeaders();
-			headers.set("Authorization", authToken);
+			headers.set("Authorization", getNextAuthToken());
 			headers.set("Content-Type", "application/json");
 
 			// Create request entity
