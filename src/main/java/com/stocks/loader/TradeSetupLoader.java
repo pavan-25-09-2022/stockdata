@@ -2,17 +2,15 @@ package com.stocks.loader;
 
 import com.stocks.dto.TradeSetupTO;
 import com.stocks.repository.TradeSetupManager;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-@Component
+//@Component
 public class TradeSetupLoader {
-	@Autowired
+	//	@Autowired
 	private TradeSetupManager tradeSetupRepository;
 
 	@PostConstruct

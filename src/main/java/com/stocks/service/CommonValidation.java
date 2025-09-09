@@ -184,9 +184,7 @@ public class CommonValidation {
 	public boolean isPositive(List<Candle> candles, Candle firstCandle, Candle curCandle, String oiInterpretation) {
 		double topWick = curCandle.getHigh() - Math.max(curCandle.getOpen(), curCandle.getClose());
 		double bodySize = Math.abs(curCandle.getOpen() - curCandle.getClose());
-		return (
-				curCandle.getClose() > firstCandle.getClose() && curCandle.getOpen() > firstCandle.getOpen() &&
-						oiInterpretation.equals("LBU"));
+		return (curCandle.getClose() > firstCandle.getClose() && (oiInterpretation.equals("LBU") || oiInterpretation.equals("SC")));
 //        return curCandle.getClose() > firstCandle.getHigh() && highToOpenChge < 0.4 && curCandle.getLow() < firstCandle.getHigh() && (oiInterpretation.equals("LBU"))
 	}
 

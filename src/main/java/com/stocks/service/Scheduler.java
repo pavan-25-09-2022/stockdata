@@ -44,14 +44,11 @@ public class Scheduler {
 	@Autowired
 	private DayHighLowBreakService dayHighLowBreakService;
 
-	@Scheduled(cron = "10 */5 9,10 * * *") // Runs from 9:15 to 9:35, 11:15 to 11:35, and 14:15 to 14:35
+	@Scheduled(cron = "10 */5 9-13 * * *") // Runs every 5 minutes from 9:15 to 13:35
 	public void callApi() {
 		log.info("Scheduler started API stocks");
 		logTime();
-		Properties properties = new Properties();
-		properties.setInterval(5);
-		properties.setExpiryDate("250529");
-		properties.setStartTime("09:15");
+		Properties properties = buildProperties();
 		List<TradeSetupTO> list = apiService.callApi(properties);
 		if (list == null || list.isEmpty()) {
 			log.info("No records found");

@@ -20,7 +20,7 @@ public class TradeSetupTO {
 	private Double stopLoss1;
 	private Double stopLoss2;
 	private String status;
-	private String tradeNotes;
+	private String tradeNotes = "";
 	private String entry1Time;
 	private String entry2Time;
 	private String target1Time;
@@ -30,4 +30,12 @@ public class TradeSetupTO {
 	private String type;
 
 	Map<Integer, StrikeTO> strikes;
+
+	public void setTradeNotes(String note) {
+		if (this.tradeNotes == null || this.tradeNotes.isEmpty()) {
+			this.tradeNotes = note;
+		} else {
+			this.tradeNotes += " | " + note;
+		}
+	}
 }
