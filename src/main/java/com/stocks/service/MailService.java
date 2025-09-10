@@ -58,7 +58,7 @@ public class MailService {
 			messageHelper.setTo(sendTo);
 			messageHelper.setSubject(subject);
 			messageHelper.setText(content, true);
-//            javaMailSender.send(mimeMessage);
+            javaMailSender.send(mimeMessage);
 		} catch (Exception ex) {
 			log.error("send mail error", ex);
 		}
@@ -73,7 +73,7 @@ public class MailService {
 			String mailBody = buildBody(body);
 			message.setContent(mailBody, "text/html");
 			message.setSubject(subject);
-//			javaMailSender.send(message);
+     		javaMailSender.send(message);
 		} catch (Exception ex) {
 			log.error("send mail error", ex);
 		}

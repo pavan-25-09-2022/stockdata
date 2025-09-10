@@ -109,4 +109,30 @@ public class FormatUtil {
 			return lastDayOfNextMonth.format(customFormatter);
 		}
 	}
+
+	public static String getLastTuesdayOfTheMonthMonth(String inputDate) {
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		LocalDate date = LocalDate.parse(inputDate, formatter);
+
+		// Find last day of the month
+		LocalDate lastDayOfMonth = date.withDayOfMonth(date.lengthOfMonth());
+
+		// Find the last Tuesday of the month
+		while (lastDayOfMonth.getDayOfWeek() != java.time.DayOfWeek.TUESDAY) {
+			lastDayOfMonth = lastDayOfMonth.minusDays(1);
+		}
+
+		DateTimeFormatter customFormatter = DateTimeFormatter.ofPattern("yyMMdd");
+		if (!date.isAfter(lastDayOfMonth)) {
+			return lastDayOfMonth.format(customFormatter);
+		} else {
+			// Move to next month and find last Tuesday
+			LocalDate nextMonth = date.plusMonths(1).withDayOfMonth(1);
+			LocalDate lastDayOfNextMonth = nextMonth.withDayOfMonth(nextMonth.lengthOfMonth());
+			while (lastDayOfNextMonth.getDayOfWeek() != java.time.DayOfWeek.TUESDAY) {
+				lastDayOfNextMonth = lastDayOfNextMonth.minusDays(1);
+			}
+			return lastDayOfNextMonth.format(customFormatter);
+		}
+	}
 }
