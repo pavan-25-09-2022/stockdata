@@ -65,8 +65,10 @@ public class MarketMovers {
 				continue;
 			}
 			List<TradeSetupTO> list = processTradeSetup(properties, values, stock);
-			persistTrades(list);
-			trades.addAll(list);
+			if(!list.isEmpty()) {
+				persistTrades(list);
+				trades.addAll(list);
+			}
 		}
 		if (properties.getStrategy() != null) {
 			return trades.stream()
@@ -87,7 +89,7 @@ public class MarketMovers {
 		//properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
 		properties.setStartTime(startTime);
 		properties.setEndTime(FormatUtil.getTime(properties.getStartTime(), interval).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-		properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
+		properties.setExpiryDate(FormatUtil.getLastTuesdayOfTheMonthMonth(properties.getStockDate()));
 		if (!properties.getStockName().isEmpty() && !stock.equals(properties.getStockName())) {
 			return trades;
 		}
