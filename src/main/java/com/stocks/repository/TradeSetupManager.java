@@ -100,6 +100,40 @@ public class TradeSetupManager {
 				.getResultStream().map(this::mapEntityToTO).findFirst().orElse(null);
 	}
 
+	@Transactional
+	public void deleteTradeSetupsByStockDate(String stockDate) {
+		// Delete related StrikeSetupEntity records first
+		String deleteStrikesHql = "DELETE FROM StrikeSetupEntity s WHERE s.tradeSetup.id IN " +
+				"(SELECT t.id FROM TradeSetupEntity t WHERE t.stockDate = :stockDate)";
+		entityManager.createQuery(deleteStrikesHql)
+				.setParameter("stockDate", stockDate)
+				.executeUpdate();
+
+		// Delete TradeSetupEntity records
+		String deleteTradeSetupsHql = "DELETE FROM TradeSetupEntity t WHERE t.stockDate = :stockDate";
+		entityManager.createQuery(deleteTradeSetupsHql)
+				.setParameter("stockDate", stockDate)
+				.executeUpdate();
+	}
+
+	@Transactional
+	public void deleteTradeSetupsByStockDateAndName(String stockDate, String stockName) {
+		// Delete related StrikeSetupEntity records first
+		String deleteStrikesHql = "DELETE FROM StrikeSetupEntity s WHERE s.tradeSetup.id IN " +
+				"(SELECT t.id FROM TradeSetupEntity t WHERE t.stockDate = :stockDate AND t.stockSymbol = :stockName)";
+		entityManager.createQuery(deleteStrikesHql)
+				.setParameter("stockDate", stockDate)
+				.setParameter("stockName", stockName)
+				.executeUpdate();
+
+		// Delete TradeSetupEntity records
+		String deleteTradeSetupsHql = "DELETE FROM TradeSetupEntity t WHERE t.stockDate = :stockDate AND t.stockSymbol = :stockName";
+		entityManager.createQuery(deleteTradeSetupsHql)
+				.setParameter("stockDate", stockDate)
+				.setParameter("stockName", stockName)
+				.executeUpdate();
+	}
+
 	private TradeSetupTO mapEntityToTO(TradeSetupEntity entity) {
 		if (entity == null) return null;
 		TradeSetupTO to = new TradeSetupTO();

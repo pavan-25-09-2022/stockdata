@@ -490,6 +490,18 @@ public class ApiController {
 		return sb.toString();
 	}
 
+	@GetMapping("/deleteTradeSetupRecords")
+	public String deleteTradeSetupRecords(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+										  @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName) {
+		if (stockName != null && !stockName.isEmpty() && stockDate != null && !stockDate.isEmpty()) {
+			tradeSetupManager.deleteTradeSetupsByStockDateAndName(stockDate, stockName);
+			return "Deleted trade setups and stock results for stock: " + stockName + " on date: " + stockDate;
+		} else if (stockDate != null && !stockDate.isEmpty()) {
+			tradeSetupManager.deleteTradeSetupsByStockDate(stockDate);
+		}
+		return "Deleted trade setups for date: " + stockDate;
+	}
+
 	@GetMapping("/verifyStockData")
 	public List<String> verifyStockData(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
 	                                    @RequestParam(name = "interval", required = false, defaultValue = "5") Integer interval,

@@ -65,9 +65,9 @@ public class MarketMovers {
 				continue;
 			}
 			List<TradeSetupTO> list = processTradeSetup(properties, values, stock);
+			persistTrades(list);
 			trades.addAll(list);
 		}
-		persistTrades(trades);
 		if (properties.getStrategy() != null) {
 			return trades.stream()
 					.filter(tradeSetupTO -> {
