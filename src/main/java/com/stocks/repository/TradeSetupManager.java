@@ -1,5 +1,6 @@
 package com.stocks.repository;
 
+import com.stocks.dto.Properties;
 import com.stocks.dto.StrikeTO;
 import com.stocks.dto.TradeSetupTO;
 import com.stocks.entity.StrikeSetupEntity;
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -78,6 +80,28 @@ public class TradeSetupManager {
 		return entityManager.createQuery(hql, TradeSetupEntity.class)
 				.setParameter("stockDate", stockDate)
 				.getResultList();
+	}
+
+	@Transactional(readOnly = true)
+	public List<TradeSetupEntity> findAllByProperties(Properties properties) {
+		String hql = "FROM TradeSetupEntity WHERE 1=1";
+		if (properties.getStockDate() != null && !properties.getStockDate().isEmpty()) {
+			hql += " AND stockDate = :stockDate";
+		}
+		if (properties.getStrategy() != null && !properties.getStrategy().isEmpty()) {
+			hql += " AND strategy = :strategy";
+		}
+
+		TypedQuery<TradeSetupEntity> query = entityManager.createQuery(hql, TradeSetupEntity.class);
+
+		if (properties.getStockDate() != null && !properties.getStockDate().isEmpty()) {
+			query.setParameter("stockDate", properties.getStockDate());
+		}
+		if (properties.getStrategy() != null && !properties.getStrategy().isEmpty()) {
+			query.setParameter("strategy", properties.getStrategy());
+		}
+
+		return query.getResultList();
 	}
 
 	@Transactional(readOnly = true)

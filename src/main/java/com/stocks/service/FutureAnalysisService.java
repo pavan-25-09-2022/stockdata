@@ -183,7 +183,7 @@ public class FutureAnalysisService {
 		double firstCandlePercentageChange = ((double) firstCandleOiChange / Long.parseLong(previousEodChunk.getOpenInterest())) * 100;
 		double firstCandleLtpChangePercentage = (firstCandleLtpChange / previousEodChunk.getClose()) * 100;
 		long firstCandleTotalDayChangeInOI = firstCandleOiChange - Long.parseLong(previousEodChunk.getOpenInterest());
-		FutureAnalysis firstCandleFutureAnalysis = new FutureAnalysis(stock, properties.getStockDate(), firstCandleDuration, (double) firstCandleTotalOiChange, firstCandleTotalDayChangeInOI, previousData.getDayHigh(), previousData.getDayLow(), previousData.getClose(), firstCandleHigh, firstCandleLow, firstCandleOfADay.getOpen(), firstCandleOiChange, firstCandleOiInterpretation, "", firstCandleLtpChange, highVolume, false, firstCandleStrength, firstCandlePercentageChange, firstCandleLtpChangePercentage);
+		FutureAnalysis firstCandleFutureAnalysis = new FutureAnalysis(stock, properties.getStockDate(), firstCandleDuration, (double) firstCandleTotalOiChange, firstCandleTotalDayChangeInOI, previousData.getDayHigh(), previousData.getDayLow(), previousData.getClose(), firstCandleHigh, firstCandleLow, firstCandleOfADay.getOpen(), firstCandleOiChange, firstCandleOiInterpretation, "", firstCandleLtpChange, highVolume, false, firstCandleStrength, firstCandlePercentageChange, firstCandleLtpChangePercentage, MARKET_START_TIME.plusMinutes(properties.getInterval()).toString(), firstCandlePercentageChange, firstCandleLtpChangePercentage);
 		futureAnalysisMap.put(firstCandleDuration, firstCandleFutureAnalysis);
 		for (int i = 2; i < chunks.size() - 1; i++) {
 			List<ApiResponse.Data> chunk = chunks.get(i);
@@ -288,9 +288,17 @@ public class FutureAnalysisService {
 
 			double ltpPercentageChange = (ltpChange / previousData.getClose()) * 100;
 
+			double dayltpChange = recentData.getClose() - previousEodChunk.getClose();
+
+			double dayOiChange = Long.parseLong(recentData.getOpenInterest()) - Long.parseLong(previousEodChunk.getOpenInterest());
+
+			double dayOiPercentageChange = ( dayOiChange / Long.parseLong(previousEodChunk.getOpenInterest())) * 100;
+
+			double dayLtpPercentageChange = (dayltpChange / previousEodChunk.getClose()) * 100;
+
 			long totalDayChangeInOI = totalOiChange - Long.parseLong(previousEodChunk.getOpenInterest());
 
-			FutureAnalysis futureAnalysis = new FutureAnalysis(stock, properties.getStockDate(), duration, (double) totalOiChange, totalDayChangeInOI, previousData.getDayHigh(), previousData.getDayLow(), recentData.getClose(), curHigh, curLow, firstCandle.getOpen(), oiChange, oiInterpretation, isLevelBreak, ltpChange, totalVolume, isHigher, strength, oiPercentageChange, ltpPercentageChange);
+			FutureAnalysis futureAnalysis = new FutureAnalysis(stock, properties.getStockDate(), duration, (double) totalOiChange, totalDayChangeInOI, previousData.getDayHigh(), previousData.getDayLow(), recentData.getClose(), curHigh, curLow, firstCandle.getOpen(), oiChange, oiInterpretation, isLevelBreak, ltpChange, totalVolume, isHigher, strength, oiPercentageChange, ltpPercentageChange, endTime.toString(), dayOiPercentageChange, dayLtpPercentageChange);
 			futureAnalysisMap.put(duration, futureAnalysis);
 
 		}

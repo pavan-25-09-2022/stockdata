@@ -469,6 +469,24 @@ public class ApiController {
 		return data;
 	}
 
+	@GetMapping("/getTradeSetupRecordsByStockDateAndStatergy")
+	public String getTradeSetupRecordsByStockDateAndStatergy(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+															 @RequestParam(name = "crit", required = false, defaultValue = "") String crit) {
+		List<TradeSetupEntity> allByStockDate = null;
+
+		if ((stockDate != null && !stockDate.isEmpty()) || (crit != null && !crit.isEmpty())) {
+			Properties properties = new Properties();
+			properties.setStockDate(stockDate);
+			properties.setStrategy(crit);
+			allByStockDate = tradeSetupManager.findAllByProperties(properties);
+		} else {
+			return  "Please provide at least stockDate or crit parameter.";
+		}
+		String data = marketMoversMailService.beautifyTradeSetupResults(allByStockDate);
+		//marketMoversMailService.sendMail(data, properties);
+		return data;
+	}
+
 
 	@GetMapping("/getAllStrikeSetupRecords")
 	public String getAllStrikeSetupRecords(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate) {

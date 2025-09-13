@@ -53,6 +53,12 @@ public class FutureAnalysis {
 
     Double ltpPercentageChange;
 
+    String time;
+
+    Double dayOiPercentageChange;
+
+    Double dayLtpPercentageChange;
+
     @Transient
     private HistoricalQuote historicalQuote;
 
@@ -79,7 +85,7 @@ public class FutureAnalysis {
         this.strength = strength;
     }
 
-    public FutureAnalysis(String symbol,String date, String duration, Double totalOI, Long totalDayChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength, double percentageChange, double ltpPercentageChange) {
+    public FutureAnalysis(String symbol,String date, String duration, Double totalOI, Long totalDayChangeInOI, Double dayHigh, Double dayLow, Double close, Double high, Double low, Double open, Long oiChange, String interpretation, String levelBreak, Double ltpChange, Long volume, boolean highVolume, double strength, double percentageChange, double ltpPercentageChange, String time, Double dayOiPercentageChange, Double dayLtpPercentageChange) {
         this.symbol=symbol;
         this.date = date;
         this.duration = duration;
@@ -100,6 +106,9 @@ public class FutureAnalysis {
         this.strength = strength;
         this.oiPercentageChange = percentageChange;
         this.ltpPercentageChange = ltpPercentageChange;
+        this.time = time;
+        this.dayOiPercentageChange = dayOiPercentageChange;
+        this.dayLtpPercentageChange = dayLtpPercentageChange;
     }
 
     @Override
