@@ -7,11 +7,9 @@ import com.stocks.dto.MarketMoversResponse;
 import com.stocks.dto.Properties;
 import com.stocks.dto.StrikeTO;
 import com.stocks.dto.TradeSetupTO;
+import com.stocks.entity.TradeSetupEntity;
 import com.stocks.repository.TradeSetupManager;
-import com.stocks.utils.CalendarUtil;
-import com.stocks.utils.CommonUtils;
-import com.stocks.utils.FormatUtil;
-import com.stocks.utils.MarketHolidayUtils;
+import com.stocks.utils.*;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -89,7 +87,7 @@ public class MarketMovers {
 		//properties.setEndTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
 		properties.setStartTime(startTime);
 		properties.setEndTime(FormatUtil.getTime(properties.getStartTime(), interval).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-		properties.setExpiryDate(FormatUtil.getLastTuesdayOfTheMonthMonth(properties.getStockDate()));
+		properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
 		if (!properties.getStockName().isEmpty() && !stock.equals(properties.getStockName())) {
 			return trades;
 		}
@@ -108,6 +106,10 @@ public class MarketMovers {
 				}
 				properties.setEndTime(endTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")));
 				Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, stock);
+                if(strikes.isEmpty()){
+                    System.out.println("Strikes are empty");
+                    break;
+                }
 				if (strikes != null && !strikes.isEmpty()) {
 					if (!isCriteria1Met) {
 						TradeSetupTO tradeSetup1 = validateAndSetDetails(strikes, stock, "c1");
@@ -208,8 +210,9 @@ public class MarketMovers {
 		String oiInterpretation = (oiChg > 0)
 				? (ltpChg > 0 ? "LBU" : "SBU")
 				: (ltpChg > 0 ? "SC" : "LU");
-		log.info("Stock {} with OI Change {}", marketMoverData.getStSymbolName(), oiChg);
-		if ("G".equals(type) && (oiChg > 2 || oiChg < -2) && lptChgPer > 2) {
+		log.info("Stock {} with OI Change {} and ltp change {}", marketMoverData.getStSymbolName(), oiChg, ltpChg);
+
+		if ("G".equals(type) && ( ltpChg> 0 && oldClose > 300)) {
 			Arrays.asList("positive", oiChg + "", lptChgPer + "", oiInterpretation);
 		} else if ("L".equals(type) && oiChg < -1) {
 			Arrays.asList("negative", oiChg + "", lptChgPer + "", oiInterpretation);
@@ -284,12 +287,16 @@ public class MarketMovers {
 				strikeUp1.getCeOiChg() < 0 && strikeUp2.getCeOiChg() < 0 &&
 				strikeDown1.getPeOiChg() > 0 && strikeDown2.getPeOiChg() > 0) {
 
-			tradeSetup.setEntry1((strike0.getStrikePrice() + strikeDown1.getStrikePrice()) / 2);
+			tradeSetup.setEntry1((strike0.getStrikePrice() + strike0.getCurPrice()) / 2);
 			tradeSetup.setEntry2(strike0.getStrikePrice());
 			tradeSetup.setTarget2((strikeDown2.getStrikePrice() + strikeDown3.getStrikePrice()) / 2);
 			tradeSetup.setTarget1(strikeDown2.getStrikePrice());
 			tradeSetup.setStopLoss1(strikeUp2.getStrikePrice());
+            tradeSetup.setStopLoss2(strikeUp1.getStrikePrice());
 			tradeSetup.setStrategy(criteria);
+            if(strikeDown1.getCeOiChg() < 0){
+                tradeSetup.setTradeNotes(" SC");
+            }
 			return tradeSetup;
 		} else if (criteria.equals("c1") && isValidStrike(strike0) && allValid &&
 				strikeUp1.getCeOiChg() < 0 && strikeUp2.getCeOiChg() < 0 && strikeUp3.getCeOiChg() < 0 &&
@@ -476,13 +483,14 @@ public class MarketMovers {
 				String date = trade.getStockDate();
 
 				int noOfDays = 20;
-				int entryDays = 1;
+				int entryDays = 2;
 				int processedDays = 0;
 				boolean isEntry1 = StringUtils.hasLength(trade.getEntry1Time());
 				boolean isEntry2 = StringUtils.hasLength(trade.getEntry2Time()) || trade.getEntry2() == null;
 				boolean isTarget1 = StringUtils.hasLength(trade.getTarget1Time());
 				boolean isTarget2 = StringUtils.hasLength(trade.getTarget2Time()) || trade.getTarget2() == null;
 				boolean isStopLoss1 = StringUtils.hasLength(trade.getStopLoss1Time());
+                boolean isStopLossModified = false;
 				for (int i = 0; i < noOfDays; i++) {
 					if (!isEntry1 && !isEntry2 && processedDays >= entryDays) {
 						trade.setTradeNotes("N-E (2D)");
@@ -502,6 +510,9 @@ public class MarketMovers {
 					if (i == 0) {
 						time = trade.getFetchTime();
 					}
+                    if(LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd")).isAfter(LocalDate.now())){
+                        break;
+                    }
 					log.info("Fetching data for stock {} for date {} from time {}", trade.getStockSymbol(), date, time);
 
 //					List<HistoricalQuote> candles = getHistoricalQuotes(trade.getStockSymbol(), date, time, properties.getInterval(), "oi");
@@ -551,6 +562,28 @@ public class MarketMovers {
 									trade.setStatus("P");
 									isTarget2 = true;
 								}
+                                if (isEntry1 && !isStopLossModified && properties.isModifyStopLoss() && trade.getEntry2() != null && candle.getClose() <= trade.getEntry2()) {
+                                    Properties properties1 = new Properties();
+                                    DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                                    DateTimeFormatter outputFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                                    LocalDate formattedDate = LocalDate.parse(candle.getDate(), inputFormatter);
+                                    String candleDate = formattedDate.format(outputFormat);
+                                    properties1.setStockDate(candleDate);
+                                    properties1.setStartTime("09:15:00");
+                                    properties1.setEndTime(FormatUtil.formatTimeHHmmss(candle.getEndTime()));
+                                    properties1.setStockName(trade.getStockSymbol());
+                                    properties1.setExpiryDate(FormatUtil.getMonthExpiry(candleDate));
+                                    StrikeTO currentStrike = calculateOptionChain.getStrike(properties1, trade.getStockSymbol(), trade.getEntry2());
+                                    Map<Integer, StrikeTO> strikes = trade.getStrikes();
+                                    StrikeTO strike = strikes.getOrDefault(trade.getEntry2().intValue(), null);
+                                    if(currentStrike != null && strike != null && currentStrike.getCeOiChg() > 0 &&
+                                            (currentStrike.getCeOi() > (strike.getCeOi() + Math.abs(strike.getCeOiChg())) && currentStrike.getPeOi() < strike.getPeOi())){
+                                        System.out.println(" Call condition "+ (currentStrike.getCeOi() > (strike.getCeOi() + Math.abs(strike.getCeOiChg()))));
+                                        System.out.println(" Put condition "+ (currentStrike.getPeOi() < strike.getPeOi()));
+                                        trade.setStopLoss1(candleLow);
+                                        isStopLossModified = true;
+                                    }
+                                }
 								if ((isEntry1 || isEntry2) && (!isTarget1 || !isTarget2) && candleLow <= trade.getStopLoss1()) {
 									trade.setStopLoss1Time(dateTime);
 									if (!trade.getTradeNotes().contains("SL ")) {

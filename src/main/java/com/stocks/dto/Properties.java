@@ -25,4 +25,5 @@ public class Properties {
 	private boolean withVolume;
 	private String strategy;
 	private int trendOiStrikes = 6;
+    private boolean modifyStopLoss;
 }

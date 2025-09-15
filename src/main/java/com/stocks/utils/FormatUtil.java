@@ -4,6 +4,7 @@ import com.stocks.dto.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -88,12 +89,17 @@ public class FormatUtil {
 	}
 
 	public static String getMonthExpiry(String inputDate) {
+
+        DayOfWeek dayOfWeek = DayOfWeek.TUESDAY;
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 		LocalDate date = LocalDate.parse(inputDate, formatter);
-
+        LocalDate expireDateChange = LocalDate.of(2025,8,29);
+        if(date.isBefore(expireDateChange)){
+            dayOfWeek = DayOfWeek.THURSDAY;
+        }
 		// Find last Thursday of the month
 		LocalDate lastDayOfMonth = date.withDayOfMonth(date.lengthOfMonth());
-		while (lastDayOfMonth.getDayOfWeek() != java.time.DayOfWeek.THURSDAY) {
+		while (lastDayOfMonth.getDayOfWeek() != dayOfWeek) {
 			lastDayOfMonth = lastDayOfMonth.minusDays(1);
 		}
 		DateTimeFormatter customFormatter = DateTimeFormatter.ofPattern("yyMMdd");
@@ -103,7 +109,7 @@ public class FormatUtil {
 			// Move to next month and find last Thursday
 			LocalDate nextMonth = date.plusMonths(1).withDayOfMonth(1);
 			LocalDate lastDayOfNextMonth = nextMonth.withDayOfMonth(nextMonth.lengthOfMonth());
-			while (lastDayOfNextMonth.getDayOfWeek() != java.time.DayOfWeek.THURSDAY) {
+			while (lastDayOfNextMonth.getDayOfWeek() != dayOfWeek) {
 				lastDayOfNextMonth = lastDayOfNextMonth.minusDays(1);
 			}
 			return lastDayOfNextMonth.format(customFormatter);

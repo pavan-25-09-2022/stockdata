@@ -30,12 +30,14 @@ public class MarketMoverController {
 	public String marketMoversGainers(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
 	                                  @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
 	                                  @RequestParam(name = "strategy", required = false, defaultValue = "") String strategy,
-	                                  @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName) {
+	                                  @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName,
+                                      @RequestParam(name = "modifyStopLoss", required = false) boolean modifyStopLoss) {
 		Properties properties = new Properties();
 		properties.setStockDate(stockDate);
 		properties.setInterval(interval);
 		properties.setStockName(stockName);
 		properties.setStrategy(strategy);
+        properties.setModifyStopLoss(modifyStopLoss);
 		List<TradeSetupTO> trades = marketMovers.testPositiveMarketMovers(properties);
 		if (trades == null || trades.isEmpty()) {
 			return "No records found";

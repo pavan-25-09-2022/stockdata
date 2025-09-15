@@ -11,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Repository
@@ -177,6 +179,29 @@ public class TradeSetupManager {
 		to.setTradeNotes(entity.getTradeNotes());
 		to.setStrategy(entity.getStrategy());
 		to.setType(entity.getType());
+        if (entity.getStrikeSetups() != null && !entity.getStrikeSetups().isEmpty()) {
+            Map<Integer, StrikeTO> strikes = new HashMap<>();
+            for (StrikeSetupEntity strikeEntity : entity.getStrikeSetups()) {
+                StrikeTO strike = new StrikeTO();
+                strike.setStrikePrice(strikeEntity.getStrikePrice());
+                strike.setCeOi(strikeEntity.getCeOi());
+                strike.setCeOiChg(strikeEntity.getCeOiChg());
+                strike.setCeLtpChg(strikeEntity.getCeLtpChg());
+                strike.setCeOiInt(strikeEntity.getCeOiInt());
+                strike.setCeVolume(strikeEntity.getCeVolume());
+                strike.setCeIv(strikeEntity.getCeIv());
+                strike.setCeIvChg(strikeEntity.getCeIvChg());
+                strike.setPeOi(strikeEntity.getPeOi());
+                strike.setPeOiChg(strikeEntity.getPeOiChg());
+                strike.setPeOiInt(strikeEntity.getPeOiInt());
+                strike.setPeVolume(strikeEntity.getPeVolume());
+                strike.setPeIv(strikeEntity.getPeIv());
+                strike.setPeIvChg(strikeEntity.getPeIvChg());
+                strike.setPeLtpChg(strikeEntity.getPeLtpChg());
+                strikes.put((int) strike.getStrikePrice(), strike);
+            }
+            to.setStrikes(strikes);
+        }
 		return to;
 	}
 

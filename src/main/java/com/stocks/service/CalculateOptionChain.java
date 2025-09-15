@@ -667,6 +667,33 @@ public class CalculateOptionChain {
 
 	}
 
+
+    public StrikeTO getStrike(Properties properties, String stock, double strike) {
+        LocalTime startTime = FormatUtil.getTime(properties.getStartTime(), 0);
+        OptionChainResponse response = ioPulseService.getOptionChain(properties, stock, startTime);
+        if (response == null || response.getData() == null) {
+            return null;
+        }
+        List<OptionChainData> list = response.getData().getData();
+        TreeMap<Double, List<OptionChainData>> groupedData = list.stream()
+                .collect(Collectors.groupingBy(
+                        OptionChainData::getInStrikePrice,
+                        TreeMap::new,
+                        Collectors.toList()
+                ));
+        List<OptionChainData> dataList = groupedData.get(strike);
+        StrikeTO strikeTO = new StrikeTO();
+        if (dataList.size() == 2) {
+            buildStrikeTO(strikeTO, dataList.get(0));
+            buildStrikeTO(strikeTO, dataList.get(1));
+        } else  {
+            return null;
+        }
+
+        return strikeTO;
+
+    }
+
 	private void buildStrikeTO(StrikeTO strikeTO, OptionChainData data) {
 		if (data != null) {
 			double ltpChg = data.getInNewClose() - data.getInOldClose();
