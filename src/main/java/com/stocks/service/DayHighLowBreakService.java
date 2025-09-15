@@ -2,11 +2,15 @@ package com.stocks.service;
 
 import com.stocks.dto.DayLowAndHigh;
 import com.stocks.dto.HistoricalQuote;
+import com.stocks.dto.Properties;
+import com.stocks.dto.TradeSetupTO;
 import com.stocks.enumaration.QueryInterval;
+import com.stocks.repository.TradeSetupManager;
 import com.stocks.utils.DateUtil;
 import com.stocks.yahoo.HistQuotesQuery2V8RequestImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -17,6 +21,9 @@ class DayHighLowBreakService {
 
     @Autowired
     MailService mailService;
+
+    @Autowired
+    private TradeSetupManager tradeSetupManager;
 
     private static final Map<String, DayLowAndHigh> stocksHistoricalData = new LinkedHashMap<>();
 
@@ -45,6 +52,39 @@ class DayHighLowBreakService {
         }
 
 
+    }
+
+    public void alertStocksBasedOnLastCandle(String startDate, String endDate) throws IOException {
+       if(!StringUtils.hasText(startDate) || !StringUtils.hasText(endDate)){
+           return;
+       }
+
+        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupsBetweenDates(startDate, endDate);
+        Calendar from = DateUtil.start();
+        Calendar to = DateUtil.end();
+
+        List<String> alertStocks = new ArrayList<>();
+
+        for (TradeSetupTO trade : tradeSetups) {
+            HistQuotesQuery2V8RequestImpl impl = new HistQuotesQuery2V8RequestImpl(trade.getStockSymbol() + ".NS", from, to, QueryInterval.FIVE_MINS);
+            List<HistoricalQuote> stockData = impl.getCompleteResult();
+
+            if (stockData != null && !stockData.isEmpty()) {
+                HistoricalQuote lastCandle = stockData.get(stockData.size() - 1);
+                double openPrice = lastCandle.getOpen().doubleValue();
+                double closePrice = lastCandle.getClose().doubleValue();
+                double lowPrice = lastCandle.getLow().doubleValue();
+                double tradeEntry = trade.getEntry2().doubleValue() * 100.2;
+
+                if (openPrice > tradeEntry && (closePrice < tradeEntry || lowPrice < tradeEntry) ) {
+                    alertStocks.add(trade.getStockSymbol() + " meets the criteria: Open=" + openPrice + ", Close=" + closePrice + ", Low=" + lowPrice + ", Trade Entry=" + tradeEntry);
+                }
+            }
+        }
+
+        if (!alertStocks.isEmpty()) {
+            mailService.sendMail("Stocks Alert Based on Last Candle", String.join("\n", alertStocks));
+        }
     }
 
 

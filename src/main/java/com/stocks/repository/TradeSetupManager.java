@@ -117,6 +117,17 @@ public class TradeSetupManager {
 	}
 
 	@Transactional(readOnly = true)
+	public List<TradeSetupTO> findTradeSetupsBetweenDates(String startDate, String endDate) {
+		String hql = "FROM TradeSetupEntity WHERE stockDate BETWEEN :startDate AND :endDate";
+		return entityManager.createQuery(hql, TradeSetupEntity.class)
+				.setParameter("startDate", startDate)
+				.setParameter("endDate", endDate)
+				.getResultStream()
+				.map(this::mapEntityToTO)
+				.collect(Collectors.toList());
+	}
+
+	@Transactional(readOnly = true)
 	public TradeSetupTO getStockByDateAndTime(String stock, String stockDate, String startTime) {
 		String hql = "FROM TradeSetupEntity WHERE stockSymbol = :stock AND stockDate = :stockDate AND fetchTime = :startTime";
 		return entityManager.createQuery(hql, TradeSetupEntity.class)
