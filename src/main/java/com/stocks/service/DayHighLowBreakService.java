@@ -61,16 +61,25 @@ public class DayHighLowBreakService {
 
     }
 
-    public void alertStocksBasedOnLastCandle(String startDate, String endDate) throws IOException {
-       if(!StringUtils.hasText(startDate) || !StringUtils.hasText(endDate)){
-           return;
-       }
+    public void alertStocksBasedOnLastCandle(String startDate, String endDate, String strategy) throws IOException {
+        if (!StringUtils.hasText(startDate) || !StringUtils.hasText(endDate)) {
+            return;
+        }
 
-        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupsByDateRangeAndStrategy(startDate, endDate, "c2");
+        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupsByDateRangeAndStrategy(startDate, endDate, strategy);
         Calendar from = DateUtil.start();
         Calendar to = DateUtil.end();
 
-        List<String> alertStocks = new ArrayList<>();
+        StringBuilder tableContent = new StringBuilder();
+        tableContent.append("<table border='1' style='border-collapse: collapse; width: 100%;'>");
+        tableContent.append("<tr>")
+                .append("<th>Stock Symbol</th>")
+                .append("<th>Open Price</th>")
+                .append("<th>Close Price</th>")
+                .append("<th>Low Price</th>")
+                .append("<th>Trade Entry</th>")
+                .append("<th>Criteria Met</th>")
+                .append("</tr>");
 
         for (TradeSetupTO trade : tradeSetups) {
             HistQuotesQuery2V8RequestImpl impl = new HistQuotesQuery2V8RequestImpl(trade.getStockSymbol() + ".NS", from, to, QueryInterval.FIVE_MINS);
@@ -81,27 +90,52 @@ public class DayHighLowBreakService {
                 double openPrice = lastCandle.getOpen().doubleValue();
                 double closePrice = lastCandle.getClose().doubleValue();
                 double lowPrice = lastCandle.getLow().doubleValue();
-                double tradeEntry = trade.getEntry2() * 100.2;
+                double tradeEntry = trade.getEntry2();
+                double tradeEntryThreshold = trade.getEntry2() * 1.002;
 
-                if(openPrice == 0 || closePrice == 0 || lowPrice == 0 || tradeEntry == 0){
+                if (openPrice == 0 || closePrice == 0 || lowPrice == 0 || tradeEntry == 0) {
                     lastCandle = stockData.get(stockData.size() - 2);
                     openPrice = lastCandle.getOpen().doubleValue();
                     closePrice = lastCandle.getClose().doubleValue();
                     lowPrice = lastCandle.getLow().doubleValue();
-                   tradeEntry = trade.getEntry2() * 100.2;
+                    tradeEntry = trade.getEntry2();
+                    tradeEntryThreshold = trade.getEntry2() * 1.002;
                 }
 
-                if (openPrice > tradeEntry && (closePrice < tradeEntry || lowPrice < tradeEntry) ) {
-                    alertStocks.add(trade.getStockSymbol() + " meets the criteria: Open=" + openPrice + ", Close=" + closePrice + ", Low=" + lowPrice + ", Trade Entry=" + tradeEntry);
+                String criteriaMet = "";
+                if (openPrice > tradeEntry && (closePrice < tradeEntry || lowPrice < tradeEntry)) {
+                    criteriaMet = "Criteria 1 Met";
+                } else if (openPrice > tradeEntryThreshold && (closePrice < tradeEntryThreshold || lowPrice < tradeEntryThreshold)) {
+                    criteriaMet = "Criteria 2 Met";
+                }
+
+                if (!criteriaMet.isEmpty()) {
+                    tableContent.append("<tr>")
+                            .append("<td>").append(trade.getStockSymbol()).append("</td>")
+                            .append("<td>").append(openPrice).append("</td>")
+                            .append("<td>").append(closePrice).append("</td>")
+                            .append("<td>").append(lowPrice).append("</td>")
+                            .append("<td>").append(tradeEntry).append("</td>")
+                            .append("<td>").append(criteriaMet).append("</td>")
+                            .append("</tr>");
                 }
             }
         }
 
-        if (!alertStocks.isEmpty()) {
-            mailService.sendMail("Stocks Alert Based on Last Candle", String.join("\n", alertStocks));
-        }
-    }
+        tableContent.append("</table>");
 
+        if (!tableContent.toString().contains("<td>")) { // No rows added
+            return;
+        }
+
+        mailService.sendMail(
+                "Stocks Alert Based on Last Candle",
+                "<html><body>" +
+                        "<h3>Stocks Alert Based on Last Candle</h3>" +
+                        tableContent.toString() +
+                        "</body></html>"
+        );
+    }
 
     public void getStockDetails(List<String> stocks, Calendar from, Calendar to, Map<String, DayLowAndHigh> stocksHistoricalData,
                                 int timeInterval) throws IOException {
@@ -208,7 +242,7 @@ public class DayHighLowBreakService {
 
                 if (currentStrike != null && strike != null && currentStrike.getCeOiChg() < strike.getCeOiChg() &&
                         currentStrike.getPeOiChg() > strike.getPeOiChg()) {
-                    currentStrike.setTime(LocalTime.now().toString());
+                    currentStrike.setTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
                     tableContent.append("<tr>")
                             .append("<td>").append(trade.getStockSymbol()).append("</td>")
                             .append("<td>").append(trade.getFetchTime()).append("</td>")
