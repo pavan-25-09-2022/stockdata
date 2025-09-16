@@ -232,6 +232,7 @@ public class TradeSetupManager {
                 strike.setPeIv(strikeEntity.getPeIv());
                 strike.setPeIvChg(strikeEntity.getPeIvChg());
                 strike.setPeLtpChg(strikeEntity.getPeLtpChg());
+				strike.setCurPrice(strikeEntity.getCurPrice());
                 strikes.put((int) strike.getStrikePrice(), strike);
             }
             to.setStrikes(strikes);

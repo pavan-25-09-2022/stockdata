@@ -675,6 +675,7 @@ public class CalculateOptionChain {
             return null;
         }
         List<OptionChainData> list = response.getData().getData();
+		UnderLyingAssetData underLyingAssetData = response.getData().getUnderLyingAssetData();
         TreeMap<Double, List<OptionChainData>> groupedData = list.stream()
                 .collect(Collectors.groupingBy(
                         OptionChainData::getInStrikePrice,
@@ -689,6 +690,9 @@ public class CalculateOptionChain {
         } else  {
             return null;
         }
+		strikeTO.setStrikePrice(strike);
+		strikeTO.setCurPrice(underLyingAssetData.getInLtp());
+		strikeTO.setOpenPrice(underLyingAssetData.getInDayOpen());
 
         return strikeTO;
 

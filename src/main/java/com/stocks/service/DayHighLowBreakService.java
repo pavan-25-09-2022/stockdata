@@ -208,6 +208,7 @@ public class DayHighLowBreakService {
 
                 if (currentStrike != null && strike != null && currentStrike.getCeOiChg() < strike.getCeOiChg() &&
                         currentStrike.getPeOiChg() > strike.getPeOiChg()) {
+                    currentStrike.setTime(LocalTime.now().toString());
                     tableContent.append("<tr>")
                             .append("<td>").append(trade.getStockSymbol()).append("</td>")
                             .append("<td>").append(trade.getFetchTime()).append("</td>")
@@ -237,7 +238,6 @@ public class DayHighLowBreakService {
 
                 }
                 if(currentStrike != null) {
-                    currentStrike.setTime(LocalTime.now().toString());
                     strikeTOMap.put(trade.getStockSymbol(), currentStrike);
                 }
 
