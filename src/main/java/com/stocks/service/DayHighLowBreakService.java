@@ -1,12 +1,11 @@
 package com.stocks.service;
 
-import com.stocks.dto.DayLowAndHigh;
-import com.stocks.dto.HistoricalQuote;
+import com.stocks.dto.*;
 import com.stocks.dto.Properties;
-import com.stocks.dto.TradeSetupTO;
 import com.stocks.enumaration.QueryInterval;
 import com.stocks.repository.TradeSetupManager;
 import com.stocks.utils.DateUtil;
+import com.stocks.utils.FormatUtil;
 import com.stocks.yahoo.HistQuotesQuery2V8RequestImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +13,9 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
@@ -24,6 +26,9 @@ class DayHighLowBreakService {
 
     @Autowired
     private TradeSetupManager tradeSetupManager;
+
+    @Autowired
+    CalculateOptionChain calculateOptionChain;
 
     private static final Map<String, DayLowAndHigh> stocksHistoricalData = new LinkedHashMap<>();
 
@@ -74,7 +79,15 @@ class DayHighLowBreakService {
                 double openPrice = lastCandle.getOpen().doubleValue();
                 double closePrice = lastCandle.getClose().doubleValue();
                 double lowPrice = lastCandle.getLow().doubleValue();
-                double tradeEntry = trade.getEntry2().doubleValue() * 100.2;
+                double tradeEntry = trade.getEntry2() * 100.2;
+
+                if(openPrice == 0 || closePrice == 0 || lowPrice == 0 || tradeEntry == 0){
+                    lastCandle = stockData.get(stockData.size() - 2);
+                    openPrice = lastCandle.getOpen().doubleValue();
+                    closePrice = lastCandle.getClose().doubleValue();
+                    lowPrice = lastCandle.getLow().doubleValue();
+                   tradeEntry = trade.getEntry2() * 100.2;
+                }
 
                 if (openPrice > tradeEntry && (closePrice < tradeEntry || lowPrice < tradeEntry) ) {
                     alertStocks.add(trade.getStockSymbol() + " meets the criteria: Open=" + openPrice + ", Close=" + closePrice + ", Low=" + lowPrice + ", Trade Entry=" + tradeEntry);
@@ -155,6 +168,39 @@ class DayHighLowBreakService {
         }
 
     }
+
+    public void checkOptionChainForTradeSetUpStocks(Properties properties) {
+
+        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupByDate(properties.getStockDate());
+        String startTime = "09:15:00";
+        String endTime = "15:30:00";
+        properties.setStartTime(startTime);
+        properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
+        properties.setEndTime(endTime);
+        List<String> stocks = new ArrayList<>();
+        for( TradeSetupTO trade : tradeSetups) {
+            try {
+                StrikeTO currentStrike = calculateOptionChain.getStrike(properties, trade.getStockSymbol(), trade.getEntry2());
+                Map<Integer, StrikeTO> strikes = trade.getStrikes();
+                StrikeTO strike = strikes.getOrDefault(trade.getEntry2().intValue(), null);
+                if(currentStrike != null && strike != null && currentStrike.getCeOiChg() < strike.getCeOiChg() &&
+                        currentStrike.getPeOiChg() > strike.getPeOiChg() ) {
+                    stocks.add(trade.getStockSymbol() + " meets the criteria. Current CE OI Chg: " + currentStrike.getCeOiChg() +
+                            ", Previous CE OI Chg: " + strike.getCeOiChg() + ", Current PE OI Chg: " + currentStrike.getPeOiChg() +
+                            ", Previous PE OI Chg: " + strike.getPeOiChg());
+                }
+            } catch (Exception e) {
+                System.out.println("Error while checking option chain for " + trade.getStockSymbol());
+            }
+        }
+        if(!stocks.isEmpty()) {
+            mailService.sendMail("Option Chain Verification for Trade Setup Stocks on "+properties.getStockDate(), String.join("\n", stocks));
+        }
+
+
+    }
+
+
 
 
 }
