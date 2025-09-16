@@ -4,6 +4,8 @@ import com.stocks.dto.Properties;
 import com.stocks.dto.TradeSetupTO;
 import com.stocks.mail.MarketMoversMailService;
 import com.stocks.repository.TradeSetupManager;
+import com.stocks.service.DayHighLowBreakService;
+import com.stocks.service.DayHighLowService;
 import com.stocks.service.MarketMovers;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +21,14 @@ import java.util.List;
 public class MarketMoverController {
 
 	@Autowired
+	DayHighLowBreakService dayHighLowBreakService;
+	@Autowired
 	MarketMovers marketMovers;
 	@Autowired
 	MarketMoversMailService marketMoversMailService;
 	@Autowired
 	TradeSetupManager tradeSetupManager;
+
 
 
 	@GetMapping("/test-market-movers-gainers")
@@ -131,6 +136,16 @@ public class MarketMoverController {
 		String data = marketMoversMailService.beautifyTestResults(tradeSetupByDate);
 //		marketMoversMailService.sendMail(data, properties, "Market Movers Report");
 		return data;
+	}
+
+	@GetMapping("/verifyTradeSetups")
+	public String checkOptionChainForTradeSetUpStocks(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
+													  @RequestParam(name = "strategy", required = false, defaultValue = "c2") String strategy) {
+		Properties properties = new Properties();
+		properties.setStockDate(stockDate);
+		properties.setStrategy(strategy);
+		dayHighLowBreakService.checkOptionChainForTradeSetUpStocks(properties);
+		return "success";
 	}
 
 	private String format(Number n) {

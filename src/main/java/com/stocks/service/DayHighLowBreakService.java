@@ -19,7 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
-class DayHighLowBreakService {
+public class DayHighLowBreakService {
 
     @Autowired
     MailService mailService;
@@ -31,6 +31,8 @@ class DayHighLowBreakService {
     CalculateOptionChain calculateOptionChain;
 
     private static final Map<String, DayLowAndHigh> stocksHistoricalData = new LinkedHashMap<>();
+
+    private static final Map<String, StrikeTO> strikeTOMap = new LinkedHashMap<>();
 
    public void testDayHighLow()  {
 
@@ -64,7 +66,7 @@ class DayHighLowBreakService {
            return;
        }
 
-        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupsBetweenDates(startDate, endDate);
+        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupsByDateRangeAndStrategy(startDate, endDate, "c2");
         Calendar from = DateUtil.start();
         Calendar to = DateUtil.end();
 
@@ -170,38 +172,94 @@ class DayHighLowBreakService {
     }
 
     public void checkOptionChainForTradeSetUpStocks(Properties properties) {
-
-        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupByDate(properties.getStockDate());
+        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupsByDateAndStrategy(properties.getStockDate(), properties.getStrategy());
         String startTime = "09:15:00";
         String endTime = "15:30:00";
         properties.setStartTime(startTime);
         properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
         properties.setEndTime(endTime);
-        List<String> stocks = new ArrayList<>();
-        for( TradeSetupTO trade : tradeSetups) {
+
+        StringBuilder tableContent = new StringBuilder();
+        tableContent.append("<table border='1' style='border-collapse: collapse; width: 100%;'>");
+        tableContent.append("<tr>")
+                .append("<th>Stock Symbol</th>")
+                .append("<th>Time</th>")
+                .append("<th>CE OI Chg</th>")
+                .append("<th>PE OI Chg</th>")
+                .append("<th>Price</th>")
+                .append("<th>Time</th>")
+                .append("<th>CE OI Chg</th>")
+                .append("<th>PE OI Chg</th>")
+                .append("<th>Price</th>")
+                .append("<th>Time</th>")
+                .append("<th>Current CE OI Chg</th>")
+                .append("<th>Current PE OI Chg</th>")
+                .append("<th>Price</th>")
+                .append("<th>Is SC with Price decreasing</th>")
+                .append("</tr>");
+
+        for (TradeSetupTO trade : tradeSetups) {
             try {
                 StrikeTO currentStrike = calculateOptionChain.getStrike(properties, trade.getStockSymbol(), trade.getEntry2());
                 Map<Integer, StrikeTO> strikes = trade.getStrikes();
                 StrikeTO strike = strikes.getOrDefault(trade.getEntry2().intValue(), null);
-                if(currentStrike != null && strike != null && currentStrike.getCeOiChg() < strike.getCeOiChg() &&
-                        currentStrike.getPeOiChg() > strike.getPeOiChg() ) {
-                    stocks.add(trade.getStockSymbol() + " meets the criteria. Current CE OI Chg: " + currentStrike.getCeOiChg() +
-                            ", Previous CE OI Chg: " + strike.getCeOiChg() + ", Current PE OI Chg: " + currentStrike.getPeOiChg() +
-                            ", Previous PE OI Chg: " + strike.getPeOiChg());
+
+                StrikeTO orDefault = strikeTOMap.getOrDefault(trade.getStockSymbol(), null);
+
+                if (currentStrike != null && strike != null && currentStrike.getCeOiChg() < strike.getCeOiChg() &&
+                        currentStrike.getPeOiChg() > strike.getPeOiChg()) {
+                    tableContent.append("<tr>")
+                            .append("<td>").append(trade.getStockSymbol()).append("</td>")
+                            .append("<td>").append(trade.getFetchTime()).append("</td>")
+                            .append("<td>").append(strike.getCeOiChg()).append("</td>")
+                            .append("<td>").append(strike.getPeOiChg()).append("</td>")
+                            .append("<td>").append(strike.getCurPrice()).append("</td>");
+                    if (orDefault != null) {
+                        tableContent.append("<td>").append(orDefault.getTime()).append("</td>")
+                                .append("<td>").append(orDefault.getCeOiChg()).append("</td>")
+                                .append("<td>").append(orDefault.getPeOiChg()).append("</td>")
+                                .append("<td>").append(orDefault.getCurPrice()).append("</td>");
+                    }
+
+                    tableContent.append("<td>").append(currentStrike.getTime()).append("</td>")
+                            .append("<td>").append(currentStrike.getCeOiChg()).append("</td>")
+                            .append("<td>").append(currentStrike.getPeOiChg()).append("</td>")
+                            .append("<td>").append(currentStrike.getCurPrice()).append("</td>");
+
+                    if(orDefault != null) {
+                        boolean isScWithPriceDecreasing = currentStrike.getCeOiChg() < orDefault.getCeOiChg() &&
+                                currentStrike.getPeOiChg() > orDefault.getPeOiChg() &&
+                                currentStrike.getCurPrice() < orDefault.getCurPrice();
+                        tableContent.append("<td>").append(isScWithPriceDecreasing ? "Yes" : "No").append("</td>");
+                    } else {
+                        tableContent.append("<td>N/A</td>");
+                    }
+
                 }
+                if(currentStrike != null) {
+                    currentStrike.setTime(LocalTime.now().toString());
+                    strikeTOMap.put(trade.getStockSymbol(), currentStrike);
+                }
+
             } catch (Exception e) {
                 System.out.println("Error while checking option chain for " + trade.getStockSymbol());
             }
         }
-        if(!stocks.isEmpty()) {
-            mailService.sendMail("Option Chain Verification for Trade Setup Stocks on "+properties.getStockDate(), String.join("\n", stocks));
+
+        tableContent.append("</table>");
+
+        if (!tableContent.toString().contains("<td>")) { // No rows added
+            return;
         }
 
-
+        mailService.sendMail(
+                "Option Chain Verification for Trade Setup Stocks on " + properties.getStockDate(),
+                "<html><body>" +
+                        "<h3>Option Chain Verification Results</h3>" +
+                        tableContent.toString() +
+                        "</body></html>"
+        );
     }
-
-
-
 
 }
 

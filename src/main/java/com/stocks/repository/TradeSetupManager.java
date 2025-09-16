@@ -128,6 +128,29 @@ public class TradeSetupManager {
 	}
 
 	@Transactional(readOnly = true)
+	public List<TradeSetupTO> findTradeSetupsByDateRangeAndStrategy(String startDate, String endDate, String strategy) {
+		String hql = "FROM TradeSetupEntity WHERE stockDate BETWEEN :startDate AND :endDate AND strategy = :strategy";
+		return entityManager.createQuery(hql, TradeSetupEntity.class)
+				.setParameter("startDate", startDate)
+				.setParameter("endDate", endDate)
+				.setParameter("strategy", strategy)
+				.getResultStream()
+				.map(this::mapEntityToTO)
+				.collect(Collectors.toList());
+	}
+
+	@Transactional(readOnly = true)
+	public List<TradeSetupTO> findTradeSetupsByDateAndStrategy(String stockDate, String strategy) {
+		String hql = "FROM TradeSetupEntity WHERE stockDate = :stockDate AND strategy = :strategy";
+		return entityManager.createQuery(hql, TradeSetupEntity.class)
+				.setParameter("stockDate", stockDate)
+				.setParameter("strategy", strategy)
+				.getResultStream()
+				.map(this::mapEntityToTO)
+				.collect(Collectors.toList());
+	}
+
+	@Transactional(readOnly = true)
 	public TradeSetupTO getStockByDateAndTime(String stock, String stockDate, String startTime) {
 		String hql = "FROM TradeSetupEntity WHERE stockSymbol = :stock AND stockDate = :stockDate AND fetchTime = :startTime";
 		return entityManager.createQuery(hql, TradeSetupEntity.class)
