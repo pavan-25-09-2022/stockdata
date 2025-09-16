@@ -59,6 +59,18 @@ public class FormatUtil {
 		}
 	}
 
+	public static String formatDoubleValue(double volume) {
+		if (volume >= 10000000) {
+			return String.format("%.1fC", volume / 10000000.0); // Convert to Crores
+		} else if (volume >= 100000) {
+			return String.format("%.1fL", volume / 100000.0); // Convert to Lakhs
+		} else if (volume >= 1000) {
+			return String.format("%.1fK", volume / 1000.0); // Convert to Thousands
+		} else {
+			return String.valueOf(volume); // Return as is for smaller values
+		}
+	}
+
 	public static LocalTime addMinutes(LocalTime time, int mins) {
 		return time.plusMinutes(mins);
 	}

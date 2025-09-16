@@ -30,6 +30,9 @@ public class DayHighLowBreakService {
     @Autowired
     CalculateOptionChain calculateOptionChain;
 
+    @Autowired
+    IOPulseService ioPulseService;
+
     private static final Map<String, DayLowAndHigh> stocksHistoricalData = new LinkedHashMap<>();
 
     private static final Map<String, StrikeTO> strikeTOMap = new LinkedHashMap<>();
@@ -86,7 +89,7 @@ public class DayHighLowBreakService {
             List<HistoricalQuote> stockData = impl.getCompleteResult();
 
             if (stockData != null && !stockData.isEmpty()) {
-                HistoricalQuote lastCandle = stockData.get(stockData.size() - 1);
+                HistoricalQuote lastCandle = stockData.get(stockData.size() - 3);
                 double openPrice = lastCandle.getOpen().doubleValue();
                 double closePrice = lastCandle.getClose().doubleValue();
                 double lowPrice = lastCandle.getLow().doubleValue();
@@ -94,7 +97,7 @@ public class DayHighLowBreakService {
                 double tradeEntryThreshold = trade.getEntry2() * 1.002;
 
                 if (openPrice == 0 || closePrice == 0 || lowPrice == 0 || tradeEntry == 0) {
-                    lastCandle = stockData.get(stockData.size() - 2);
+                    lastCandle = stockData.get(stockData.size() - 4);
                     openPrice = lastCandle.getOpen().doubleValue();
                     closePrice = lastCandle.getClose().doubleValue();
                     lowPrice = lastCandle.getLow().doubleValue();
@@ -213,10 +216,32 @@ public class DayHighLowBreakService {
         properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
         properties.setEndTime(endTime);
 
+        MarketMoversResponse marketMoversResponse = ioPulseService.marketMovers(properties);
+        if (marketMoversResponse != null && marketMoversResponse.getData() != null && !marketMoversResponse.getData().isEmpty()) {
+            for (MarketMoverData marketMoverData : marketMoversResponse.getData()) {
+                String stock = marketMoverData.getStSymbolName();
+                for (TradeSetupTO tradeSetupTO : tradeSetups) {
+                    if (stock.equals(tradeSetupTO.getStockSymbol())) {
+                        double oldOi = Double.parseDouble(marketMoverData.getInOldOi());
+                        double newOi = Double.parseDouble(marketMoverData.getInNewOi());
+                        double oldClose = Double.parseDouble(marketMoverData.getInOldClose());
+                        double newClose = Double.parseDouble(marketMoverData.getInNewClose());
+                        double ltpChg = newClose - oldClose;
+                        double lptChgPer = (ltpChg / oldClose) * 100;
+                        double oiChg = ((newOi - oldOi) / oldOi) * 100;
+                        tradeSetupTO.setOiChgPer(oiChg);
+                        tradeSetupTO.setLtpChgPer(lptChgPer);
+                    }
+                }
+            }
+        }
+
         StringBuilder tableContent = new StringBuilder();
         tableContent.append("<table border='1' style='border-collapse: collapse; width: 100%;'>");
         tableContent.append("<tr>")
                 .append("<th>Stock Symbol</th>")
+                .append("<th>OI change</th>")
+                .append("<th>Ltp change</th>")
                 .append("<th>Strike</th>")
                 .append("<th>Time</th>")
                 .append("<th>CE OI Chg</th>")
@@ -247,22 +272,24 @@ public class DayHighLowBreakService {
                     currentStrike.setTime(time);
                     tableContent.append("<tr>")
                             .append("<td>").append(trade.getStockSymbol()).append("</td>")
+                            .append("<td>").append(String.format("%.2f", trade.getOiChgPer())).append("%</td>")
+                            .append("<td>").append(String.format("%.2f", trade.getLtpChgPer())).append("%</td>")
                             .append("<td>").append(trade.getEntry2().intValue()).append("</td>")
                             .append("<td>").append(trade.getFetchTime()).append("</td>")
-                            .append("<td>").append(strike.getCeOiChg()).append("</td>")
-                            .append("<td>").append(strike.getPeOiChg()).append("</td>")
-                            .append("<td>").append(strike.getCurPrice()).append("</td>");
+                            .append("<td>").append(FormatUtil.formatDoubleValue(strike.getCeOiChg())).append("</td>")
+                            .append("<td>").append(FormatUtil.formatDoubleValue(strike.getPeOiChg())).append("</td>")
+                            .append("<td>").append(FormatUtil.formatDoubleValue(strike.getCurPrice())).append("</td>");
                     if (orDefault != null) {
                         tableContent.append("<td>").append(orDefault.getTime()).append("</td>")
-                                .append("<td>").append(orDefault.getCeOiChg()).append("</td>")
-                                .append("<td>").append(orDefault.getPeOiChg()).append("</td>")
-                                .append("<td>").append(orDefault.getCurPrice()).append("</td>");
+                                .append("<td>").append(FormatUtil.formatDoubleValue(orDefault.getCeOiChg())).append("</td>")
+                                .append("<td>").append(FormatUtil.formatDoubleValue(orDefault.getPeOiChg())).append("</td>")
+                                .append("<td>").append(FormatUtil.formatDoubleValue(orDefault.getCurPrice())).append("</td>");
                     }
 
                     tableContent.append("<td>").append(currentStrike.getTime()).append("</td>")
-                            .append("<td>").append(currentStrike.getCeOiChg()).append("</td>")
-                            .append("<td>").append(currentStrike.getPeOiChg()).append("</td>")
-                            .append("<td>").append(currentStrike.getCurPrice()).append("</td>");
+                            .append("<td>").append(FormatUtil.formatDoubleValue(currentStrike.getCeOiChg())).append("</td>")
+                            .append("<td>").append(FormatUtil.formatDoubleValue(currentStrike.getPeOiChg())).append("</td>")
+                            .append("<td>").append(FormatUtil.formatDoubleValue(currentStrike.getCurPrice())).append("</td>");
 
                     if(orDefault != null) {
                         boolean isScWithPriceDecreasing = currentStrike.getCeOiChg() < orDefault.getCeOiChg() &&
