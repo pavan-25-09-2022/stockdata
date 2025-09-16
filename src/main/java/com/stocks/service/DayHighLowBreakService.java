@@ -217,6 +217,7 @@ public class DayHighLowBreakService {
         tableContent.append("<table border='1' style='border-collapse: collapse; width: 100%;'>");
         tableContent.append("<tr>")
                 .append("<th>Stock Symbol</th>")
+                .append("<th>Strike</th>")
                 .append("<th>Time</th>")
                 .append("<th>CE OI Chg</th>")
                 .append("<th>PE OI Chg</th>")
@@ -240,11 +241,13 @@ public class DayHighLowBreakService {
 
                 StrikeTO orDefault = strikeTOMap.getOrDefault(trade.getStockSymbol(), null);
 
+                String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
                 if (currentStrike != null && strike != null && currentStrike.getCeOiChg() < strike.getCeOiChg() &&
                         currentStrike.getPeOiChg() > strike.getPeOiChg()) {
-                    currentStrike.setTime(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+                    currentStrike.setTime(time);
                     tableContent.append("<tr>")
                             .append("<td>").append(trade.getStockSymbol()).append("</td>")
+                            .append("<td>").append(trade.getEntry2().intValue()).append("</td>")
                             .append("<td>").append(trade.getFetchTime()).append("</td>")
                             .append("<td>").append(strike.getCeOiChg()).append("</td>")
                             .append("<td>").append(strike.getPeOiChg()).append("</td>")
@@ -272,6 +275,7 @@ public class DayHighLowBreakService {
 
                 }
                 if(currentStrike != null) {
+                    currentStrike.setTime(time);
                     strikeTOMap.put(trade.getStockSymbol(), currentStrike);
                 }
 
