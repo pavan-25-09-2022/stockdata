@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -44,7 +45,7 @@ public class Scheduler {
 	@Autowired
 	private DayHighLowBreakService dayHighLowBreakService;
 
-	@Scheduled(cron = "10 */5 9-13 * * *") // Runs every 5 minutes from 9:15 to 13:35
+	//@Scheduled(cron = "10 */5 9-13 * * *") // Runs every 5 minutes from 9:15 to 13:35
 	public void callApi() {
 		log.info("Scheduler started API stocks");
 		logTime();
@@ -149,6 +150,7 @@ public class Scheduler {
 	public void marketMoverGainers() {
 		log.info("Scheduler started Market Movers Gainers and Option Chain");
 		Properties properties = buildProperties();
+        properties.setStrategy("c2");
 		List<TradeSetupTO> trades = marketMovers.marketMoverDetails(properties, "G");
 		if (!trades.isEmpty()) {
 			String data = marketMoversMailService.beautifyResults(trades);
@@ -167,7 +169,7 @@ public class Scheduler {
 		log.info("Scheduler finished Market Movers Losers and Option Chain ");
 	}
 
-	@Scheduled(cron = "20 0/15 9-15 ? * MON-FRI")
+	//@Scheduled(cron = "20 0/15 9-15 ? * MON-FRI")
 	public void optionData() {
 		log.info("Scheduler started Option Chain");
 		Properties properties = buildProperties();
@@ -227,4 +229,22 @@ public class Scheduler {
 		log.info("Scheduler finished Day High Low");
 		System.gc();
 	}
+
+    @Scheduled(cron = "40 0/5 9-15 ? * MON-FRI")
+    private void alertStocksBasedOnLastCandle() throws IOException {
+        log.info("Scheduler started alertStocksBasedOnLastCandle");
+        dayHighLowBreakService.alertStocksBasedOnLastCandle(LocalDate.now().minusDays(1).toString(), LocalDate.now().toString(), "c2" );
+        log.info("Scheduler finished alertStocksBasedOnLastCandle");
+        System.gc();
+    }
+
+    @Scheduled(cron = "20 30/15 9-14 ? * MON-FRI")
+    private void verifyStocksBasedOnOptionChain() throws IOException {
+        log.info("Scheduler started verifyStocksBasedOnOptionChain");
+        Properties properties = buildProperties();
+        properties.setStrategy("c2");
+        dayHighLowBreakService.checkOptionChainForTradeSetUpStocks(properties);
+        log.info("Scheduler finished verifyStocksBasedOnOptionChain");
+        System.gc();
+    }
 }
