@@ -77,11 +77,16 @@ public class DayHighLowBreakService {
         tableContent.append("<table border='1' style='border-collapse: collapse; width: 100%;'>");
         tableContent.append("<tr>")
                 .append("<th>Stock Symbol</th>")
+                .append("<th>Trade Entry</th>")
+                .append("<th>Date</th>")
                 .append("<th>Open Price</th>")
                 .append("<th>Close Price</th>")
                 .append("<th>Low Price</th>")
-                .append("<th>Trade Entry</th>")
-                .append("<th>Criteria Met</th>")
+                .append("<th>Strategy</th>")
+                .append("<th>Current CE OI</th>")
+                .append("<th>Current PE OI</th>")
+                .append("<th>Change in CE OI</th>")
+                .append("<th>Change in PE OI</th>")
                 .append("</tr>");
 
         for (TradeSetupTO trade : tradeSetups) {
@@ -105,21 +110,22 @@ public class DayHighLowBreakService {
                     tradeEntryThreshold = trade.getEntry2() * 1.002;
                 }
 
-                String criteriaMet = "";
-                if (openPrice > tradeEntry && (closePrice < tradeEntry || lowPrice < tradeEntry)) {
-                    criteriaMet = "Criteria 1 Met";
-                } else if (openPrice > tradeEntryThreshold && (closePrice < tradeEntryThreshold || lowPrice < tradeEntryThreshold)) {
-                    criteriaMet = "Criteria 2 Met";
-                }
-
-                if (!criteriaMet.isEmpty()) {
+                if ((openPrice > tradeEntry && lowPrice < tradeEntry && closePrice > tradeEntry) ||
+                        (openPrice > tradeEntryThreshold && lowPrice < tradeEntryThreshold)) {
+                    Properties properties = buildProperties();
+                    StrikeTO currentStrike = calculateOptionChain.getStrike(properties, trade.getStockSymbol(), trade.getEntry2());
                     tableContent.append("<tr>")
                             .append("<td>").append(trade.getStockSymbol()).append("</td>")
+                            .append("<td>").append(tradeEntry).append("</td>")
+                            .append("<td>").append(trade.getStockDate()).append("</td>")
                             .append("<td>").append(openPrice).append("</td>")
                             .append("<td>").append(closePrice).append("</td>")
                             .append("<td>").append(lowPrice).append("</td>")
-                            .append("<td>").append(tradeEntry).append("</td>")
-                            .append("<td>").append(criteriaMet).append("</td>")
+                            .append("<td>").append(strategy).append("</td>")
+                            .append("<td>").append(currentStrike != null ? FormatUtil.formatIndianNumber(currentStrike.getCeOi()) : "N/A").append("</td>")
+                            .append("<td>").append(currentStrike != null ? FormatUtil.formatIndianNumber(currentStrike.getPeOi()) : "N/A").append("</td>")
+                            .append("<td>").append(currentStrike != null ? FormatUtil.formatIndianNumber((int) currentStrike.getCeOiChg()) : "N/A").append("</td>")
+                            .append("<td>").append(currentStrike != null ? FormatUtil.formatIndianNumber((int) currentStrike.getPeOiChg()) : "N/A").append("</td>")
                             .append("</tr>");
                 }
             }
@@ -324,6 +330,18 @@ public class DayHighLowBreakService {
                         tableContent.toString() +
                         "</body></html>"
         );
+    }
+
+
+    private Properties buildProperties() {
+        Properties properties = new Properties();
+        properties.setStockDate(LocalDate.now().toString());
+        String startTime = "09:15:00";
+        String endTime = "15:30:00";
+        properties.setStartTime(startTime);
+        properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
+        properties.setEndTime(endTime);
+        return properties;
     }
 
 }

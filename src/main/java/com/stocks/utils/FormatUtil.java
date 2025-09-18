@@ -4,10 +4,12 @@ import com.stocks.dto.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.NumberFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 public class FormatUtil {
 
@@ -69,6 +71,11 @@ public class FormatUtil {
 		} else {
 			return String.valueOf(volume); // Return as is for smaller values
 		}
+	}
+
+	public static String formatIndianNumber(int number) {
+		NumberFormat formatter = NumberFormat.getInstance(new Locale("en", "IN"));
+		return formatter.format(number);
 	}
 
 	public static LocalTime addMinutes(LocalTime time, int mins) {
