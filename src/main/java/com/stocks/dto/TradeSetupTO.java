@@ -3,6 +3,8 @@ package com.stocks.dto;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -28,6 +30,12 @@ public class TradeSetupTO {
 	private String stopLoss1Time;
 	private String strategy;
 	private String type;
+	private String criteria;
+
+
+	private List<TargetInfo> targetInfos = new ArrayList<>();
+	private List<StopLossInfo> stopLossInfos = new ArrayList<>();
+	private List<EntryInfo> entryInfos = new ArrayList<>();
 
 	Map<Integer, StrikeTO> strikes;
 
@@ -36,6 +44,14 @@ public class TradeSetupTO {
 			this.tradeNotes = note;
 		} else {
 			this.tradeNotes += " | " + note;
+		}
+	}
+
+	public void setCriteria(String note) {
+		if (this.criteria == null || this.criteria.isEmpty()) {
+			this.criteria = note;
+		} else {
+			this.criteria += " | " + note;
 		}
 	}
 }

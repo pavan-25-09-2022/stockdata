@@ -639,7 +639,7 @@ public class CalculateOptionChain {
 						Collectors.toList()
 				));
 
-		Double focusKey = groupedData.floorKey(Double.valueOf((double) underLyingAssetData.getInLtp()));
+		Double focusKey = groupedData.floorKey(underLyingAssetData.getInLtp());
 		if (focusKey == null) {
 			return Collections.emptyMap();
 		}

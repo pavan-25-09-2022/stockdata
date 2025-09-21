@@ -16,7 +16,6 @@ import com.stocks.service.DayHighLowService;
 import com.stocks.service.FutureAnalysisManager;
 import com.stocks.service.FutureAnalysisService;
 import com.stocks.service.FutureEodAnalyzerService;
-import com.stocks.service.IOPulseService;
 import com.stocks.service.MarketDataService;
 import com.stocks.service.MarketMovers;
 import com.stocks.service.OpenHighLowService;
@@ -29,12 +28,12 @@ import com.stocks.yahoo.HistQuotesQuery2V8RequestImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -104,26 +103,22 @@ public class ApiController {
 	                      @RequestParam(name = "exitMins", required = false, defaultValue = "0") int exitMins,
 	                      @RequestParam(name = "amtInvested", required = false, defaultValue = "0") int amtInvested,
 	                      @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName) {
-		
+
 		long startTime = System.currentTimeMillis();
-		log.info("API call started - stockDate: {}, interval: {}, env: {}, stockName: {}", 
+		log.info("API call started - stockDate: {}, interval: {}, env: {}, stockName: {}",
 				stockDate, interval, env, stockName);
-		
+
 		Properties properties = new Properties();
 		properties.setStockDate(stockDate);
-		properties.setExitMins(exitMins);
-		properties.setFetchAll(fetchAll);
 		properties.setInterval(interval);
-		properties.setAmtInvested(amtInvested);
 		properties.setStockName(stockName);
-		properties.setExpiryDate(expiryDate);
 		properties.setStartTime("09:15");
 		properties.setEnv(env);
-		
+
 		long serviceStartTime = System.currentTimeMillis();
 		List<TradeSetupTO> list1 = apiService.callApi(properties);
 		long serviceEndTime = System.currentTimeMillis();
-		log.info("MarketDataService.callApi completed in {} ms, found {} results", 
+		log.info("MarketDataService.callApi completed in {} ms, found {} results",
 				(serviceEndTime - serviceStartTime), list1.size());
 
 		String data = "";
@@ -137,9 +132,9 @@ public class ApiController {
 			log.error("error in beautifyResults: ", e);
 		}
 		long mailEndTime = System.currentTimeMillis();
-		
+
 		long totalTime = System.currentTimeMillis() - startTime;
-		log.info("API call completed - Total time: {} ms, Mail processing: {} ms, Results: {} trades", 
+		log.info("API call completed - Total time: {} ms, Mail processing: {} ms, Results: {} trades",
 				totalTime, (mailEndTime - mailStartTime), list1.size());
 
 		// Provide informative response when no data is found
@@ -166,25 +161,25 @@ public class ApiController {
 	private String convertToJson(List<TradeSetupTO> tradeSetups) {
 		StringBuilder json = new StringBuilder();
 		json.append("{\"trades\":[");
-		
+
 		for (int i = 0; i < tradeSetups.size(); i++) {
 			TradeSetupTO trade = tradeSetups.get(i);
 			if (i > 0) json.append(",");
-			
+
 			json.append("{")
-				.append("\"stock\":\"").append(trade.getStockSymbol()).append("\",")
-				.append("\"date\":\"").append(trade.getStockDate()).append("\",")
-				.append("\"time\":\"").append(trade.getFetchTime()).append("\",")
-				.append("\"entry1\":").append(trade.getEntry1()).append(",")
-				.append("\"entry2\":").append(trade.getEntry2() != null ? trade.getEntry2() : "null").append(",")
-				.append("\"target1\":").append(trade.getTarget1() != null ? trade.getTarget1() : "null").append(",")
-				.append("\"target2\":").append(trade.getTarget2() != null ? trade.getTarget2() : "null").append(",")
-				.append("\"stopLoss\":").append(trade.getStopLoss1() != null ? trade.getStopLoss1() : "null").append(",")
-				.append("\"strategy\":\"").append(trade.getStrategy()).append("\",")
-				.append("\"type\":\"").append(trade.getType()).append("\"")
-				.append("}");
+					.append("\"stock\":\"").append(trade.getStockSymbol()).append("\",")
+					.append("\"date\":\"").append(trade.getStockDate()).append("\",")
+					.append("\"time\":\"").append(trade.getFetchTime()).append("\",")
+					.append("\"entry1\":").append(trade.getEntry1()).append(",")
+					.append("\"entry2\":").append(trade.getEntry2() != null ? trade.getEntry2() : "null").append(",")
+					.append("\"target1\":").append(trade.getTarget1() != null ? trade.getTarget1() : "null").append(",")
+					.append("\"target2\":").append(trade.getTarget2() != null ? trade.getTarget2() : "null").append(",")
+					.append("\"stopLoss\":").append(trade.getStopLoss1() != null ? trade.getStopLoss1() : "null").append(",")
+					.append("\"strategy\":\"").append(trade.getStrategy()).append("\",")
+					.append("\"type\":\"").append(trade.getType()).append("\"")
+					.append("}");
 		}
-		
+
 		json.append("],\"count\":").append(tradeSetups.size()).append("}");
 		return json.toString();
 	}
@@ -196,23 +191,23 @@ public class ApiController {
 			@RequestParam(name = "env", required = false, defaultValue = "prod") String env,
 			@RequestParam(name = "stockName", required = false, defaultValue = "") String stockName,
 			@RequestParam(name = "format", required = false, defaultValue = "json") String format) {
-		
+
 		long startTime = System.currentTimeMillis();
-		log.info("API v2 call started - stockDate: {}, interval: {}, env: {}, format: {}", 
+		log.info("API v2 call started - stockDate: {}, interval: {}, env: {}, format: {}",
 				stockDate, interval, env, format);
-		
+
 		Properties properties = new Properties();
 		properties.setStockDate(stockDate);
 		properties.setInterval(interval);
 		properties.setStockName(stockName);
 		properties.setStartTime("09:15");
 		properties.setEnv(env);
-		
+
 		List<TradeSetupTO> trades = apiService.callApi(properties);
-		
+
 		String responseData;
 		MediaType mediaType;
-		
+
 		if ("json".equalsIgnoreCase(format)) {
 			responseData = convertToJson(trades);
 			mediaType = MediaType.APPLICATION_JSON;
@@ -220,16 +215,16 @@ public class ApiController {
 			responseData = marketMoversMailService.beautifyResults(trades);
 			mediaType = MediaType.TEXT_HTML;
 		}
-		
+
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(mediaType);
 		headers.add("X-Total-Time-Ms", String.valueOf(System.currentTimeMillis() - startTime));
 		headers.add("X-Trade-Count", String.valueOf(trades.size()));
 		headers.add("Access-Control-Allow-Origin", "*");
-		
+
 		long totalTime = System.currentTimeMillis() - startTime;
 		log.info("API v2 completed - Total time: {} ms, Results: {} trades", totalTime, trades.size());
-		
+
 		return ResponseEntity.ok().headers(headers).body(responseData);
 	}
 
@@ -733,10 +728,10 @@ public class ApiController {
 
 	@GetMapping("/getTrendLinesBasedOnOiChange")
 	public String getTrendLinesBasedOnOiChange(@RequestParam(name = "stockDate", required = false, defaultValue = "") String stockDate,
-	                                                 @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
-	                                                 @RequestParam(name = "startTime", required = false, defaultValue = "") String startTime,
-	                                                 @RequestParam(name = "expiryDate", required = false, defaultValue = "") String expiryDate,
-	                                                 @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName) {
+	                                           @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval,
+	                                           @RequestParam(name = "startTime", required = false, defaultValue = "") String startTime,
+	                                           @RequestParam(name = "expiryDate", required = false, defaultValue = "") String expiryDate,
+	                                           @RequestParam(name = "stockName", required = false, defaultValue = "") String stockName) {
 		Properties properties = new Properties();
 		properties.setStockDate(stockDate);
 		properties.setInterval(interval);
@@ -745,7 +740,7 @@ public class ApiController {
 		properties.setExpiryDate(expiryDate);
 		List<FutureAnalysis> stocksBasedOnHighChangeInOpenInterest = futureEodAnalyzerService.getStocksBasedOnHighChangeInOpenInterest(properties);
 		String data = "";
-		if(stocksBasedOnHighChangeInOpenInterest != null || !stocksBasedOnHighChangeInOpenInterest.isEmpty()) {
+		if (stocksBasedOnHighChangeInOpenInterest != null || !stocksBasedOnHighChangeInOpenInterest.isEmpty()) {
 			List<FutureAnalysis> recordsByDate = futureAnalysisManager.getRecordsByDate(stockDate);
 			data = marketMoversMailService.beautifyFutureAnalysisResults(recordsByDate);
 			marketMoversMailService.sendMail(data, properties, "Trend Lines Based on OI Change Report");
@@ -773,8 +768,8 @@ public class ApiController {
 
 	@GetMapping("/getStocksDetails")
 	public List<String> getStocksDetails(@RequestParam(name = "startDate", required = false, defaultValue = "") String startDate,
-										 @RequestParam(name = "endDate", required = false, defaultValue = "") String endDate,
-										 @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval) {
+	                                     @RequestParam(name = "endDate", required = false, defaultValue = "") String endDate,
+	                                     @RequestParam(name = "interval", required = false, defaultValue = "0") Integer interval) {
 		Properties properties = new Properties();
 		properties.setInterval(interval);
 		properties.setStartDate(startDate);

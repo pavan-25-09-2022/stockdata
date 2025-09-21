@@ -24,12 +24,12 @@ public class MarketMoversMailService {
 	public String beautifyTradeSetupResults(List<TradeSetupEntity> trades) {
 		if (trades == null || trades.isEmpty()) return "No trades found.";
 		StringBuilder sb = new StringBuilder();
-		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
+		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse; font-family: Arial, sans-serif; font-size: 11px;'>");
 		sb.append("<tr>")
 				.append("<th>ID</th>")
 				.append("<th>Stock</th>")
 				.append("<th>Date</th>")
-                .append("<th>Time</th>")
+				.append("<th>Time</th>")
 				.append("<th>Entry1</th>")
 				.append("<th>Entry2</th>")
 				.append("<th>Target1</th>")
@@ -44,7 +44,7 @@ public class MarketMoversMailService {
 					.append("<td>").append(trade.getId()).append("</td>")
 					.append("<td>").append(trade.getStockSymbol()).append("</td>")
 					.append("<td>").append(trade.getStockDate()).append("</td>")
-                    .append("<td>").append(trade.getFetchTime()).append("</td>")
+					.append("<td>").append(trade.getFetchTime()).append("</td>")
 					.append("<td>").append(trade.getEntry1() != null ? String.format("%.2f", trade.getEntry1()) : "").append("</td>")
 					.append("<td>").append(trade.getEntry2() != null ? String.format("%.2f", trade.getEntry2()) : "").append("</td>")
 					.append("<td>").append(trade.getTarget1() != null ? String.format("%.2f", trade.getTarget1()) : "").append("</td>")
@@ -62,7 +62,7 @@ public class MarketMoversMailService {
 	public String beautifyStrikeSetupResults(List<StrikeSetupEntity> strikes) {
 		if (strikes == null || strikes.isEmpty()) return "No strike setups found.";
 		StringBuilder sb = new StringBuilder();
-		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
+		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse; font-family: Arial, sans-serif; font-size: 11px;'>");
 		sb.append("<tr>")
 				.append("<th>ID</th>")
 				.append("<th>CE OI</th>")
@@ -108,7 +108,7 @@ public class MarketMoversMailService {
 	public String beautifyResults(List<TradeSetupTO> trades) {
 		if (trades == null || trades.isEmpty()) return "No trades found.";
 		StringBuilder sb = new StringBuilder();
-		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
+		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse; font-family: Arial, sans-serif; font-size: 11px;'>");
 		sb.append("<tr>")
 				.append("<th>Stock</th>")
 				.append("<th>OI</th>")
@@ -148,7 +148,7 @@ public class MarketMoversMailService {
 	public String beautifyTestResults(List<TradeSetupTO> trades) {
 		if (trades == null || trades.isEmpty()) return "No trades found.";
 		StringBuilder sb = new StringBuilder();
-		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
+		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse; font-family: Arial, sans-serif; font-size: 11px;'>");
 		sb.append("<tr>")
 				.append("<th>Stock</th>")
 				.append("<th>OI</th>")
@@ -197,61 +197,61 @@ public class MarketMoversMailService {
 		return sb.toString();
 	}
 
-    public String beautifyFutureAnalysisResults(List<FutureAnalysis> futureAnalysisList) {
-        if (futureAnalysisList == null || futureAnalysisList.isEmpty()) return "No future analysis data found.";
-        StringBuilder sb = new StringBuilder();
-        sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
-        sb.append("<tr>")
-            .append("<th>ID</th>")
-            .append("<th>Symbol</th>")
+	public String beautifyFutureAnalysisResults(List<FutureAnalysis> futureAnalysisList) {
+		if (futureAnalysisList == null || futureAnalysisList.isEmpty()) return "No future analysis data found.";
+		StringBuilder sb = new StringBuilder();
+		sb.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse; font-family: Arial, sans-serif; font-size: 11px;'>");
+		sb.append("<tr>")
+				.append("<th>ID</th>")
+				.append("<th>Symbol</th>")
 				.append("<th>Date</th>")
-            .append("<th>Duration</th>")
-            .append("<th>Total OI</th>")
-            .append("<th>Total Chg OI</th>")
-            .append("<th>Day High</th>")
-            .append("<th>Day Low</th>")
-            .append("<th>Close</th>")
-            .append("<th>High</th>")
-            .append("<th>Low</th>")
-            .append("<th>Open</th>")
-            .append("<th>OI Change</th>")
-            .append("<th>Interpretation</th>")
-            .append("<th>Level Break</th>")
-            .append("<th>LTP Change</th>")
-            .append("<th>Volume</th>")
-            .append("<th>High Volume</th>")
-            .append("<th>Strength</th>")
-            .append("<th>OI % Change</th>")
-            .append("<th>LTP % Change</th>")
-            .append("</tr>");
-        for (FutureAnalysis fa : futureAnalysisList) {
-            sb.append("<tr>")
-                .append("<td>").append(fa.getId()).append("</td>")
-                .append("<td>").append(fa.getSymbol()).append("</td>")
+				.append("<th>Duration</th>")
+				.append("<th>Total OI</th>")
+				.append("<th>Total Chg OI</th>")
+				.append("<th>Day High</th>")
+				.append("<th>Day Low</th>")
+				.append("<th>Close</th>")
+				.append("<th>High</th>")
+				.append("<th>Low</th>")
+				.append("<th>Open</th>")
+				.append("<th>OI Change</th>")
+				.append("<th>Interpretation</th>")
+				.append("<th>Level Break</th>")
+				.append("<th>LTP Change</th>")
+				.append("<th>Volume</th>")
+				.append("<th>High Volume</th>")
+				.append("<th>Strength</th>")
+				.append("<th>OI % Change</th>")
+				.append("<th>LTP % Change</th>")
+				.append("</tr>");
+		for (FutureAnalysis fa : futureAnalysisList) {
+			sb.append("<tr>")
+					.append("<td>").append(fa.getId()).append("</td>")
+					.append("<td>").append(fa.getSymbol()).append("</td>")
 					.append("<td>").append(fa.getDate()).append("</td>")
-                .append("<td>").append(fa.getDuration()).append("</td>")
-                .append("<td>").append(fa.getTotalOI()).append("</td>")
-                .append("<td>").append(fa.getTotalDayChangeInOI()).append("</td>")
-                .append("<td>").append(fa.getDayHigh()).append("</td>")
-                .append("<td>").append(fa.getDayLow()).append("</td>")
-                .append("<td>").append(fa.getClose()).append("</td>")
-                .append("<td>").append(fa.getHigh()).append("</td>")
-                .append("<td>").append(fa.getLow()).append("</td>")
-                .append("<td>").append(fa.getOpen()).append("</td>")
-                .append("<td>").append(fa.getOiChange()).append("</td>")
-                .append("<td>").append(fa.getInterpretation()).append("</td>")
-                .append("<td>").append(fa.getLevelBreak()).append("</td>")
-                .append("<td>").append(fa.getLtpChange()).append("</td>")
-                .append("<td>").append(fa.getVolume()).append("</td>")
-                .append("<td>").append(fa.isHighVolume()).append("</td>")
-                .append("<td>").append(fa.getStrength()).append("</td>")
-                .append("<td>").append(fa.getOiPercentageChange()).append("</td>")
-                .append("<td>").append(fa.getLtpPercentageChange()).append("</td>")
-                .append("</tr>");
-        }
-        sb.append("</table>");
-        return sb.toString();
-    }
+					.append("<td>").append(fa.getDuration()).append("</td>")
+					.append("<td>").append(fa.getTotalOI()).append("</td>")
+					.append("<td>").append(fa.getTotalDayChangeInOI()).append("</td>")
+					.append("<td>").append(fa.getDayHigh()).append("</td>")
+					.append("<td>").append(fa.getDayLow()).append("</td>")
+					.append("<td>").append(fa.getClose()).append("</td>")
+					.append("<td>").append(fa.getHigh()).append("</td>")
+					.append("<td>").append(fa.getLow()).append("</td>")
+					.append("<td>").append(fa.getOpen()).append("</td>")
+					.append("<td>").append(fa.getOiChange()).append("</td>")
+					.append("<td>").append(fa.getInterpretation()).append("</td>")
+					.append("<td>").append(fa.getLevelBreak()).append("</td>")
+					.append("<td>").append(fa.getLtpChange()).append("</td>")
+					.append("<td>").append(fa.getVolume()).append("</td>")
+					.append("<td>").append(fa.isHighVolume()).append("</td>")
+					.append("<td>").append(fa.getStrength()).append("</td>")
+					.append("<td>").append(fa.getOiPercentageChange()).append("</td>")
+					.append("<td>").append(fa.getLtpPercentageChange()).append("</td>")
+					.append("</tr>");
+		}
+		sb.append("</table>");
+		return sb.toString();
+	}
 
 	public void sendMail(String data, Properties properties, String subject) {
 		// Send email

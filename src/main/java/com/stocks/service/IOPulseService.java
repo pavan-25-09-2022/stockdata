@@ -1,8 +1,17 @@
 package com.stocks.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stocks.dto.*;
+import com.stocks.dto.ApiResponse;
+import com.stocks.dto.CandleDataResponse;
+import com.stocks.dto.FandOStocksTO;
+import com.stocks.dto.MarketMoversResponse;
+import com.stocks.dto.OptionChainData;
+import com.stocks.dto.OptionChainResponse;
+import com.stocks.dto.OptionData;
 import com.stocks.dto.Properties;
+import com.stocks.dto.StockEODResponse;
+import com.stocks.dto.TrendingOiResponse;
+import com.stocks.dto.UnderLyingAssetData;
 import com.stocks.utils.FormatUtil;
 import com.stocks.utils.MarketHolidayUtils;
 import org.slf4j.Logger;
@@ -19,47 +28,84 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Service
 public class IOPulseService {
 
 	private static final Logger log = LoggerFactory.getLogger(IOPulseService.class);
-	
+
 	/**
 	 * Get the next authentication token in rotation
 	 * Alternates between token1 and token2 for load balancing
 	 */
 	private String getNextAuthToken() {
 		tokenCounter++;
-		boolean useToken1 = (tokenCounter % 2 == 1); // Start with token1 for odd numbers
-		String selectedToken = useToken1 ? authToken1 : authToken2;
-		String tokenName = useToken1 ? "1" : "2";
+		int tokenIndex = (tokenCounter - 1) % 3; // Rotate between 0, 1, 2
+		String selectedToken;
+		String tokenName;
 		
+		switch (tokenIndex) {
+			case 0:
+				selectedToken = authToken1;
+				tokenName = "1";
+				break;
+			case 1:
+				selectedToken = authToken2;
+				tokenName = "2";
+				break;
+			case 2:
+				selectedToken = authToken3;
+				tokenName = "3";
+				break;
+			default:
+				selectedToken = authToken1;
+				tokenName = "1";
+		}
+
 		log.debug("Using auth token {} for request #{}", tokenName, tokenCounter);
-		
+
 		// Validate token is not null or empty
 		if (selectedToken == null || selectedToken.trim().isEmpty()) {
-			log.warn("Auth token {} is null or empty, falling back to other token", tokenName);
-			selectedToken = useToken1 ? authToken2 : authToken1;
-			if (selectedToken == null || selectedToken.trim().isEmpty()) {
-				log.error("Both auth tokens are null or empty!");
+			log.warn("Auth token {} is null or empty, trying fallback tokens", tokenName);
+			
+			// Try other tokens as fallback
+			if (tokenIndex != 0 && authToken1 != null && !authToken1.trim().isEmpty()) {
+				selectedToken = authToken1;
+				tokenName = "1 (fallback)";
+			} else if (tokenIndex != 1 && authToken2 != null && !authToken2.trim().isEmpty()) {
+				selectedToken = authToken2;
+				tokenName = "2 (fallback)";
+			} else if (tokenIndex != 2 && authToken3 != null && !authToken3.trim().isEmpty()) {
+				selectedToken = authToken3;
+				tokenName = "3 (fallback)";
+			} else {
+				log.error("All auth tokens are null or empty!");
 				throw new IllegalStateException("No valid authentication tokens available");
 			}
+			
+			log.info("Using fallback auth token {}", tokenName);
 		}
-		
+
 		return selectedToken;
 	}
-	
+
 	/**
 	 * Get token usage statistics for monitoring
 	 */
 	public String getTokenUsageStats() {
-		int token1Usage = (tokenCounter + 1) / 2; // Odd requests use token1
-		int token2Usage = tokenCounter / 2;       // Even requests use token2
-		return String.format("Token usage - Token1: %d requests, Token2: %d requests, Total: %d", 
-				token1Usage, token2Usage, tokenCounter);
+		int token1Usage = (tokenCounter + 2) / 3; // Requests 1, 4, 7, ... use token1
+		int token2Usage = (tokenCounter + 1) / 3; // Requests 2, 5, 8, ... use token2  
+		int token3Usage = tokenCounter / 3;       // Requests 3, 6, 9, ... use token3
+		return String.format("Token usage - Token1: %d requests, Token2: %d requests, Token3: %d requests, Total: %d",
+				token1Usage, token2Usage, token3Usage, tokenCounter);
 	}
 
 	@Autowired
@@ -82,10 +128,13 @@ public class IOPulseService {
 
 	@Value("${api.auth.token1}")
 	private String authToken1;
-	
+
 	@Value("${api.auth.token2}")
 	private String authToken2;
-	
+
+	@Value("${api.auth.token3}")
+	private String authToken3;
+
 	// Token rotation counter
 	private volatile int tokenCounter = 0;
 
@@ -106,11 +155,11 @@ public class IOPulseService {
 			HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(payload, headers);
 
 			ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
-			
+
 			if (response.getBody() != null) {
 				ObjectMapper objectMapper = new ObjectMapper();
 				FandOStocksTO apiResponse = objectMapper.readValue(response.getBody(), FandOStocksTO.class);
-				
+
 				if (apiResponse != null) {
 					Set<String> availableStocks = new HashSet<>();
 					for (OptionData data : apiResponse.getData()) {
@@ -129,15 +178,15 @@ public class IOPulseService {
 
 	ApiResponse sendRequest(Properties properties, String stock) {
 		try {
-			String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty())) 
+			String selectedDate = ((properties.getStockDate() != null && !properties.getStockDate().isEmpty()))
 					? properties.getStockDate() : LocalDate.now().toString();
 			String workingDay = MarketHolidayUtils.getWorkingDay(selectedDate);
-			
+
 			Map<String, String> payload = new HashMap<>();
 			payload.put("stSelectedFutures", stock);
 			payload.put("stSelectedExpiry", "I");
 			payload.put("stSelectedAvailableDate", selectedDate);
-			
+
 			// Determine if the selected date is in the past
 			LocalDate selected = LocalDate.parse(selectedDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 			LocalDate today = LocalDate.now();
@@ -147,16 +196,16 @@ public class IOPulseService {
 				payload.put("stSelectedModeOfData", "live");
 			}
 
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", getNextAuthToken());
-		headers.set("Content-Type", "application/json");
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization", getNextAuthToken());
+			headers.set("Content-Type", "application/json");
 
-		// Create request entity
-		HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(payload, headers);
+			// Create request entity
+			HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(payload, headers);
 
-		// Make POST request
-		ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, requestEntity, String.class);
-			
+			// Make POST request
+			ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, requestEntity, String.class);
+
 			if (response.getBody() != null) {
 				ObjectMapper objectMapper = new ObjectMapper();
 				return objectMapper.readValue(response.getBody(), ApiResponse.class);
@@ -220,9 +269,15 @@ public class IOPulseService {
 
 		// Make POST request
 		try {
-			ResponseEntity<OptionChainResponse> response = restTemplate.exchange(apiOptionChainUrl, HttpMethod.POST, requestEntity, OptionChainResponse.class);
+			ResponseEntity<String> response = restTemplate.exchange(apiOptionChainUrl, HttpMethod.POST, requestEntity, String.class);
+			if (response.getBody() != null) {
+				ObjectMapper objectMapper = new ObjectMapper();
+				OptionChainResponse apiResponse = objectMapper.readValue(response.getBody(), OptionChainResponse.class);
+				// Now use apiResponse as needed
+				return apiResponse;
+			}
 			log.info("stock {} startTime {} endTime {}", stock, properties.getStartTime(), properties.getEndTime());
-			return response.getBody();
+			return null;
 		} catch (Exception e) {
 			//log.error("Error in getOptionChain", e);
 			return null;
@@ -263,10 +318,10 @@ public class IOPulseService {
 	}
 
 	public CandleDataResponse getCandleData(Properties properties, Long fromTs, Long toTs) {
+		Map<String, String> payload = new HashMap<>();
 		try {
 			String url = "https://api.oipulse.com/api/trading-view/getcandledata";
 			// Create payload
-			Map<String, String> payload = new HashMap<>();
 			payload.put("ex", "NSE");
 			payload.put("symbol", properties.getStockName());
 			payload.put("limit", "1500");
@@ -293,7 +348,7 @@ public class IOPulseService {
 			}
 
 		} catch (Exception e) {
-			log.error("Error in stock Request", e);
+			log.error("Error in stock Request  --- {}", payload, e);
 		}
 		return null;
 	}
