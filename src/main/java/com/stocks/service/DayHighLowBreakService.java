@@ -94,7 +94,7 @@ public class DayHighLowBreakService {
             List<HistoricalQuote> stockData = impl.getCompleteResult();
 
             if (stockData != null && !stockData.isEmpty()) {
-                HistoricalQuote lastCandle = stockData.get(stockData.size() - 3);
+                HistoricalQuote lastCandle = stockData.get(stockData.size() - 2);
                 double openPrice = lastCandle.getOpen().doubleValue();
                 double closePrice = lastCandle.getClose().doubleValue();
                 double lowPrice = lastCandle.getLow().doubleValue();
@@ -102,7 +102,7 @@ public class DayHighLowBreakService {
                 double tradeEntryThreshold = trade.getEntry2() * 1.002;
 
                 if (openPrice == 0 || closePrice == 0 || lowPrice == 0 || tradeEntry == 0) {
-                    lastCandle = stockData.get(stockData.size() - 4);
+                    lastCandle = stockData.get(stockData.size() - 3);
                     openPrice = lastCandle.getOpen().doubleValue();
                     closePrice = lastCandle.getClose().doubleValue();
                     lowPrice = lastCandle.getLow().doubleValue();
@@ -264,6 +264,23 @@ public class DayHighLowBreakService {
                 .append("<th>Is SC with Price decreasing</th>")
                 .append("</tr>");
 
+        StringBuilder existStocks = new StringBuilder();
+        existStocks.append("<table border='1' style='border-collapse: collapse; width: 100%;'>");
+        existStocks.append("<tr>")
+                .append("<th>Stock Symbol</th>")
+                .append("<th>OI change</th>")
+                .append("<th>Ltp change</th>")
+                .append("<th>Strike</th>")
+                .append("<th>Time</th>")
+                .append("<th>CE OI Chg</th>")
+                .append("<th>PE OI Chg</th>")
+                .append("<th>Price</th>")
+                .append("<th>Time</th>")
+                .append("<th>CE OI Chg</th>")
+                .append("<th>PE OI Chg</th>")
+                .append("<th>Price</th>")
+                .append("</tr>");
+
         for (TradeSetupTO trade : tradeSetups) {
             try {
                 StrikeTO currentStrike = calculateOptionChain.getStrike(properties, trade.getStockSymbol(), trade.getEntry2());
@@ -273,7 +290,33 @@ public class DayHighLowBreakService {
                 StrikeTO orDefault = strikeTOMap.getOrDefault(trade.getStockSymbol(), null);
 
                 String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
-                if (currentStrike != null && strike != null && currentStrike.getCeOiChg() < strike.getCeOiChg() &&
+
+                boolean isScWithPriceDecreasing = false;
+                if(orDefault != null) {
+                    isScWithPriceDecreasing = currentStrike.getCeOiChg() < orDefault.getCeOiChg() &&
+                            currentStrike.getPeOiChg() > orDefault.getPeOiChg() &&
+                            currentStrike.getCurPrice() < orDefault.getCurPrice();
+                }
+
+                if(currentStrike.getCeOiChg() > 0) {
+                    existStocks.append("<tr>")
+                            .append("<td>").append(trade.getStockSymbol()).append("</td>")
+                            .append("<td>").append(String.format("%.2f", trade.getOiChgPer())).append("%</td>")
+                            .append("<td>").append(String.format("%.2f", trade.getLtpChgPer())).append("%</td>")
+                            .append("<td>").append(trade.getEntry2().intValue()).append("</td>")
+                            .append("<td>").append(trade.getFetchTime()).append("</td>")
+                            .append("<td>").append(strike.getCeOiChg()).append("</td>")
+                            .append("<td>").append(strike.getPeOiChg()).append("</td>")
+                            .append("<td>").append(strike.getCurPrice()).append("</td>")
+                            .append("<td>").append(currentStrike.getTime()).append("</td>")
+                            .append("<td>").append(currentStrike.getCeOiChg()).append("</td>")
+                            .append("<td>").append(currentStrike.getPeOiChg()).append("</td>")
+                            .append("<td>").append(currentStrike.getCurPrice()).append("</td>")
+                            .append("</tr>");
+                }
+
+                if (currentStrike != null && strike != null && isScWithPriceDecreasing &&
+                        currentStrike.getCeOiChg() < strike.getCeOiChg() &&
                         currentStrike.getPeOiChg() > strike.getPeOiChg()) {
                     currentStrike.setTime(time);
                     tableContent.append("<tr>")
@@ -282,25 +325,22 @@ public class DayHighLowBreakService {
                             .append("<td>").append(String.format("%.2f", trade.getLtpChgPer())).append("%</td>")
                             .append("<td>").append(trade.getEntry2().intValue()).append("</td>")
                             .append("<td>").append(trade.getFetchTime()).append("</td>")
-                            .append("<td>").append(FormatUtil.formatDoubleValue(strike.getCeOiChg())).append("</td>")
-                            .append("<td>").append(FormatUtil.formatDoubleValue(strike.getPeOiChg())).append("</td>")
-                            .append("<td>").append(FormatUtil.formatDoubleValue(strike.getCurPrice())).append("</td>");
+                            .append("<td>").append(strike.getCeOiChg()).append("</td>")
+                            .append("<td>").append(strike.getPeOiChg()).append("</td>")
+                            .append("<td>").append(strike.getCurPrice()).append("</td>");
                     if (orDefault != null) {
                         tableContent.append("<td>").append(orDefault.getTime()).append("</td>")
-                                .append("<td>").append(FormatUtil.formatDoubleValue(orDefault.getCeOiChg())).append("</td>")
-                                .append("<td>").append(FormatUtil.formatDoubleValue(orDefault.getPeOiChg())).append("</td>")
-                                .append("<td>").append(FormatUtil.formatDoubleValue(orDefault.getCurPrice())).append("</td>");
+                                .append("<td>").append(orDefault.getCeOiChg()).append("</td>")
+                                .append("<td>").append(orDefault.getPeOiChg()).append("</td>")
+                                .append("<td>").append(orDefault.getCurPrice()).append("</td>");
                     }
 
                     tableContent.append("<td>").append(currentStrike.getTime()).append("</td>")
-                            .append("<td>").append(FormatUtil.formatDoubleValue(currentStrike.getCeOiChg())).append("</td>")
-                            .append("<td>").append(FormatUtil.formatDoubleValue(currentStrike.getPeOiChg())).append("</td>")
-                            .append("<td>").append(FormatUtil.formatDoubleValue(currentStrike.getCurPrice())).append("</td>");
+                            .append("<td>").append(currentStrike.getCeOiChg()).append("</td>")
+                            .append("<td>").append(currentStrike.getPeOiChg()).append("</td>")
+                            .append("<td>").append(currentStrike.getCurPrice()).append("</td>");
 
                     if(orDefault != null) {
-                        boolean isScWithPriceDecreasing = currentStrike.getCeOiChg() < orDefault.getCeOiChg() &&
-                                currentStrike.getPeOiChg() > orDefault.getPeOiChg() &&
-                                currentStrike.getCurPrice() < orDefault.getCurPrice();
                         tableContent.append("<td>").append(isScWithPriceDecreasing ? "Yes" : "No").append("</td>");
                     } else {
                         tableContent.append("<td>N/A</td>");
@@ -318,6 +358,17 @@ public class DayHighLowBreakService {
         }
 
         tableContent.append("</table>");
+        existStocks.append("</table>");
+
+        if(existStocks.toString().contains("<td>")) {
+            mailService.sendMail(
+                    " Exist stocks if you have taken " + properties.getStockDate(),
+                    "<html><body>" +
+                            "<h3>Option Chain Verification Results - Existing Stocks</h3>" +
+                            existStocks.toString() +
+                            "</body></html>"
+            );
+        }
 
         if (!tableContent.toString().contains("<td>")) { // No rows added
             return;
