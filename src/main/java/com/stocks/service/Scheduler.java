@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class Scheduler {
@@ -150,12 +151,17 @@ public class Scheduler {
 	public void marketMoverGainers() {
 		log.info("Scheduler started Market Movers Gainers and Option Chain");
 		Properties properties = buildProperties();
-        properties.setStrategy("c2");
 		List<TradeSetupTO> trades = marketMovers.marketMoverDetails(properties, "G");
-		if (!trades.isEmpty()) {
-			String data = marketMoversMailService.beautifyResults(trades);
-			marketMoversMailService.sendMail(data, properties, "Market Movers Report");
+        List<TradeSetupTO> c2Collection = trades.stream().filter(trade -> "c2".equals(trade.getStrategy())).collect(Collectors.toList());
+        List<TradeSetupTO> volumeCollection = trades.stream().filter(trade -> "volume".equals(trade.getStrategy())).collect(Collectors.toList());
+        if (!c2Collection.isEmpty()) {
+			String data = marketMoversMailService.beautifyResults(c2Collection);
+			marketMoversMailService.sendMail(data, properties, "Market Movers Report based on C2");
 		}
+        if (!volumeCollection.isEmpty()) {
+            String data = marketMoversMailService.beautifyResults(volumeCollection);
+            marketMoversMailService.sendMail(data, properties, "Market Movers Report based on Volume");
+        }
 		log.info("Scheduler finished Market Movers Gainers and Option Chain ");
 		System.gc();
 	}
@@ -230,7 +236,7 @@ public class Scheduler {
 		System.gc();
 	}
 
-    @Scheduled(cron = "40 0/5 9-15 ? * MON-FRI")
+    @Scheduled(cron = "40 20/5 9-15 ? * MON-FRI")
     private void alertStocksBasedOnLastCandle() throws IOException {
         log.info("Scheduler started alertStocksBasedOnLastCandle");
         dayHighLowBreakService.alertStocksBasedOnLastCandle(LocalDate.now().minusDays(1).toString(), LocalDate.now().toString(), "c2" );

@@ -57,16 +57,20 @@ public class MarketMovers {
 		}
 
 		for (MarketMoverData marketMoverData : marketMoversResponse.getData()) {
-			String stock = marketMoverData.getStSymbolName();
-			List<String> values = getStockType(marketMoverData, type);
-			if (values == null) {
-				continue;
-			}
-			List<TradeSetupTO> list = processTradeSetup(properties, values, stock);
-			if(!list.isEmpty()) {
-				persistTrades(list);
-				trades.addAll(list);
-			}
+            String stock = marketMoverData.getStSymbolName();
+            try {
+                List<String> values = getStockType(marketMoverData, type);
+                if (values == null) {
+                    continue;
+                }
+                List<TradeSetupTO> list = processTradeSetup(properties, values, stock);
+                if (!list.isEmpty()) {
+                    persistTrades(list);
+                    trades.addAll(list);
+                }
+            }catch(Exception e){
+                log.error("Error while processing stock :{}" ,stock);
+            }
 		}
 		if (properties.getStrategy() != null) {
 			return trades.stream()
@@ -342,8 +346,9 @@ public class MarketMovers {
 				TradeSetupTO tradeSetup = new TradeSetupTO();
 				tradeSetup.setStockSymbol(stock);
 				tradeSetup.setEntry1((strikes.get(0).getStrikePrice() + strikes.get(1).getStrikePrice()) / 2);
+                tradeSetup.setEntry2(strikes.get(0).getStrikePrice());
 				tradeSetup.setTarget1(strikes.get(2).getStrikePrice());
-				tradeSetup.setTarget2(strikes.get(3).getStrikePrice());
+				tradeSetup.setTarget2(highCeVolumeStrike.getStrikePrice());
 				tradeSetup.setStrategy(criteria);
 				double stopLoss = Math.min(highPeVolumeStrike.getStrikePrice(), (strikes.get(-1).getStrikePrice() + strikes.get(-2).getStrikePrice()) / 2);
 				tradeSetup.setStopLoss1(stopLoss);
@@ -471,7 +476,7 @@ public class MarketMovers {
 	}
 
 	public List<TradeSetupTO> testPositiveMarketMovers(Properties properties) {
-		List<TradeSetupTO> list = tradeSetupManager.findTradeSetupByDate(properties.getStockDate());
+		List<TradeSetupTO> list = tradeSetupManager.findAllByProperties1(properties);
 		for (TradeSetupTO trade : list) {
 			if (properties.getStrategy() != null && !properties.getStrategy().isEmpty() && !trade.getStrategy().equals(properties.getStrategy())) {
 				continue;

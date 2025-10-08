@@ -106,6 +106,30 @@ public class TradeSetupManager {
 		return query.getResultList();
 	}
 
+    @Transactional(readOnly = true)
+    public List<TradeSetupTO> findAllByProperties1(Properties properties) {
+        String hql = "FROM TradeSetupEntity WHERE 1=1";
+        if (properties.getStockDate() != null && !properties.getStockDate().isEmpty()) {
+            hql += " AND stockDate = :stockDate";
+        }
+        if (properties.getStrategy() != null && !properties.getStrategy().isEmpty()) {
+            hql += " AND strategy = :strategy";
+        }
+
+        TypedQuery<TradeSetupEntity> query = entityManager.createQuery(hql, TradeSetupEntity.class);
+
+        if (properties.getStockDate() != null && !properties.getStockDate().isEmpty()) {
+            query.setParameter("stockDate", properties.getStockDate());
+        }
+        if (properties.getStrategy() != null && !properties.getStrategy().isEmpty()) {
+            query.setParameter("strategy", properties.getStrategy());
+        }
+
+        return query.getResultStream().map(this::mapEntityToTO)
+                .collect(Collectors.toList());
+    }
+
+
 	@Transactional(readOnly = true)
 	public List<TradeSetupTO> findTradeSetupByDate(String stockDate) {
 		String hql = "FROM TradeSetupEntity WHERE stockDate = :stockDate";
