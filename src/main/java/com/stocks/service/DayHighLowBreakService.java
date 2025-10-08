@@ -215,7 +215,7 @@ public class DayHighLowBreakService {
     }
 
     public void checkOptionChainForTradeSetUpStocks(Properties properties) {
-        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupsByDateAndStrategy(properties.getStockDate(), properties.getStrategy());
+        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupByDate(properties.getStockDate());
         String startTime = "09:15:00";
         String endTime = "15:30:00";
         properties.setStartTime(startTime);
@@ -246,6 +246,7 @@ public class DayHighLowBreakService {
         tableContent.append("<table border='1' style='border-collapse: collapse; width: 100%;'>");
         tableContent.append("<tr>")
                 .append("<th>Stock Symbol</th>")
+                .append("<th>Strategy</th>")
                 .append("<th>OI change</th>")
                 .append("<th>Ltp change</th>")
                 .append("<th>Strike</th>")
@@ -268,6 +269,7 @@ public class DayHighLowBreakService {
         existStocks.append("<table border='1' style='border-collapse: collapse; width: 100%;'>");
         existStocks.append("<tr>")
                 .append("<th>Stock Symbol</th>")
+                .append("<th>Strategy</th>")
                 .append("<th>OI change</th>")
                 .append("<th>Ltp change</th>")
                 .append("<th>Strike</th>")
@@ -298,9 +300,10 @@ public class DayHighLowBreakService {
                             currentStrike.getCurPrice() < orDefault.getCurPrice();
                 }
 
-                if(currentStrike.getCeOiChg() > 0) {
+                if(currentStrike.getCeOiChg() > 0 || currentStrike.getPeOiChg() < 0) {
                     existStocks.append("<tr>")
                             .append("<td>").append(trade.getStockSymbol()).append("</td>")
+                            .append("<td>").append(trade.getStrategy()).append("</td>")
                             .append("<td>").append(String.format("%.2f", trade.getOiChgPer())).append("%</td>")
                             .append("<td>").append(String.format("%.2f", trade.getLtpChgPer())).append("%</td>")
                             .append("<td>").append(trade.getEntry2().intValue()).append("</td>")
@@ -321,6 +324,7 @@ public class DayHighLowBreakService {
                     currentStrike.setTime(time);
                     tableContent.append("<tr>")
                             .append("<td>").append(trade.getStockSymbol()).append("</td>")
+                            .append("<td>").append(trade.getStrategy()).append("</td>")
                             .append("<td>").append(String.format("%.2f", trade.getOiChgPer())).append("%</td>")
                             .append("<td>").append(String.format("%.2f", trade.getLtpChgPer())).append("%</td>")
                             .append("<td>").append(trade.getEntry2().intValue()).append("</td>")
@@ -341,7 +345,11 @@ public class DayHighLowBreakService {
                             .append("<td>").append(currentStrike.getCurPrice()).append("</td>");
 
                     if(orDefault != null) {
-                        tableContent.append("<td>").append(isScWithPriceDecreasing ? "Yes" : "No").append("</td>");
+                        tableContent.append("<td style='background-color: ")
+                                .append(isScWithPriceDecreasing ? "lightgreen" : "lightcoral")
+                                .append(";'>")
+                                .append(isScWithPriceDecreasing ? "Yes" : "No")
+                                .append("</td>");
                     } else {
                         tableContent.append("<td>N/A</td>");
                     }
@@ -362,7 +370,7 @@ public class DayHighLowBreakService {
 
         if(existStocks.toString().contains("<td>")) {
             mailService.sendMail(
-                    " Exist stocks if you have taken " + properties.getStockDate(),
+                    " Exit stocks if you have taken " + properties.getStockDate(),
                     "<html><body>" +
                             "<h3>Option Chain Verification Results - Existing Stocks</h3>" +
                             existStocks.toString() +

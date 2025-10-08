@@ -57,16 +57,20 @@ public class MarketMovers {
 		}
 
 		for (MarketMoverData marketMoverData : marketMoversResponse.getData()) {
-			String stock = marketMoverData.getStSymbolName();
-			List<String> values = getStockType(marketMoverData, type);
-			if (values == null) {
-				continue;
-			}
-			List<TradeSetupTO> list = processTradeSetup(properties, values, stock);
-			if(!list.isEmpty()) {
-				persistTrades(list);
-				trades.addAll(list);
-			}
+            String stock = marketMoverData.getStSymbolName();
+            try {
+                List<String> values = getStockType(marketMoverData, type);
+                if (values == null) {
+                    continue;
+                }
+                List<TradeSetupTO> list = processTradeSetup(properties, values, stock);
+                if (!list.isEmpty()) {
+                    persistTrades(list);
+                    trades.addAll(list);
+                }
+            }catch(Exception e){
+                log.error("Error while processing stock :{}" ,stock);
+            }
 		}
 		if (properties.getStrategy() != null) {
 			return trades.stream()
@@ -179,7 +183,7 @@ public class MarketMovers {
 					tradeSetup3.setStrikes(strikes);
 					trades.add(tradeSetup3);
 				}
-				TradeSetupTO tradeSetup4 = validateAndSetDetailsBasedOnVolume(strikes, stock, "volume");
+				TradeSetupTO tradeSetup4 = validateAndSetDetails(strikes, stock, "volume");
 				buildTradeSetupTO(tradeSetup4, properties, values, stock);
 				if (isTradeProcessed(tradeSetup4)) {
 					tradeSetup4.setStrikes(strikes);
@@ -212,11 +216,10 @@ public class MarketMovers {
 				: (ltpChg > 0 ? "SC" : "LU");
 		log.info("Stock {} with OI Change {} and ltp change {}", marketMoverData.getStSymbolName(), oiChg, ltpChg);
 
-		if ("G".equals(type) && ( ltpChg> 0 && oldClose > 300)) {
+		if ("G".equals(type) && ( ltpChg > 0 && oldClose > 300)) {
 			Arrays.asList("positive", oiChg + "", lptChgPer + "", oiInterpretation);
 		} else if ("L".equals(type) && oiChg < -1) {
 			Arrays.asList("negative", oiChg + "", lptChgPer + "", oiInterpretation);
-			return null;
 		} else {
 			log.info("Stock {} Oi Change Per {} Ltp change per {}", marketMoverData.getStSymbolName(), oiChg, lptChgPer);
 			return null;
@@ -320,7 +323,22 @@ public class MarketMovers {
 			tradeSetup.setStopLoss1(peVolumeStrike.getStrikePrice());
 			tradeSetup.setStrategy(criteria);
 			return tradeSetup;
+		} else if ( criteria.equals("volume") && isValidStrike(strike0) && allValid &&
+				strikeUp1.getCeOiChg() < 0 && strikeUp2.getCeOiChg() < 0 &&
+				strikeDown1.getPeOiChg() > 0 && strikeDown2.getPeOiChg() > 0 &&
+				ceVolumeStrike.getCeVolume() > (2 * peVolumeStrike.getPeVolume())) {
+			tradeSetup.setStockSymbol(stock);
+			tradeSetup.setEntry1((strikes.get(0).getStrikePrice() + strikes.get(1).getStrikePrice()) / 2);
+			tradeSetup.setEntry2(strikes.get(0).getStrikePrice());
+			tradeSetup.setTarget1(strikes.get(2).getStrikePrice());
+			tradeSetup.setTarget2(ceVolumeStrike.getStrikePrice());
+			tradeSetup.setStrategy(criteria);
+			double stopLoss = (strikes.get(-1).getStrikePrice() + strikes.get(-2).getStrikePrice()) / 2;
+			tradeSetup.setStopLoss1(stopLoss);
+			tradeSetup.setStrikes(strikes);
+			return tradeSetup;
 		}
+
 		return null;
 	}
 
@@ -338,12 +356,13 @@ public class MarketMovers {
 			StrikeTO highCeVolumeStrike = commonUtils.getLargestCeVolumeStrike(strikes);
 			StrikeTO highPeVolumeStrike = commonUtils.getLargestPeVolumeStrike(strikes);
 
-			if (ceVolume > (3 * peVolume) && highCeVolumeStrike.getCeVolume() > (2 * highPeVolumeStrike.getPeVolume())) {
+			if (highCeVolumeStrike.getCeVolume() > (3 * highPeVolumeStrike.getPeVolume())) {
 				TradeSetupTO tradeSetup = new TradeSetupTO();
 				tradeSetup.setStockSymbol(stock);
 				tradeSetup.setEntry1((strikes.get(0).getStrikePrice() + strikes.get(1).getStrikePrice()) / 2);
+                tradeSetup.setEntry2(strikes.get(0).getStrikePrice());
 				tradeSetup.setTarget1(strikes.get(2).getStrikePrice());
-				tradeSetup.setTarget2(strikes.get(3).getStrikePrice());
+				tradeSetup.setTarget2(highCeVolumeStrike.getStrikePrice());
 				tradeSetup.setStrategy(criteria);
 				double stopLoss = Math.min(highPeVolumeStrike.getStrikePrice(), (strikes.get(-1).getStrikePrice() + strikes.get(-2).getStrikePrice()) / 2);
 				tradeSetup.setStopLoss1(stopLoss);
@@ -471,7 +490,7 @@ public class MarketMovers {
 	}
 
 	public List<TradeSetupTO> testPositiveMarketMovers(Properties properties) {
-		List<TradeSetupTO> list = tradeSetupManager.findTradeSetupByDate(properties.getStockDate());
+		List<TradeSetupTO> list = tradeSetupManager.findAllByProperties1(properties);
 		for (TradeSetupTO trade : list) {
 			if (properties.getStrategy() != null && !properties.getStrategy().isEmpty() && !trade.getStrategy().equals(properties.getStrategy())) {
 				continue;
