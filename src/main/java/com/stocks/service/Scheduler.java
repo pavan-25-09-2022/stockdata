@@ -244,7 +244,7 @@ public class Scheduler {
         System.gc();
     }
 
-    @Scheduled(cron = "20 30/15 9-14 ? * MON-FRI")
+    @Scheduled(cron = "40 20/5 9-15 ? * MON-FRI")
     private void verifyStocksBasedOnOptionChain() throws IOException {
         log.info("Scheduler started verifyStocksBasedOnOptionChain");
         Properties properties = buildProperties();
