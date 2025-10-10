@@ -147,7 +147,7 @@ public class Scheduler {
 		log.info("Scheduler finished Market Movers and Option Chain ");
 	}
 
-	@Scheduled(cron = "20 0/5 9-15 ? * MON-FRI")
+	@Scheduled(cron = "30 0/5 9-15 ? * MON-FRI")
 	public void marketMoverGainers() {
 		log.info("Scheduler started Market Movers Gainers and Option Chain");
 		Properties properties = buildProperties();
@@ -158,10 +158,10 @@ public class Scheduler {
 			String data = marketMoversMailService.beautifyResults(c2Collection);
 			marketMoversMailService.sendMail(data, properties, "Market Movers Report based on C2");
 		}
-        if (!volumeCollection.isEmpty()) {
+        /*if (!volumeCollection.isEmpty()) {
             String data = marketMoversMailService.beautifyResults(volumeCollection);
             marketMoversMailService.sendMail(data, properties, "Market Movers Report based on Volume");
-        }
+        }*/
 		log.info("Scheduler finished Market Movers Gainers and Option Chain ");
 		System.gc();
 	}
@@ -244,7 +244,7 @@ public class Scheduler {
         System.gc();
     }
 
-    @Scheduled(cron = "40 20/5 9-15 ? * MON-FRI")
+    @Scheduled(cron = "20 20/5 9-15 ? * MON-FRI")
     private void verifyStocksBasedOnOptionChain() throws IOException {
         log.info("Scheduler started verifyStocksBasedOnOptionChain");
         Properties properties = buildProperties();

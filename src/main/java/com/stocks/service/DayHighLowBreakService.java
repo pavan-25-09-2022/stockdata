@@ -37,6 +37,10 @@ public class DayHighLowBreakService {
 
     private static final Map<String, StrikeTO> strikeTOMap = new LinkedHashMap<>();
 
+    private static Map<String, String> shortCoveringTimes = new HashMap<>();
+
+    private static Map<String, Integer> exitStocks = new HashMap<>();
+
    public void testDayHighLow()  {
 
         Calendar from = DateUtil.start();
@@ -262,6 +266,7 @@ public class DayHighLowBreakService {
                 .append("<th>Current CE OI Chg</th>")
                 .append("<th>Current PE OI Chg</th>")
                 .append("<th>Price</th>")
+                .append("<th>ShortCovering Timings</th>")
                 .append("<th>Is SC with Price decreasing</th>")
                 .append("</tr>");
 
@@ -293,14 +298,18 @@ public class DayHighLowBreakService {
 
                 String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
 
+                boolean isShortCovering = orDefault != null && currentStrike != null && currentStrike.getCeOiChg() < orDefault.getCeOiChg() &&
+                        currentStrike.getPeOiChg() > orDefault.getPeOiChg();
                 boolean isScWithPriceDecreasing = false;
-                if(orDefault != null) {
-                    isScWithPriceDecreasing = currentStrike.getCeOiChg() < orDefault.getCeOiChg() &&
-                            currentStrike.getPeOiChg() > orDefault.getPeOiChg() &&
-                            currentStrike.getCurPrice() < orDefault.getCurPrice();
-                }
 
-                if(currentStrike.getCeOiChg() > 0 ) {
+                if(isShortCovering) {
+                    shortCoveringTimes.merge(trade.getStockSymbol(), orDefault.getTime(), (a, b) -> a + " , " + b);
+                    isScWithPriceDecreasing = currentStrike.getCurPrice() < orDefault.getCurPrice();
+                }
+                int count  = exitStocks.get(trade.getStockSymbol()) == null ? 0 : exitStocks.get(trade.getStockSymbol());
+
+                if(currentStrike != null && currentStrike.getCeOiChg() > 0 && count < 3) {
+                    exitStocks.merge(trade.getStockSymbol(), 1, Integer::sum);
                     existStocks.append("<tr>")
                             .append("<td>").append(trade.getStockSymbol()).append("</td>")
                             .append("<td>").append(trade.getStrategy()).append("</td>")
@@ -318,9 +327,9 @@ public class DayHighLowBreakService {
                             .append("</tr>");
                 }
 
-                if (currentStrike != null && strike != null && isScWithPriceDecreasing &&
+                if (currentStrike != null && strike != null &&
                         currentStrike.getCeOiChg() < strike.getCeOiChg() &&
-                        currentStrike.getPeOiChg() > strike.getPeOiChg()) {
+                        currentStrike.getPeOiChg() > strike.getPeOiChg() && isShortCovering) {
                     currentStrike.setTime(time);
                     tableContent.append("<tr>")
                             .append("<td>").append(trade.getStockSymbol()).append("</td>")
@@ -342,17 +351,26 @@ public class DayHighLowBreakService {
                     tableContent.append("<td>").append(currentStrike.getTime()).append("</td>")
                             .append("<td>").append(currentStrike.getCeOiChg()).append("</td>")
                             .append("<td>").append(currentStrike.getPeOiChg()).append("</td>")
-                            .append("<td>").append(currentStrike.getCurPrice()).append("</td>");
+                            .append("<td>").append(currentStrike.getCurPrice()).append("</td>")
+                            .append("<td>").append(shortCoveringTimes.get(trade.getStockSymbol())).append("</td>");
 
-                    if(orDefault != null) {
-                        tableContent.append("<td>").append(isScWithPriceDecreasing ? "Yes" : "No").append("</td>");
+                    if (orDefault != null) {
+                        tableContent.append("<td style='background-color: ")
+                                .append(isScWithPriceDecreasing ? "lightgreen" : "lightcoral")
+                                .append(";'>")
+                                .append(isScWithPriceDecreasing ? "Yes" : "No")
+                                .append("</td>");
                     } else {
                         tableContent.append("<td>N/A</td>");
                     }
 
                 }
-                if(currentStrike != null) {
+                if (currentStrike != null) {
                     currentStrike.setTime(time);
+                    String string = shortCoveringTimes.get(trade.getStockSymbol());
+                    if (string != null) {
+                        currentStrike.setShortCoveringTimings(string);
+                    }
                     strikeTOMap.put(trade.getStockSymbol(), currentStrike);
                 }
 

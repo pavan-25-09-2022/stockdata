@@ -686,7 +686,7 @@ public class FutureEodAnalyzerService {
 				for (Map.Entry<String, FutureAnalysis> futureAnalysisEntry : futureAnalysisMap.entrySet()) {
 					String key = futureAnalysisEntry.getKey();
 					FutureAnalysis value = futureAnalysisEntry.getValue();
-					if (value.getOiPercentageChange() > 1 && value.getLtpPercentageChange() < 0.5) {
+					if (value.getOiPercentageChange() > 1 ) {
 						if(futureAnalysisManager.getRecordBySymbolDateAndTime(stock, date, key) == null){
 							futureAnalysisList.add(value);
 							futureAnalysisManager.saveFutureAnalysis(value);

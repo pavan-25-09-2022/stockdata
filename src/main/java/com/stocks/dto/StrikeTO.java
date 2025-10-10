@@ -31,4 +31,5 @@ public class StrikeTO {
 	private boolean isLowPeOiChg;  // Indicates if Put OI change is low
 	private boolean isLowCeOiChg;  // Indicates if Call LTP change is high
 	private String time;
+	private String shortCoveringTimings;
 }
