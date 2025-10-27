@@ -1,6 +1,9 @@
 package com.stocks.controller;
 
+import com.stocks.dto.EntryInfo;
 import com.stocks.dto.Properties;
+import com.stocks.dto.StopLossInfo;
+import com.stocks.dto.TargetInfo;
 import com.stocks.dto.TradeSetupTO;
 import com.stocks.mail.MarketMoversMailService;
 import com.stocks.repository.TradeSetupManager;
@@ -12,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequestInterceptor;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,6 +32,8 @@ public class MarketMoverController {
 	MarketMoversMailService marketMoversMailService;
 	@Autowired
 	TradeSetupManager tradeSetupManager;
+	@Autowired
+	private WebRequestInterceptor webRequestInterceptor;
 
 
 

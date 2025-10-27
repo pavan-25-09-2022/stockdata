@@ -2,7 +2,14 @@ package com.stocks.entity;
 
 import lombok.Data;
 
-import javax.persistence.*;
+import javax.persistence.CascadeType;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
 import java.util.List;
 
 @Entity
@@ -16,6 +23,15 @@ public class TradeSetupEntity {
 
 	@OneToMany(mappedBy = "tradeSetup", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private List<StrikeSetupEntity> strikeSetups;
+
+	@OneToMany(mappedBy = "tradeSetup", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	private List<TargetInfoEntity> targetInfos;
+
+	@OneToMany(mappedBy = "tradeSetup", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	private List<StopLossInfoEntity> stopLossInfos;
+
+	@OneToMany(mappedBy = "tradeSetup", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	private List<EntryInfoEntity> entryInfos;
 
 	private String stockSymbol;
 	private String stockDate;
@@ -37,14 +53,5 @@ public class TradeSetupEntity {
 	private String stopLoss1Time;
 	private String strategy;
 	private String type;
-
-	@Override
-	public String toString() {
-		return "TradeSetupEntity{" +
-				"id=" + id +
-				", stockSymbol='" + stockSymbol + '\'' +
-				", stockDate='" + stockDate + '\'' +
-				// do not include strikeSetups or include only their IDs/count
-				'}';
-	}
+	private String criteria;
 }

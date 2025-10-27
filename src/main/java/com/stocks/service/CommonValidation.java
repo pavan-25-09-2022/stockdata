@@ -1,8 +1,15 @@
 package com.stocks.service;
 
-import com.stocks.dto.*;
+import com.stocks.dto.ApiResponse;
+import com.stocks.dto.Candle;
+import com.stocks.dto.CandleDataResponse;
+import com.stocks.dto.Properties;
+import com.stocks.dto.StockProfitResult;
+import com.stocks.dto.StockResponse;
+import com.stocks.dto.TrendingOiData;
 import com.stocks.utils.DateUtil;
 import com.stocks.utils.FormatUtil;
+import com.stocks.utils.MarketHolidayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -183,9 +190,8 @@ public class CommonValidation {
 	}
 
 	public boolean isPositive(List<Candle> candles, Candle firstCandle, Candle curCandle, String oiInterpretation) {
-		double topWick = curCandle.getHigh() - Math.max(curCandle.getOpen(), curCandle.getClose());
-		double bodySize = Math.abs(curCandle.getOpen() - curCandle.getClose());
-		return (curCandle.getClose() > firstCandle.getClose() && (oiInterpretation.equals("LBU") || oiInterpretation.equals("SC")));
+		
+		return ((oiInterpretation.equals("LBU") || oiInterpretation.equals("SC")));
 //        return curCandle.getClose() > firstCandle.getHigh() && highToOpenChge < 0.4 && curCandle.getLow() < firstCandle.getHigh() && (oiInterpretation.equals("LBU"))
 	}
 
@@ -482,5 +488,36 @@ public class CommonValidation {
 				));
 
 		return new ArrayList<>(groupedData.values());
+	}
+
+	/**
+	 * Get historical candles for advanced stop loss calculation
+	 */
+	public List<Candle> getHistoricalCandles(Properties properties, String endTime) {
+		try {
+
+			String startDateTime = properties.getStockDate() + " 09:15";
+			String endDateTime = properties.getStockDate() + " " + endTime;
+
+			List<Candle> candles = getCandles(properties, startDateTime, endDateTime);
+			List<Candle> ystCandles = new ArrayList<>();
+			if (candles.size() < 50) {
+				String startDateTime1 = MarketHolidayUtils.getWorkingDay(FormatUtil.addDays(properties.getStockDate(), -1)) + " 09:15";
+				String endDateTime1 = MarketHolidayUtils.getWorkingDay(FormatUtil.addDays(properties.getStockDate(), -1)) + " 15:15";
+
+				ystCandles = getCandles(properties, startDateTime1, endDateTime1);
+			}
+			// Reverse the list to have chronological order (oldest first)
+			List<Candle> chronologicalCandles = new ArrayList<>();
+			chronologicalCandles.addAll(ystCandles);
+			chronologicalCandles.addAll(candles);
+
+//			java.util.Collections.reverse(chronologicalCandles);
+
+			return chronologicalCandles;
+		} catch (Exception e) {
+			log.error("Error getting historical candles for {}: {}", properties.getStockDate(), e.getMessage());
+			return new ArrayList<>();
+		}
 	}
 }

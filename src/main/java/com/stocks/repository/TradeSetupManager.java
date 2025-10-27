@@ -231,7 +231,6 @@ public class TradeSetupManager {
 		to.setTarget1(entity.getTarget1());
 		to.setTarget2(entity.getTarget2());
 		to.setStopLoss1(entity.getStopLoss1());
-		
 		to.setStopLoss2(entity.getStopLoss2());
 		to.setStatus(entity.getStatus());
 		to.setTradeNotes(entity.getTradeNotes());

@@ -7,10 +7,7 @@ import com.stocks.dto.MarketMoverData;
 import com.stocks.dto.MarketMoversResponse;
 import com.stocks.dto.Properties;
 import com.stocks.dto.StockEODResponse;
-import com.stocks.dto.StockResponse;
-import com.stocks.dto.StopLossInfo;
 import com.stocks.dto.StrikeTO;
-import com.stocks.dto.TargetInfo;
 import com.stocks.dto.TradeSetupTO;
 import com.stocks.repository.TradeSetupManager;
 import com.stocks.utils.CommonUtils;
@@ -35,7 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-public class MarketDataService {
+public class NewFutureAnalysis {
 
 	@Autowired
 	private IOPulseService ioPulseService;
@@ -70,9 +67,6 @@ public class MarketDataService {
 	@Value("${api.auth.token1}")
 	private String authToken;
 
-	@Value("${market.end.time:12:30}")
-	private String endTime;
-
 	@Value("${eodValue}")
 	private int eodValue;
 
@@ -90,16 +84,7 @@ public class MarketDataService {
 	private CommonValidation commonValidation;
 
 
-	public List<TradeSetupTO> callApi(Properties properties) {
-		if (properties == null) {
-			log.error("Properties cannot be null");
-			return new ArrayList<>();
-		}
-
-		if (properties.getStockDate() == null || properties.getStockDate().trim().isEmpty()) {
-			log.error("Stock date cannot be null or empty");
-			return new ArrayList<>();
-		}
+	public List<TradeSetupTO> futureAnalysis(Properties properties) {
 
 		if (!isValidTradingDay(properties.getStockDate())) {
 			return new ArrayList<>();
@@ -187,6 +172,8 @@ public class MarketDataService {
 				if (result != null) {
 					// OPTIMIZATION 4: Calculate OI metrics once
 					populateOiMetrics(result, moverData, ystEod);
+					result.setTradeNotes(eodResponse);
+					result.setTradeNotes(result.getCriteria());
 
 					// OPTIMIZATION 5: Batch database saves (save at end instead of per stock)
 					results.add(result);
@@ -238,12 +225,13 @@ public class MarketDataService {
 					String eodResponse = processEodResponse(stock, stockDate);
 					if (eodResponse != null && !eodResponse.isEmpty()) {
 						String ystEod = eodResponse.split("-")[0];
-						if ("LBU".equals(ystEod) || "SC".equals(ystEod)) {
+						String yst2Eod = eodResponse.split("-")[1];
+						if (("LBU".equals(ystEod)) && ("LBU".equals(yst2Eod) || "SC".equals(yst2Eod))) {
 							validStocks.put(stock, eodResponse);
 						}
 					}
 				} catch (Exception e) {
-					log.debug("Error processing EOD for stock {}: {}", stock, e.getMessage());
+					log.error("Error processing EOD for stock {}: {}", stock, e.getMessage());
 				}
 			}
 
@@ -280,7 +268,7 @@ public class MarketDataService {
 
 			result.setOiChgPer(oiChg);
 			result.setLtpChgPer(lptChgPer);
-			result.setTradeNotes(oiInterpretation + " " + ystEod);
+			result.setTradeNotes(oiInterpretation);
 		} catch (NumberFormatException e) {
 			log.warn("Error parsing OI metrics for stock {}: {}", result.getStockSymbol(), e.getMessage());
 		}
@@ -294,11 +282,11 @@ public class MarketDataService {
 			properties.setStockName(stock);
 
 			// OPTIMIZATION: Check if already processed today
-			TradeSetupTO existingSetup = tradeSetupManager.getStockByDateAndTime(stock, properties.getStockDate(), endTime);
-			if (existingSetup != null) {
-				log.debug("Found existing trade setup for {}, skipping processing", stock);
-				return existingSetup;
-			}
+//			TradeSetupTO existingSetup = tradeSetupManager.getStockByDateAndTime(stock, properties.getStockDate(), endTime);
+//			if (existingSetup != null) {
+//				log.debug("Found existing trade setup for {}, skipping processing", stock);
+//				return existingSetup;
+//			}
 
 			// Get candles data
 			List<Candle> candles = commonValidation.getCandles(properties, stock);
@@ -324,43 +312,53 @@ public class MarketDataService {
 	/**
 	 * OPTIMIZATION 9: Streamlined candle processing with early exit conditions
 	 */
-	private TradeSetupTO processStockCandlesOptimized(String stock, List<Candle> candles, Properties properties, Candle ystEodCandle) {
+	private TradeSetupTO processStockCandlesOptimized(String stock, List<Candle> candles, Properties properties, Candle ystEodCandle) throws InterruptedException {
 		List<Candle> processedCandles = new ArrayList<>();
 		Candle firstCandle = candles.get(0);
-		Candle prevCandle = firstCandle;
-		double dayHigh = firstCandle.getHigh();
+		LocalTime endTime = FormatUtil.getTimeHHmmss("10:30:00");
 
-		// Process candles with early exit optimization
-		for (Candle curCandle : candles) {
-			TradeSetupTO tradeSetupTO = null;
-			processedCandles.add(curCandle);
+		if (TEST_ENV.equals(properties.getEnv())) {
+			for (int i = 0; i < candles.size(); i++) {
+				Candle curCandle = candles.get(i);
+				processedCandles.add(curCandle);
 
-			if (curCandle.getEndTime().isAfter(LocalTime.parse(endTime)) || firstCandle.getEndTime().equals(curCandle.getEndTime())) {
-				continue;
-			}
-
-			// Quick validation check
-			if (!commonValidation.isPositive(candles, firstCandle, curCandle, curCandle.getOiInt())) {
-				dayHigh = Math.max(dayHigh, curCandle.getHigh());
-				prevCandle = curCandle;
-				continue;
-			}
-
-			// Found valid candle - process immediately
-			if (TEST_ENV.equals(properties.getEnv()) || processedCandles.size() == candles.size()) {
-				tradeSetupTO = createTradeSetupOptimized(stock, curCandle, firstCandle, properties);
-				if (tradeSetupTO == null) {
+				if (curCandle.getEndTime().isAfter(endTime) || firstCandle.getEndTime().equals(curCandle.getEndTime())) {
 					continue;
 				}
-			} else {
-				tradeSetupTO = createTradeSetupOptimized(stock, curCandle, firstCandle, properties);
-			}
 
-			dayHigh = Math.max(dayHigh, curCandle.getHigh());
-			prevCandle = curCandle;
-			if (tradeSetupTO != null) {
-				return tradeSetupTO;
+				// Quick validation check
+				//check first 3 candles if they are positive
+				if (processedCandles.size() < 3) {
+					continue;
+				}
+
+				List<Candle> positiveCheckCandles = Arrays.asList(firstCandle);
+				if (!areCandlesPositive(positiveCheckCandles)) {
+					continue;
+				}
+				Thread.sleep(100); // Use configurable delay instead of fixed 1000ms
+
+				// Found valid candle - process immediately
+//				if (!isEndTimeMultipleOf15(curCandle)) {
+				TradeSetupTO tradeSetupTO = createTradeSetupOptimized(stock, curCandle, firstCandle, properties);
+				log.info("Processing stock {} with {} candles", stock, processedCandles.size());
+				if (tradeSetupTO != null) {
+					if (!"C7".equals(tradeSetupTO.getCriteria())) {
+						continue;
+					}
+					double dayLtpChange = curCandle.getClose() - ystEodCandle.getClose();
+					double dayOiChange = curCandle.getOpenInterest() - ystEodCandle.getOpenInterest();
+					String oiChange = (dayOiChange > 0) ? (dayLtpChange > 0 ? "LBU" : "SBU") : (dayLtpChange > 0 ? "SC" : "LU");
+					tradeSetupTO.setTradeNotes(oiChange);
+					return tradeSetupTO;
+				}
+
+				return null;
+//				}
+//				return null;
 			}
+		} else {
+
 		}
 
 		return null;
@@ -378,22 +376,19 @@ public class MarketDataService {
 			Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, stock);
 
 			// Create base trade setup
-			TradeSetupTO tradeSetupTO = createBaseTradeSetup(stock, validCandle, firstCandle, strikes, properties);
+			TradeSetupTO tradeSetupTO = createBaseTradeSetup(stock, validCandle, firstCandle, null, properties);
 
 			// Apply criteria validation
-			TradeSetupTO criteriaResult = applyCriteriaValidation(tradeSetupTO, strikes, properties);
-			if (criteriaResult == null || criteriaResult.getCriteria() == null || criteriaResult.getCriteria().isEmpty()) {
-				return null;
+			applyCriteriaValidation(tradeSetupTO, strikes, properties);
+			if ("C7".equalsIgnoreCase(tradeSetupTO.getCriteria())) {
+				// Get historical data for advanced calculations
+				List<Candle> historicalCandles = new ArrayList<>(commonValidation.getHistoricalCandles(properties,
+						validCandle.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm"))));
+
+				// Apply advanced strategies
+				applyAdvancedStrategies(tradeSetupTO, historicalCandles, null);
 			}
-
-			// Get historical data for advanced calculations
-			List<Candle> historicalCandles = new ArrayList<>(commonValidation.getHistoricalCandles(properties,
-					validCandle.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm"))));
-
-			// Apply advanced strategies
-			applyAdvancedStrategies(criteriaResult, historicalCandles, strikes);
-
-			return criteriaResult;
+			return tradeSetupTO;
 
 		} catch (Exception e) {
 			log.error("Error creating optimized trade setup for {}: {}", stock, e.getMessage());
@@ -413,194 +408,65 @@ public class MarketDataService {
 		tradeSetupTO.setStrategy(STRATEGY_DH);
 		tradeSetupTO.setStrikes(strikes);
 		tradeSetupTO.setEntry1((firstCandle.getLow() + firstCandle.getHigh()) / 2);
+		tradeSetupTO.setEntry2((validCandle.getLow() + validCandle.getHigh()) / 2);
 		tradeSetupTO.setStopLoss1(firstCandle.getLow());
 		tradeSetupTO.setTradeNotes(validCandle.getOiInt());
 
 		return tradeSetupTO;
 	}
 
-	private TradeSetupTO applyCriteriaValidation(TradeSetupTO tradeSetupTO, Map<Integer, StrikeTO> strikes, Properties properties) {
-		// Apply C2 criteria
-		TradeSetupTO c2Result = marketMovers.validateAndSetDetails(strikes, properties, "c2");
-		if (c2Result != null) {
-			tradeSetupTO.setCriteria("C2");
-			tradeSetupTO.setTarget1(c2Result.getTarget1());
-			tradeSetupTO.setTarget2(c2Result.getTarget2());
-			tradeSetupTO.setEntry1(c2Result.getEntry1());
-			return tradeSetupTO;
+	private void applyCriteriaValidation(TradeSetupTO tradeSetupTO, Map<Integer, StrikeTO> strikes, Properties properties) {
+
+		List<String> list = Arrays.asList("c7");
+		for (String str : list) {
+			TradeSetupTO result = marketMovers.validateAndSetDetails(strikes, properties, str);
+			if (result != null) {
+				tradeSetupTO.setCriteria(str.toUpperCase());
+				tradeSetupTO.setTarget1(result.getTarget1());
+				tradeSetupTO.setTarget2(result.getTarget2());
+				tradeSetupTO.setEntry1(result.getEntry1());
+			}
 		}
 
-		// Apply C7 criteria
-		TradeSetupTO c7Result = marketMovers.validateAndSetDetails(strikes, properties, "c7");
-		if (c7Result != null) {
-			tradeSetupTO.setCriteria("C7");
-			tradeSetupTO.setTarget1(c7Result.getTarget1());
-			tradeSetupTO.setTarget2(c7Result.getTarget2());
-			tradeSetupTO.setEntry1(c7Result.getEntry1());
-			return tradeSetupTO;
-		}
-
-		return null;
 	}
 
 	private void applyAdvancedStrategies(TradeSetupTO tradeSetupTO, List<Candle> historicalCandles, Map<Integer, StrikeTO> strikes) {
 		// Calculate optimal entry signal using 3 advanced strategies
-		advancedEntryService.calculateOptimalEntry(tradeSetupTO, historicalCandles, strikes);
+		advancedEntryService.calculateOptimalEntry(tradeSetupTO, historicalCandles, null);
 		EntryInfo e1 = tradeSetupTO.getEntryInfos().stream().filter(e -> "BC".equals(e.getStrategy())).findFirst().orElse(null);
-		EntryInfo e2 = tradeSetupTO.getEntryInfos().stream().filter(e -> "D".equals(e.getStrategy())).findFirst().orElse(null);
+//		EntryInfo e2 = tradeSetupTO.getEntryInfos().stream().filter(e -> "D".equals(e.getStrategy())).findFirst().orElse(null);
 
 
 		// Apply advanced targets and stop losses for each entry strategy
 //		for (EntryInfo entryInfo : tradeSetupTO.getEntryInfos()) {
+		double e2price = tradeSetupTO.getEntry2() != null ? tradeSetupTO.getEntry2() : 0.0;
 		if (e1 != null) {
-			tradeSetupTO.setEntry1(e1.getEntryPrice());
+			if (e1.getEntryPrice() > e2price) {
+				tradeSetupTO.setEntry1(e1.getEntryPrice());
+				tradeSetupTO.setEntry2(e2price);
+			} else {
+				tradeSetupTO.setEntry1(e2price);
+				tradeSetupTO.setEntry2(e1.getEntryPrice());
+			}
 		}
-		if (e2 != null) {
-			tradeSetupTO.setEntry2(e2.getEntryPrice());
-		}
+//		if (e2 != null) {
+//			tradeSetupTO.setEntry2(e2.getEntryPrice());
+//		}
 
 		// Calculate advanced targets using multiple strategies
-		advancedTargetService.calculateOptimalTargets(tradeSetupTO, historicalCandles, strikes, "");
+//		advancedTargetService.calculateOptimalTargets(tradeSetupTO, historicalCandles, strikes, "");
 
-		TargetInfo t1 = tradeSetupTO.getTargetInfos().stream().filter(t -> "FE".equals(t.getStrategy())).findFirst().orElse(null);
-		if (t1 != null) {
-			tradeSetupTO.setTarget1(t1.getTarget1());
-			tradeSetupTO.setTarget2(t1.getTarget2());
-		}
+//		TargetInfo t1 = tradeSetupTO.getTargetInfos().stream().filter(t -> "FE".equals(t.getStrategy())).findFirst().orElse(null);
+//		if (t1 != null) {
+//			tradeSetupTO.setTarget1(t1.getTarget1());
+//			tradeSetupTO.setTarget2(t1.getTarget2());
+//		}
 		// Calculate advanced stop loss using multiple strategies
 		advancedStopLossService.calculateOptimalStopLoss(tradeSetupTO, historicalCandles, strikes, "");
-		StopLossInfo s1 = tradeSetupTO.getStopLossInfos().stream().filter(s -> "ATR".equals(s.getStrategy())).findFirst().orElse(null);
-		if (s1 != null) {
-			tradeSetupTO.setStopLoss1(s1.getStopLoss());
-		}
-//		}
-	}
-
-	private TradeSetupTO processStock(String stock, Properties properties) {
-		try {
-			properties.setStockName(stock);
-			List<Candle> candles = commonValidation.getCandles(properties, stock);
-			if (candles == null || candles.isEmpty()) {
-				return null;
-			}
-			log.debug("Processing stock {}", stock);
-			Candle ystEodCandle = candles.get(0);
-			candles = candles.subList(1, candles.size());
-			List<Candle> processedCandles = new ArrayList<>();
-			List<Long> volumes = new ArrayList<>();
-			for (Candle curCandle : candles) {
-				processedCandles.add(curCandle);
-				if (curCandle.getEndTime().isAfter(LocalTime.parse(endTime))) {
-					continue; // Skip candles after the specified end time
-				}
-				volumes.add(curCandle.getVolume());
-
-
-				List<Double> rsiList = new ArrayList<>();
-				Candle firstCandle = candles.get(0);
-				rsiList.add(firstCandle.getClose());
-
-				Candle prevCandle = firstCandle;
-				double dayHigh = firstCandle.getHigh();
-				rsiList.add(curCandle.getClose());
-//				if (rsiList.size() > RSI_PERIOD) {
-//					rsiList.remove(0); // Remove the oldest element
-//				}
-				double ltpChange = Math.round((curCandle.getClose() - prevCandle.getClose()) * 100.0) / 100.0;
-				long oiChange = curCandle.getOpenInterest() - prevCandle.getOpenInterest();
-				String oiInterpretation = (oiChange > 0)
-						? (ltpChange > 0 ? "LBU" : "SBU")
-						: (ltpChange > 0 ? "SC" : "LU");
-				TradeSetupTO tradeSetupTO1 = tradeSetupManager.getStockByDateAndTime(stock, properties.getStockDate(), endTime);
-				if (tradeSetupTO1 != null) {
-					return tradeSetupTO1;
-				}
-				StockResponse res = new StockResponse();
-				res.setStock(stock);
-				res.setOiInterpretation(oiInterpretation);
-				res.setCurCandle(curCandle);
-				res.setFirstCandle(firstCandle);
-				if (commonValidation.isPositive(candles, firstCandle, curCandle, curCandle.getOiInt())) {
-					res.setStockType(POSITIVE_STOCK_TYPE);
-					res.setValidCandle(curCandle);
-				}
-				dayHigh = Math.max(dayHigh, curCandle.getHigh());
-				prevCandle = curCandle;
-				if (res.getValidCandle() != null) {
-					if (TEST_ENV.equals(properties.getEnv()) || processedCandles.size() == candles.size()) {
-						properties.setEndTime(res.getValidCandle().getEndTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-						properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
-						Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, properties.getStockName());
-						TradeSetupTO tradeSetupTO = populateTradeSetup(res, strikes, properties);
-						TradeSetupTO tradeSetupTO2 = marketMovers.validateAndSetDetails(strikes, properties, "c2");
-						if (tradeSetupTO2 != null) {
-							tradeSetupTO.setCriteria("C2");
-							tradeSetupTO.setTarget1(tradeSetupTO2.getTarget1());
-							tradeSetupTO.setTarget2(tradeSetupTO2.getTarget2());
-						}
-						TradeSetupTO tradeSetupTO7 = marketMovers.validateAndSetDetails(strikes, properties, "c7");
-						if (tradeSetupTO7 != null) {
-							tradeSetupTO.setCriteria("C7");
-							tradeSetupTO.setTarget1(tradeSetupTO7.getTarget1());
-							tradeSetupTO.setTarget2(tradeSetupTO7.getTarget2());
-						}
-						if (tradeSetupTO.getCriteria() == null || tradeSetupTO.getCriteria().isEmpty()) {
-							continue;
-						}
-
-						List<Candle> historicalCandles = new ArrayList<>(commonValidation.getHistoricalCandles(properties, curCandle.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm"))));
-
-						// Calculate optimal entry signal using 3 advanced strategies
-						advancedEntryService.calculateOptimalEntry(
-								tradeSetupTO, historicalCandles, strikes);
-
-//						EntryInfo entryInfo1 = tradeSetupTO.getEntryInfos().stream().filter(e -> "D".equals(e.getStrategy())).findFirst().orElse(null);
-//						EntryInfo entryInfo2 = tradeSetupTO.getEntryInfos().stream().filter(e -> "BC".equals(e.getStrategy())).findFirst().orElse(null);
-
-						for (EntryInfo entryInfo : tradeSetupTO.getEntryInfos()) {
-							tradeSetupTO.setEntry1(entryInfo.getEntryPrice());
-
-							// Calculate advanced targets using multiple strategies
-							advancedTargetService.calculateOptimalTargets(
-									tradeSetupTO, historicalCandles, strikes, entryInfo.getStrategy());
-
-
-							// Calculate advanced stop loss using multiple strategies
-							advancedStopLossService.calculateOptimalStopLoss(
-									tradeSetupTO, historicalCandles, strikes, entryInfo.getStrategy());
-						}
-
-
-						tradeSetupTO.setTradeNotes(res.getValidCandle().getOiInt());
-						tradeSetupTO.setTradeNotes(processEodResponse(tradeSetupTO.getStockSymbol(), tradeSetupTO.getStockDate()));
-						return tradeSetupTO;
-					}
-				}
-
-			}
-		} catch (Exception e) {
-			log.error("Error processing stock: {}, {}", stock, e.getMessage(), e);
-		}
-		return null;
-	}
-
-	private TradeSetupTO populateTradeSetup(StockResponse res, Map<Integer, StrikeTO> strikes, Properties properties) {
-		TradeSetupTO tradeSetupTO = new TradeSetupTO();
-		String endTime = res.getValidCandle().getEndTime().format(DateTimeFormatter.ofPattern("HH:mm"));
-		String startTime = res.getValidCandle().getEndTime().plusMinutes(-1).format(DateTimeFormatter.ofPattern("HH:mm"));
-
-		List<Candle> candles = commonValidation.getCandles(properties, properties.getStockDate() + " 09:15", properties.getStockDate() + " " + startTime);
-		Candle lastCandle = candles.get(0);
-		Candle firstCandle = candles.get(candles.size() - 1);
-		tradeSetupTO.setStockSymbol(res.getStock());
-		tradeSetupTO.setStockDate(properties.getStockDate());
-		tradeSetupTO.setFetchTime(endTime);
-		tradeSetupTO.setType(res.getStockType());
-		tradeSetupTO.setStrategy(STRATEGY_DH);
-		tradeSetupTO.setStrikes(strikes);
-		tradeSetupTO.setEntry1((lastCandle.getLow() + lastCandle.getHigh()) / 2);
-		tradeSetupTO.setStopLoss1(firstCandle.getLow());
-		return tradeSetupTO;
+		tradeSetupTO.getStopLossInfos().stream()
+				.filter(s -> "ATR".equals(s.getStrategy()))
+				.findFirst().ifPresent(s1 -> tradeSetupTO.setStopLoss1(s1.getStopLoss()));
+		//		}
 	}
 
 	private String processEodResponse(String stock, String stockDate) {
@@ -608,6 +474,10 @@ public class MarketDataService {
 		StockEODResponse eod = ioPulseService.getMonthlyData(stock);
 		if (eod == null || eod.getData().size() < 3) {
 			log.info("EOD data is insufficient for stock: {}", stockDate);
+			return null;
+		}
+		FutureEodAnalyzer data = eod.getData().get(0);
+		if (data.getInDayHigh() < 200) {
 			return null;
 		}
 
@@ -671,6 +541,38 @@ public class MarketDataService {
 			return 2.0; // Default risk
 		}
 		return Math.abs((entryPrice - stopLoss) / entryPrice) * 100;
+	}
+
+	/**
+	 * Check if the first 3 candles (indices 0, 1, 2) are positive candles
+	 * A positive candle has OI interpretation of "LBU" (Long Build Up) or "SC" (Short Covering)
+	 */
+	private boolean areCandlesPositive(List<Candle> candles) {
+		boolean isPositive = true;
+		// Check first 3 candles (indices 0, 1, 2)
+		for (int i = 0; i < candles.size(); i++) {
+			Candle candle = candles.get(i);
+			if (candle.getOpen() > candle.getClose()) {
+				isPositive = false;
+				break;
+			}
+		}
+
+		return isPositive;
+	}
+
+	/**
+	 * Check if the candle's end time is a multiple of 15 minutes
+	 * Valid times: 09:15, 09:30, 09:45, 10:00, 10:15, 10:30, etc.
+	 */
+	private boolean isEndTimeMultipleOf15(Candle candle) {
+
+		LocalTime endTime = candle.getEndTime();
+		int minutes = endTime.getMinute();
+
+		// Check if minutes is a multiple of 15 (0, 15, 30, 45)
+		return (minutes % 15) == 0;
+
 	}
 
 }
