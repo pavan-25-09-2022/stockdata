@@ -49,6 +49,42 @@ public class TradeSetupManager {
 		}
 	}
 
+    @Transactional
+    public void updateTradeSetup(TradeSetupTO tradeSetupTO) {
+        if (tradeSetupTO == null) {
+            return;
+        }
+
+        TradeSetupEntity existingEntity = findTradeSetupByStockAndStrategyAndDate(
+                tradeSetupTO.getStockSymbol(),
+                tradeSetupTO.getStrategy(),
+                tradeSetupTO.getStockDate()
+        );
+
+        if (existingEntity != null) {
+            existingEntity.setFetchTime(tradeSetupTO.getFetchTime());
+            existingEntity.setOiChgPer(tradeSetupTO.getOiChgPer());
+            existingEntity.setLtpChgPer(tradeSetupTO.getLtpChgPer());
+            existingEntity.setEntry1(tradeSetupTO.getEntry1());
+            existingEntity.setEntry2(tradeSetupTO.getEntry2());
+            existingEntity.setTarget1(tradeSetupTO.getTarget1());
+            existingEntity.setTarget2(tradeSetupTO.getTarget2());
+            existingEntity.setStopLoss1(tradeSetupTO.getStopLoss1());
+            existingEntity.setStopLoss2(tradeSetupTO.getStopLoss2());
+            existingEntity.setStatus(tradeSetupTO.getStatus());
+            existingEntity.setTradeNotes(tradeSetupTO.getTradeNotes());
+            existingEntity.setType(tradeSetupTO.getType());
+            existingEntity.setHighestPeVolumeStrike(tradeSetupTO.getHighestPeVolumeStrike());
+            existingEntity.setHighestCeVolumeStrike(tradeSetupTO.getHighestCeVolumeStrike());
+            existingEntity.setHighestCeOIChangeStrike(tradeSetupTO.getHighestCeOIChangeStrike());
+            existingEntity.setHighestPeOIChangeStrike(tradeSetupTO.getHighestPeOIChangeStrike());
+            existingEntity.setLowestCeOIChangeStrike(tradeSetupTO.getLowestCeOIChangeStrike());
+            existingEntity.setLowestPeOIChangeStrike(tradeSetupTO.getLowestPeOIChangeStrike());
+
+            entityManager.merge(existingEntity);
+        }
+    }
+
 	public void saveTradeWithStrikes(TradeSetupEntity tradeSetup, List<StrikeSetupEntity> strikes) {
 		for (StrikeSetupEntity strike : strikes) {
 			strike.setTradeSetup(tradeSetup);

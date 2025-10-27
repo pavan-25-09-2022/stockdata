@@ -4,6 +4,7 @@ import com.stocks.dto.*;
 import com.stocks.dto.Properties;
 import com.stocks.enumaration.QueryInterval;
 import com.stocks.repository.TradeSetupManager;
+import com.stocks.utils.CommonUtils;
 import com.stocks.utils.DateUtil;
 import com.stocks.utils.FormatUtil;
 import com.stocks.yahoo.HistQuotesQuery2V8RequestImpl;
@@ -32,6 +33,9 @@ public class DayHighLowBreakService {
 
     @Autowired
     IOPulseService ioPulseService;
+
+    @Autowired
+    private CommonUtils commonUtils;
 
     private static final Map<String, DayLowAndHigh> stocksHistoricalData = new LinkedHashMap<>();
 
@@ -415,6 +419,48 @@ public class DayHighLowBreakService {
         properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
         properties.setEndTime(endTime);
         return properties;
+    }
+
+    private Properties buildProperties(String date, String endTime) {
+        Properties properties = new Properties();
+        properties.setStockDate(date);
+        String startTime = "09:15:00";
+        properties.setStartTime(startTime);
+        properties.setExpiryDate(FormatUtil.getMonthExpiry(properties.getStockDate()));
+        properties.setEndTime(FormatUtil.getTimeHHmm(endTime).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+        return properties;
+    }
+
+
+    public void updateTradeSetup(String startDate, String endDate, String strategy) throws IOException {
+        if (!StringUtils.hasText(startDate) || !StringUtils.hasText(endDate)) {
+            return;
+        }
+
+        List<TradeSetupTO> tradeSetups = tradeSetupManager.findTradeSetupsByDateRangeAndStrategy(startDate, endDate, strategy);
+        for (TradeSetupTO trade : tradeSetups) {
+            Properties properties = buildProperties(trade.getStockDate(), trade.getFetchTime());
+            try {
+                Map<Integer, StrikeTO> strikes = calculateOptionChain.getStrikes(properties, trade.getStockSymbol());
+                StrikeTO peVolumeStrike = commonUtils.getLargestPeVolumeStrike(strikes);
+                StrikeTO ceVolumeStrike = commonUtils.getLargestCeVolumeStrike(strikes);
+                StrikeTO highestPeOiChangeStrike = commonUtils.getHighestPeOiChangeStrike(strikes);
+                StrikeTO lowestPeOiChangeOiStrike = commonUtils.getLowestPeOiChangeStrike(strikes);
+                StrikeTO highestCeOiChangeStrike = commonUtils.getHighestCeOiChangeStrike(strikes);
+                StrikeTO lowestCeOiChangeOiStrike = commonUtils.getLowestCeOiChangeStrike(strikes);
+                trade.setHighestPeVolumeStrike(peVolumeStrike.getStrikePrice());
+                trade.setHighestCeVolumeStrike(ceVolumeStrike.getStrikePrice());
+                trade.setLowestCeOIChangeStrike(lowestCeOiChangeOiStrike.getStrikePrice());
+                trade.setLowestPeOIChangeStrike(lowestPeOiChangeOiStrike.getStrikePrice());
+                trade.setHighestCeOIChangeStrike(highestCeOiChangeStrike.getStrikePrice());
+                trade.setHighestPeOIChangeStrike(highestPeOiChangeStrike.getStrikePrice());
+                tradeSetupManager.updateTradeSetup(trade);
+
+            } catch (Exception e) {
+                System.out.println("error while updating trade setup");
+            }
+        }
+
     }
 
 }

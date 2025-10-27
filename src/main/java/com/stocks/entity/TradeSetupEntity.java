@@ -54,4 +54,21 @@ public class TradeSetupEntity {
 	private String strategy;
 	private String type;
 	private String criteria;
+    private Double highestCeOIChangeStrike;
+    private Double lowestCeOIChangeStrike;
+    private Double highestPeOIChangeStrike;
+    private Double lowestPeOIChangeStrike;
+    private Double highestCeVolumeStrike;
+    private Double highestPeVolumeStrike;
+
+
+	@Override
+	public String toString() {
+		return "TradeSetupEntity{" +
+				"id=" + id +
+				", stockSymbol='" + stockSymbol + '\'' +
+				", stockDate='" + stockDate + '\'' +
+				// do not include strikeSetups or include only their IDs/count
+				'}';
+	}
 }

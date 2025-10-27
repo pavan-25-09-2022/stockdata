@@ -167,6 +167,18 @@ public class MarketMoverController {
 		return "success";
 	}
 
+    @GetMapping("/updateTradeSetupEntity")
+    public String updateTradeSetupEntity(@RequestParam(name = "startDate", required = false, defaultValue = "") String startDate,
+                                               @RequestParam(name = "endDate", required = false, defaultValue = "") String endDate,
+                                               @RequestParam(name = "strategy", required = false, defaultValue = "c2") String strategy) {
+        try {
+            dayHighLowBreakService.updateTradeSetup(startDate, endDate, strategy);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return "success";
+    }
+
 	private String format(Number n) {
 		return n != null ? String.format("%.2f", n) : "";
 	}

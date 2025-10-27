@@ -36,6 +36,12 @@ public class TradeSetupTO {
 	private List<TargetInfo> targetInfos = new ArrayList<>();
 	private List<StopLossInfo> stopLossInfos = new ArrayList<>();
 	private List<EntryInfo> entryInfos = new ArrayList<>();
+    private Double highestCeOIChangeStrike;
+    private Double lowestCeOIChangeStrike;
+    private Double highestPeOIChangeStrike;
+    private Double lowestPeOIChangeStrike;
+    private Double highestCeVolumeStrike;
+    private Double highestPeVolumeStrike;
 
 	Map<Integer, StrikeTO> strikes;
 

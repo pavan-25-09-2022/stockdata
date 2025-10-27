@@ -49,4 +49,56 @@ public class CommonUtils {
 		}
 		return strike;
 	}
+
+    public StrikeTO getHighestCeOiChangeStrike(Map<Integer, StrikeTO> strikes) {
+        if (strikes == null || strikes.isEmpty()) return null;
+        StrikeTO maxStrike = null;
+        double maxCeOiChange = Double.NEGATIVE_INFINITY;
+        for (StrikeTO strike : strikes.values()) {
+            if (strike != null && strike.getCeOiChg() > maxCeOiChange) {
+                maxCeOiChange = strike.getCeOiChg();
+                maxStrike = strike;
+            }
+        }
+        return maxStrike;
+    }
+
+    public StrikeTO getLowestCeOiChangeStrike(Map<Integer, StrikeTO> strikes) {
+        if (strikes == null || strikes.isEmpty()) return null;
+        StrikeTO minStrike = null;
+        double minCeOiChange = Double.POSITIVE_INFINITY;
+        for (StrikeTO strike : strikes.values()) {
+            if (strike != null && strike.getCeOiChg() < minCeOiChange) {
+                minCeOiChange = strike.getCeOiChg();
+                minStrike = strike;
+            }
+        }
+        return minStrike;
+    }
+
+    public StrikeTO getHighestPeOiChangeStrike(Map<Integer, StrikeTO> strikes) {
+        if (strikes == null || strikes.isEmpty()) return null;
+        StrikeTO maxStrike = null;
+        double maxPeOiChange = Double.NEGATIVE_INFINITY;
+        for (StrikeTO strike : strikes.values()) {
+            if (strike != null && strike.getPeOiChg() > maxPeOiChange) {
+                maxPeOiChange = strike.getPeOiChg();
+                maxStrike = strike;
+            }
+        }
+        return maxStrike;
+    }
+
+    public StrikeTO getLowestPeOiChangeStrike(Map<Integer, StrikeTO> strikes) {
+        if (strikes == null || strikes.isEmpty()) return null;
+        StrikeTO minStrike = null;
+        double minPeOiChange = Double.POSITIVE_INFINITY;
+        for (StrikeTO strike : strikes.values()) {
+            if (strike != null && strike.getPeOiChg() < minPeOiChange) {
+                minPeOiChange = strike.getPeOiChg();
+                minStrike = strike;
+            }
+        }
+        return minStrike;
+    }
 }
