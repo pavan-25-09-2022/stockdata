@@ -20,3 +20,4 @@ maven_install.json
 **/__pycache__/**
 # Ignore application2.properties
 /src/main/resources/application2.properties
+/databases/stockdata.mv.db
