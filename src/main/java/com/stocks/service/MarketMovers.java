@@ -59,6 +59,7 @@ public class MarketMovers {
 
 		for (MarketMoverData marketMoverData : marketMoversResponse.getData()) {
             String stock = marketMoverData.getStSymbolName();
+            properties.setStockName(stock);
             try {
                 List<String> values = getStockType(marketMoverData, type);
                 if (values == null) {
@@ -299,6 +300,16 @@ public class MarketMovers {
 			tradeSetup.setStopLoss1(strikeUp2.getStrikePrice());
             tradeSetup.setStopLoss2(strikeUp1.getStrikePrice());
 			tradeSetup.setStrategy(criteria);
+            StrikeTO highestPeOiChangeStrike = commonUtils.getHighestPeOiChangeStrike(strikes);
+            StrikeTO lowestPeOiChangeOiStrike = commonUtils.getLowestPeOiChangeStrike(strikes);
+            StrikeTO highestCeOiChangeStrike = commonUtils.getHighestCeOiChangeStrike(strikes);
+            StrikeTO lowestCeOiChangeOiStrike = commonUtils.getLowestCeOiChangeStrike(strikes);
+            tradeSetup.setHighestPeVolumeStrike(peVolumeStrike.getStrikePrice());
+            tradeSetup.setHighestCeVolumeStrike(ceVolumeStrike.getStrikePrice());
+            tradeSetup.setLowestCeOIChangeStrike(lowestCeOiChangeOiStrike.getStrikePrice());
+            tradeSetup.setLowestPeOIChangeStrike(lowestPeOiChangeOiStrike.getStrikePrice());
+            tradeSetup.setHighestCeOIChangeStrike(highestCeOiChangeStrike.getStrikePrice());
+            tradeSetup.setHighestPeOIChangeStrike(highestPeOiChangeStrike.getStrikePrice());
             if(strikeDown1.getCeOiChg() < 0){
                 tradeSetup.setTradeNotes(" SC");
             }

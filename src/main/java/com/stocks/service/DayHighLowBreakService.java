@@ -455,9 +455,10 @@ public class DayHighLowBreakService {
                 trade.setHighestCeOIChangeStrike(highestCeOiChangeStrike.getStrikePrice());
                 trade.setHighestPeOIChangeStrike(highestPeOiChangeStrike.getStrikePrice());
                 tradeSetupManager.updateTradeSetup(trade);
+                System.out.println("updated successfully "+trade.getStockSymbol());
 
             } catch (Exception e) {
-                System.out.println("error while updating trade setup");
+                System.out.println("error while updating trade setup" +trade.getStockSymbol() + "  " +trade.getStockDate());
             }
         }
 

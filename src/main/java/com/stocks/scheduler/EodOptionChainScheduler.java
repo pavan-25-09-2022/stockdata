@@ -21,7 +21,7 @@ public class EodOptionChainScheduler {
 	@Autowired
 	private MarketMoversMailService marketMoversMailService;
 
-	@Scheduled(cron = "10 */5 9-13 * * *") // Runs every 5 minutes from 9:15 to 13:35
+	//@Scheduled(cron = "10 */5 9-13 * * *") // Runs every 5 minutes from 9:15 to 13:35
 	public void callApi() {
 		log.info("Scheduler started API stocks");
 		Properties properties = new Properties();

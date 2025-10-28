@@ -123,6 +123,12 @@ public class MarketMoversMailService {
 				.append("<th>Notes</th>")
 				.append("<th>Strategy</th>")
 				.append("<th>Type</th>")
+                .append("<th>Entry2</th>")
+                .append("<th>Lowest CE OI change</th>")
+                .append("<th>Higest CE Oi change</th>")
+                .append("<th>Lowest PE OI change</th>")
+                .append("<th>Higest PE Oi change</th>")
+                .append("<th>Is Lowest CE >= entry</th>")
 				.append("</tr>");
 		for (TradeSetupTO trade : trades) {
 			sb.append("<tr>")
@@ -139,7 +145,13 @@ public class MarketMoversMailService {
 					.append("<td>").append(trade.getTradeNotes() != null ? trade.getTradeNotes() : "").append("</td>")
 					.append("<td>").append(trade.getStrategy() != null ? trade.getStrategy() : "").append("</td>")
 					.append("<td>").append(trade.getType() != null ? trade.getType() : "").append("</td>")
-					.append("</tr>");
+                    .append("<td>").append(trade.getEntry2()).append("</td>")
+                    .append("<td>").append(trade.getLowestCeOIChangeStrike()).append("</td>")
+                    .append("<td>").append(trade.getHighestCeOIChangeStrike()).append("</td>")
+                    .append("<td>").append(trade.getLowestPeOIChangeStrike()).append("</td>")
+                    .append("<td>").append(trade.getHighestPeOIChangeStrike()).append("</td>")
+                    .append("<td>").append(trade.getLowestCeOIChangeStrike() != null && trade.getLowestCeOIChangeStrike() > trade.getEntry2() ? "True" : "False").append("</td>")
+                    .append("</tr>");
 		}
 		sb.append("</table>");
 		return sb.toString();
@@ -169,6 +181,13 @@ public class MarketMoversMailService {
 				.append("<th>Notes</th>")
 				.append("<th>Strategy</th>")
 				.append("<th>Type</th>")
+                .append("<th>Entry2</th>")
+                .append("<th>Lowest CE OI change</th>")
+                .append("<th>Higest CE Oi change</th>")
+                .append("<th>Lowest PE OI change</th>")
+                .append("<th>Higest PE Oi change</th>")
+                .append("<th>Is Lowest CE >= entry</th>")
+                .append("<th>Is Lowest CE > entry</th>")
 				.append("</tr>");
 		for (TradeSetupTO trade : trades) {
 			sb.append("<tr>")
@@ -191,7 +210,14 @@ public class MarketMoversMailService {
 					.append("<td>").append(trade.getTradeNotes() != null ? trade.getTradeNotes() : "").append("</td>")
 					.append("<td>").append(trade.getStrategy() != null ? trade.getStrategy() : "").append("</td>")
 					.append("<td>").append(trade.getType() != null ? trade.getType() : "").append("</td>")
-					.append("</tr>");
+                    .append("<td>").append(trade.getEntry2()).append("</td>")
+                    .append("<td>").append(trade.getLowestCeOIChangeStrike()).append("</td>")
+                    .append("<td>").append(trade.getHighestCeOIChangeStrike()).append("</td>")
+                    .append("<td>").append(trade.getLowestPeOIChangeStrike()).append("</td>")
+                    .append("<td>").append(trade.getHighestPeOIChangeStrike()).append("</td>")
+                    .append("<td>").append(trade.getLowestCeOIChangeStrike() != null && trade.getLowestCeOIChangeStrike() >= trade.getEntry2() ? "True" : "False").append("</td>")
+                    .append("<td>").append(trade.getLowestCeOIChangeStrike() != null && trade.getLowestCeOIChangeStrike() > trade.getEntry2() ? "True" : "False").append("</td>")
+                    .append("</tr>");
 		}
 		sb.append("</table>");
 		return sb.toString();

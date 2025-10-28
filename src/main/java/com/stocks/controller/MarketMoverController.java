@@ -131,6 +131,9 @@ public class MarketMoverController {
 				writer.append(safe(trade.getStopLoss1Time())).append(",");
 				writer.append(safe(trade.getTradeNotes())).append(",");
 				writer.append(safe(trade.getStrategy())).append(",");
+                writer.append(safe(trade.getLowestCeOIChangeStrike() != null && trade.getLowestCeOIChangeStrike() >= trade.getEntry2() ? "True" : "False")).append(",");
+                writer.append(safe(trade.getLowestCeOIChangeStrike() != null && trade.getLowestCeOIChangeStrike() > trade.getEntry2() ? "True" : "False")).append(",");
+                writer.append(safe(trade.getHighestPeOIChangeStrike() != null && trade.getHighestPeOIChangeStrike() > trade.getEntry2() ? "True" : "False")).append(",");
 				writer.append(safe(trade.getType())).append("\n");
 			}
 		}

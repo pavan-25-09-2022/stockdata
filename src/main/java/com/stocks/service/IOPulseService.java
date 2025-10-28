@@ -274,6 +274,7 @@ public class IOPulseService {
 				ObjectMapper objectMapper = new ObjectMapper();
 				OptionChainResponse apiResponse = objectMapper.readValue(response.getBody(), OptionChainResponse.class);
 				// Now use apiResponse as needed
+                log.info("stock {} startTime {} endTime {}", stock, properties.getStartTime(), properties.getEndTime());
 				return apiResponse;
 			}
 			log.info("stock {} startTime {} endTime {}", stock, properties.getStartTime(), properties.getEndTime());

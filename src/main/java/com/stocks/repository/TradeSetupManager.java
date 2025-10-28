@@ -272,6 +272,12 @@ public class TradeSetupManager {
 		to.setTradeNotes(entity.getTradeNotes());
 		to.setStrategy(entity.getStrategy());
 		to.setType(entity.getType());
+        to.setHighestCeVolumeStrike(entity.getHighestCeVolumeStrike());
+        to.setHighestPeVolumeStrike(entity.getHighestPeVolumeStrike());
+        to.setHighestPeOIChangeStrike(entity.getHighestPeOIChangeStrike());
+        to.setHighestCeOIChangeStrike(entity.getHighestCeOIChangeStrike());
+        to.setLowestPeOIChangeStrike(entity.getLowestPeOIChangeStrike());
+        to.setLowestCeOIChangeStrike(entity.getLowestCeOIChangeStrike());
         if (entity.getStrikeSetups() != null && !entity.getStrikeSetups().isEmpty()) {
             Map<Integer, StrikeTO> strikes = new HashMap<>();
             for (StrikeSetupEntity strikeEntity : entity.getStrikeSetups()) {
